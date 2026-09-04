@@ -3,7 +3,7 @@
 **Project:** <Gaming>
 **Members:** <Whitney Akred, Shana Billiot, Liliana Matte, Gustavo Castillo, Leiton Peterson, Ivan Lopez>
 **Repository:** <https://github.com/whitneyakred/senior-design-13>, owned by <Whitney Akred>
-**Signed:** <Sept 4th, 2026>
+**Signed:**<Sept 4th, 2026>
 
 ## 1. Meeting time
 
@@ -56,3 +56,4 @@ Each member adds their own line, in their own commit.
 
 Whitney Akred, <Sept 4th, 2026>
 Shana Billiot, <Sept 4th, 2026>
+Liliana Matte, <Sept 4th, 2026>
