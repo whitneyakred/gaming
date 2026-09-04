@@ -1,7 +1,7 @@
 # Team Contract: <Gaming>
 
 **Project:** <Gaming>
-**Members:** <Whitney Akred, Shana Billiot, Liliana Matte, Gustavo Castillo, Leiton Peterson>
+**Members:** <Whitney Akred, Shana Billiot, Liliana Matte, Gustavo Castillo, Leiton Peterson, Ivan Lopez>
 **Repository:** <https://github.com/whitneyakred/senior-design-13>, owned by <Whitney Akred>
 **Signed:** <Sept 4th, 2026>
 
