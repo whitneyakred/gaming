@@ -17,9 +17,9 @@ We reply within **<6>** hours on weekdays. Anything urgent: **<3>**.
 
 ## 3. How we decide
 
-Routine calls: **<Whoever owns the use case decides>**.
-Anything affecting the whole team: **<Discussed at the weekly meeting, majority, ties go to the project lead>**.
-A decision that survives the meeting is written down in **<A channel in our discord and recorded for future reference>**.
+Routine calls: Whoever owns the use case decides.
+Anything affecting the whole team: Discussed at the weekly meeting, majority, ties go to the project lead.
+A decision that survives the meeting is written down in A channel in our discord and recorded for future reference.
 
 ## 4. How work is claimed
 
@@ -36,14 +36,14 @@ This clause is about how work moves.
 Branch per sub-issue, <named mm-dd-issue>.
 Never push to `main`. Every change arrives as a pull request.
 A pull request needs **<2>** approving review(s) from someone who does not own the use case.
-A reviewer reads the issue before the diff. Blocking a merge: **<what blocks it>**.
+A reviewer reads the issue before the diff. Blocking a merge: state what blocks it.
 
 ## 6. Working with AI
 
 We use Claude Code. Our charter lives in `AGENTS.md`.
 Every member can explain any line submitted under their name.
 We do not merge agent output that nobody has read.
-Additional limits we agree on: **<anything else>**.
+Additional limits we agree on: nothing else at this time.
 
 ## 7. When someone does not deliver
 
