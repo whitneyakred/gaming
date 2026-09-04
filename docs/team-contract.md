@@ -25,7 +25,7 @@ A decision that survives the meeting is written down in **<A channel in our disc
 
 Work is divided **by use case, and also interest**. One member owns a use case end to
 end: front end, back end, tests, and the pipeline.
-Claiming: **<Assign yourself the sub-issue and move the card>**.
+Claiming: Assign yourself the sub-issue.
 Nobody is the "front-end person" or the "tester".
 
 ## 5. Git workflow and review
@@ -33,26 +33,26 @@ Nobody is the "front-end person" or the "tester".
 Coding conventions (naming, formatting, layout) live in `AGENTS.md`, not here.
 This clause is about how work moves.
 
-Branch per sub-issue, named **<mm-dd-issue>**.
+Branch per sub-issue, <named mm-dd-issue>.
 Never push to `main`. Every change arrives as a pull request.
 A pull request needs **<2>** approving review(s) from someone who does not own the use case.
 A reviewer reads the issue before the diff. Blocking a merge: **<what blocks it>**.
 
 ## 6. Working with AI
 
-We use **<Claude Code>**. Our charter lives in `AGENTS.md`.
+We use Claude Code. Our charter lives in `AGENTS.md`.
 Every member can explain any line submitted under their name.
 We do not merge agent output that nobody has read.
 Additional limits we agree on: **<anything else>**.
 
 ## 7. When someone does not deliver
 
-First: **<Liliana raises it>**. We attack the problem, not the person.
-If it happens again: **<we have a discussion about how the person can make it up>**.
+First: Liliana raises it. We attack the problem, not the person.
+If it happens again: we have a discussion about how the person can make it up>.
 Still unresolved: we escalate to our TA, then to the instructor. We escalate early.
 
 ## Signatures
 
 Each member adds their own line, in their own commit.
 
-Whitney, <Sept 4th, 2026>
+Whitney Akred, <Sept 4th, 2026>
