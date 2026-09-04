@@ -57,3 +57,4 @@ Each member adds their own line, in their own commit.
 Whitney Akred, <Sept 4th, 2026>
 Shana Billiot, <Sept 4th, 2026>
 Liliana Matte, <Sept 4th, 2026>
+Gustavo Castillo Jr. <Sept 4th 10:37 AM>
