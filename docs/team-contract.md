@@ -23,8 +23,7 @@ A decision that survives the meeting is written down in A channel in our discord
 
 ## 4. How work is claimed
 
-Work is divided **by use case, and also interest**. One member owns a use case end to
-end: front end, back end, tests, and the pipeline.
+Work is divided **by use case, and also interest**. One member owns a use case end to end: front end, back end, tests, and the pipeline.
 Claiming: Assign yourself the sub-issue.
 Nobody is the "front-end person" or the "tester".
 
@@ -56,3 +55,4 @@ Still unresolved: we escalate to our TA, then to the instructor. We escalate ear
 Each member adds their own line, in their own commit.
 
 Whitney Akred, <Sept 4th, 2026>
+Shana Billiot, <Sept 4th, 2026>
