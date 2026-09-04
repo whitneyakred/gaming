@@ -12,7 +12,7 @@ A member who cannot attend tells the team **<48 hours in advance>** and reads th
 
 ## 2. Communication
 
-Primary channel: **<Discord>**. Client contact goes through **<Whitney Akred>**.
+Primary channel: **<https://softwareengin-2fh7080.slack.com/archives/C0BUWARD6BD>**. Client contact goes through **<Whitney Akred>**.
 We reply within **<6>** hours on weekdays. Anything urgent: **<3>**.
 
 ## 3. How we decide
