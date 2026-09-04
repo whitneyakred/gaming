@@ -48,7 +48,7 @@ Additional limits we agree on: nothing else at this time.
 ## 7. When someone does not deliver
 
 First: Liliana raises it. We attack the problem, not the person.
-If it happens again: we have a discussion about how the person can make it up>.
+If it happens again: we have a discussion about how the person can make it up.
 Still unresolved: we escalate to our TA, then to the instructor. We escalate early.
 
 ## Signatures
