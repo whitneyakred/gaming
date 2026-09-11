@@ -1,83 +1,139 @@
 # Project Glossary
 
-**Project:** _[Your project name]_
-**Team:** _[Team NN]_
-**Client:** _[Client name and organization]_
+**Project:** Man the Ship
+
+**Team:** Team 13 (Gaming)
+
+**Client:** None — this is a student-proposed senior design project.
+
 **Version:** 0.1
 
----
+## Purpose and Project Context
 
-_**How to use this template.** Instructions appear in italic square brackets. Fill in underneath them and leave them in the file until the document is stable._
+This glossary establishes a shared vocabulary for Man the Ship, a top-down 2D cooperative sailing and survival game. The student development team defines the game concept and requirements; there is no external client. Intended players and course instructors are stakeholders whose feedback informs the project.
 
-_**What this document is for.** Every project has words that mean something specific inside the client's organization and something else outside it, or nothing at all. This file fixes one word to one concept, and commits the team, the client, and the AI teammate to using it. That shared vocabulary is called a **ubiquitous language**: the same term in the client conversation, in the vision and scope, in the use cases, in the class names, and in the database columns._
-
-_**Why the glossary is the first artifact you write and the last one you finish.** It is the cheapest document to start, because your client hands you the terms in the first meeting whether you ask or not, and it is the one that keeps paying: every later document cites it instead of redefining things._
-
-## Why this matters when an agent writes your code
-
-_[Read this once, then delete this section when the document goes stable.]_
-
-_If two words in your project mean the same thing and nothing says so, your team will use both. So will your agent. You will end up with a `Team` class and a `Group` table, a `submitReport` endpoint and a `war_entry` record, and every one of those pairs is a bug waiting for the week you try to join them._
-
-_An agent cannot resolve this on its own. Asked to add a feature, it reads what is in the repository and imitates it. If the repository is inconsistent it will faithfully reproduce the inconsistency, and it will invent a plausible synonym for anything the repository never names. A glossary in the repository is the only thing that stops it, because the repository is the whole of the agent's memory of your project._
-
-_The other half is human. When your client says "cycle" in one sentence and "sprint" in the next, that is your signal to ask which one they mean, in the meeting, while they are in front of you. An agent reading the transcript later cannot ask._
-
-## The entries that earn their place
-
-_[The temptation is to define words your teammates already know. Skip those. The entries worth writing are:]_
-
-- _**Terms two stakeholders use differently.** The highest-value entry in any glossary. In airline statistics, the International Civil Aviation Organization says **city-pair** and the International Air Transport Association says **O and D**, for the same thing; the two bodies also say **traffic by flight stage** and **segment traffic** for another. A team that misses this builds a report that silently mixes them._
-- _**Terms that sound generic but are not.** "Active", "submitted", "complete", "week". Ask what makes a record active and you often find a business rule nobody had stated._
-- _**The client's acronyms**, spelled out, including the ones they use so fluently they have forgotten they are acronyms._
-- _**Terms you invented** that the client does not use. Record them, then consider dropping them in favor of the client's word._
-
-_Ask the client directly: "Is there a word your team uses here that I would not guess the meaning of?"_
+The current prototype is single-player. Four-player cooperative play is a planned direction, with networking deferred until the local sailing and station interactions are stable. Definitions describe the project vocabulary, not a commitment to implement every feature in the first milestone.
 
 ## Conventions
 
-_[The **term itself is the identifier**. There is no separate numbering scheme, because a glossary entry already has a unique, meaningful name: the word. Cite a term by writing it, and keep the spelling identical everywhere it appears._
-
-_Rules:_
-
-- _One entry per concept. If two words mean the same thing, pick one, define it, and list the other as a synonym under it rather than giving it its own entry._
-- _Alphabetical order, so a reader can find a term without searching._
-- _Define the concept, not the implementation. "A weekly record of what a student did" is a definition; "a row in the `war` table" is not._
-- _Use the client's word when the client has one. You are joining their world, not renaming it._
-- _If a term has a meaning outside this project that differs from the one here, say so explicitly.]_
+- Use one preferred term per concept across requirements, discussions, and code. List alternate names as synonyms instead of creating duplicate entries.
+- Keep definitions in alphabetical order and cite entries by their term names.
+- Define gameplay concepts rather than specific classes, controls, or numeric settings.
+- Use **development team** for the students building the game and **crew** for the characters aboard the ship.
+- Update this glossary when the team agrees on a new term or changes an existing meaning.
 
 ## Revision History
 
 | Date | Version | Description | Author |
 |---|---|---|---|
-| _[YYYY-MM-DD]_ | 0.1 | Initial terms from the client brief and first client meeting | _[Name]_ |
-
----
+| 2026-09-11 | 0.1 | Initial project-specific glossary based on the Man the Ship prototype and student-proposed project context; prepared for team review. | Leiton Peterson (with AI assistance) |
 
 ## Definitions
 
-_[One `###` heading per term, alphabetical. Follow the heading with a definition of one to three sentences. Add **Synonyms**, **Not to be confused with**, or **Source** lines where they help. Where a term only makes sense with an example, give one._
+### Capsize
 
-_Worked examples of the format:_
+A voyage-ending loss of the ship's balance. In the current prototype, capsize occurs when stability reaches zero; it does not require a physically simulated overturned hull.
 
-### Active Week
+### Cooperative Play
 
-_A week in which the course is in session and submissions are open. A student can submit a weekly activity report only during an active week, which makes this term the subject of a business rule rather than a piece of trivia._
+A game mode in which players work together as one crew to operate the same ship and survive a voyage. The planned mode supports up to four players; the current prototype supports one player.
 
-_**Not to be confused with:** the current calendar week, which continues during breaks when no week is active._
+**Synonyms:** Co-op.
 
-### City-Pair
+### Crew
 
-_The origin and destination airports of a passenger journey, treated as an unordered pair. Used in International Civil Aviation Organization statistics._
+The characters aboard the ship who carry out sailing and survival tasks. In the current prototype, the crew consists of one player-controlled character.
 
-_**Synonyms:** O and D (the International Air Transport Association's term for the same concept). Both appear in source data, so any report that combines the two sources has to normalize them first._
+**Not to be confused with:** The development team building the game.
 
-### Weekly Activity Report
+### Crew Member
 
-_A record of what one student did for their team during one week, submitted once per week by that student._
+An individual character who can move around the deck and interact with stations. A crew member is the character in the game; a player is the person controlling that character.
 
-_**Synonyms:** WAR, used conversationally by the client and in the existing spreadsheets. Spell it out on first use in any document._
+### Deck
 
-_**Source:** the client's existing Google Sheets process, described in [vision-and-scope.md](vision-and-scope.md) section 1.2._
+The walkable area aboard the ship where crew members move between stations. Crew positions on the deck also affect the ship's balance.
 
-_[End of worked examples. Delete them and write your own terms below.]_
+### Development Team
+
+The Team 13 students designing, implementing, testing, and documenting Man the Ship. Because the project is student-proposed, the development team defines its product direction and scope without an external client.
+
+### Heading
+
+The direction the ship is pointing in the game world. Heading is distinct from the direction of the wind and from the direction a crew member faces.
+
+### Heel
+
+The ship's sideways lean in response to sailing forces, waves, and crew weight. Heel describes the lean itself; stability describes the ship's remaining ability to avoid capsizing.
+
+### Helm
+
+The station where a crew member steers the ship and changes its heading.
+
+**Synonyms:** Wheel, steering station.
+
+### Lookout
+
+The station at the mast that gives a crew member an expanded view of the surrounding ocean. The term can also describe the crew member currently using that station; it does not imply a permanent character class.
+
+**Synonyms:** Lookout station.
+
+### Ocean Chunk
+
+A reusable section of the ocean surrounding the ship. Chunks are repositioned as the ship travels so that ocean coverage can continue in any direction without requiring one enormous level.
+
+### Paradise Cay
+
+The destination the crew must reach to win the current prototype's voyage. Reaching it requires keeping the ship stable and managing survival needs along the way.
+
+**Synonyms:** Paradise.
+
+### Player
+
+A person controlling a crew member. The current prototype has one player, while the planned cooperative mode allows multiple players to share responsibility for the same ship.
+
+### Prototype
+
+The early playable version used to test whether the core sailing, station, and survival interactions work well together. Its current single-player behavior does not imply that planned multiplayer features are already available.
+
+### Sail Trim
+
+The adjustment of the sail's angle relative to the wind to affect propulsion and the ship's balance. Raising or lowering the sail changes how much sail is exposed and is a separate adjustment.
+
+### Sailing Station
+
+The station where a crew member adjusts the sail's angle and raises or lowers it. Operating this station controls how the ship uses the wind, while the helm controls steering.
+
+**Synonyms:** Sail station, sail ropes.
+
+### Ship
+
+The shared moving home that carries the crew, stations, and supplies through the ocean. Crew members cooperate to operate and balance this vessel rather than each controlling a separate vessel.
+
+**Synonyms:** Boat, sailboat.
+
+### Stability
+
+The gameplay measure of the ship's ability to remain upright. Sailing conditions and crew balance affect stability; reaching zero causes a capsize in the current prototype.
+
+**Not to be confused with:** Hull damage or a crew member's survival needs.
+
+### Station
+
+An interaction location aboard the ship where a crew member performs a particular task, such as steering, adjusting sails, keeping lookout, or satisfying a survival need. Responsibilities are associated with stations so crew members can change tasks during a voyage.
+
+### Supplies
+
+The food and drinking water carried aboard the ship to satisfy survival needs. The term does not imply a general inventory or crafting system.
+
+### Survival Needs
+
+The crew's bodily needs that must be managed during a voyage: hunger, thirst, and the need to urinate or defecate. The current prototype represents these with meters and can end a voyage when a need becomes critical and is not addressed.
+
+### Voyage
+
+One playable attempt to sail to the destination while keeping the crew alive and the ship stable. In the current prototype, a voyage ends with arrival at Paradise Cay or a failure condition, after which the player can restart.
+
+### Wind Direction
+
+The direction in which the wind blows through the game world. Together with sail trim, it affects how the ship moves and leans; it is not the ship's heading.
