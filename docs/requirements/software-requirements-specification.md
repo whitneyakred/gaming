@@ -1,8 +1,8 @@
 # Software Requirements Specification
 
-**Project:** _[Your project name]_
-**Team:** _[Team NN]_
-**Client:** _[Client name and organization]_
+**Project:** _[Your project nam]_ Game Design
+**Team:** _[Team NN]_ Team 13
+**Client:** _[Client name and organization]_ No Client 
 **Version:** 0.1
 
 ---
@@ -47,6 +47,8 @@ _Requirements cited from elsewhere keep their own identifiers: `UC-*` from [use-
 ### 1.1 The purpose of _[project name]_
 
 _[What the system is for: who wants it, why, and who will use it. Even though the vision and scope answers this, restate it in a paragraph here, because people read this document without having read that one.]_
+
+Our product is meant for entertainment. We are working on a causal game meant for people to play with friends in couch co-op or single player modes. Our game is going to revolve around completing tasks on a ship in order to reach an end goal. WE still are determing what the exact mechanics and functions are going to be but they will be set soon when we meet again.
 
 ### 1.2 The purpose of this document
 
