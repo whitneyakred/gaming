@@ -1,9 +1,9 @@
 # Client Interview Guide
 
-**Project:** _[Your project name]_
-**Team:** _[Team NN]_
-**Client:** _[Client name and organization]_
-**Meeting:** _[Which one. This is meeting 1 of several.]_
+**Project:** Gaming
+**Team:** _Liliana Matte, Ivan Lopez, Leiton Peterson, Shana Billiot, Gustavo Castillo, Whitney Akred
+**Client:** Ourselves
+**Meeting:** Group meeting 1
 
 ---
 
@@ -33,12 +33,12 @@ This is about order, not silence. Some clients want to think out loud with you, 
 
 | | |
 |---|---|
-| **Date** | _[YYYY-MM-DD]_ |
-| **Time and location** | _[Where, and in person or remote]_ |
-| **Client participants** | _[Name, role. Everyone, including whoever only listened.]_ |
-| **Team participants** | _[Name (lead), Name (scribe), Name (observer), ...]_ |
-| **Recording** | _[Asked? Granted or declined]_ |
-| **Photos of screens or forms** | _[Asked? Granted or declined]_ |
+| **Date** | 9/11/26 |
+| **Time and location** | Discord Video Chat |
+| **Client participants** | Collective group |
+| **Team participants** | Whitney Akred (lead), Shana Billiot (scribe), Liliana Matte (observer)
+| **Recording** | Did not record meeting |
+| **Photos of screens or forms** | No photos recired |
 
 _Ask to record, and say why: so nobody is transcribing instead of listening. If they decline, the scribe matters more. Ask separately about photographing screens, forms, and reports. A photo of the spreadsheet they actually use beats a page of notes about it._
 
