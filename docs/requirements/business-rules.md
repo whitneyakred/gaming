@@ -1,8 +1,8 @@
 # Business Rules
 
-**Project:** _[Your project name]_
-**Team:** _[Team NN]_
-**Client:** _[Client name and organization]_
+**Project:** Game Design
+**Team:** Team 13
+**Client:** ourselves
 **Version:** 0.1
 
 ---
@@ -90,11 +90,11 @@ _The Source column is the defense. Every rule traces to a document or a person, 
 
 ### 1.1 Purpose
 
-_[One paragraph: this document collects the policies, regulations, standards, and formulas that govern the business your software operates in, so the specification can cite them rather than restate them.]_
+This document collects the rules and constraints identified during the team's September 10, 2026 meeting that may affect the design and development of the survival game. It also separates actual business rules from team decisions and design ideas so that requirements are not incorrectly treated as business rules.
 
 ### 1.2 Scope
 
-_[Which parts of the client's business these rules cover, and which are out of scope. If your client's organization has rules that your system does not touch, say so here rather than silently omitting them.]_
+The current project is a PC survival game centered on a man on a ship. The initial scope is single-player development, with co-op planned only after the single-player version is fully developed. Gameplay roles, ship stations, NPC assistance, rafting/rescue mechanics, and the game's visual style are still being researched and decided. No external business, legal, or regulatory rules were identified in the meeting notes.
 
 ---
 
@@ -106,13 +106,31 @@ _Format each rule as a bold identifier, the rule in one sentence, then its sourc
 
 ### 2.1 _[Topic]_
 
-- **`BR-active-weeks`:** A student may submit or edit a weekly activity report only during a week that the course section has marked active.
-  **Source:** course policy, confirmed by the instructor 2026-09-10.
-- **`BR-section-admin-only`:** Only a course admin may create or edit a course section, configure its active-weeks window (see `BR-active-weeks`), or assign a rubric to it.
-  **Source:** department policy on grade-bearing records.
-- **`BR-artifact-key-unique`:** Every artifact key is unique within a team and remains stable across edits to the artifact's content.
-  **Source:** team decision, 2026-09-10. **Candidate for the specification instead of this file**, since the team, not the client, would approve a change.
+-   **`BR-single-player-first`:** The single-player version of the
+    survival game must be fully developed before co-op development
+    begins. **Source:** team decision, 2026-09-10. **Candidate for the
+    specification instead of this file**, since this is a team
+    development decision rather than an external business rule.
 
-_[That third entry is deliberate. Flag rules you are not sure about rather than dropping them; deciding whether something is a rule or a requirement is a conversation to have with your client, and it is worth having.]_
+### 2.2 Team Decision-Making
 
-_**Checklist:** Does every rule have a source? Could your client change it without asking you? Is it stated as one sentence about the business, rather than as a sentence about your software? Does any use case cite it, and if none does, is that correct?_
+-   **`BR-team-input-before-implementation`:** New gameplay or design
+    ideas should be communicated to and discussed with the entire team
+    before implementation. **Source:** team decision, 2026-09-10.
+    **Candidate for a team process document instead of this file**,
+    since this is an internal development practice rather than a
+    business rule.
+
+### 2.3 Rules Still To Be Determined
+
+No external business rules, regulations, policies, or computational
+formulas were identified in the September 10, 2026 meeting notes.
+Gameplay decisions such as NPC assistance, rescuing people with a raft,
+the impact of role attributes versus ship stations, and traditional
+versus fantasy-like roles are still under discussion and should not be
+recorded as fixed business rules yet.
+
+***Checklist:** Does every rule have a source? Could your client change
+it without asking you? Is it stated as one sentence about the business,
+rather than as a sentence about your software? Does any use case cite
+it, and if none does, is that correct?*
