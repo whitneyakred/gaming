@@ -1,8 +1,7 @@
 # Use Cases
 
-**Project:** _[Your project name]_
-**Team:** _[Team NN]_
-**Client:** _[Client name and organization]_
+**Project:** _[Gaming]_
+**Team:** _[Whitney Akred, Leiton Peterson, Ivan Lopez, Liliana Matte, Gustavo Castillo, and Shana Billiot]_
 **Version:** 0.1
 
 ---
@@ -29,7 +28,7 @@ _Within one use case, `PRE-1`, `POST-1`, and the step numbers are local and may 
 
 | Date | Version | Description | Author |
 |---|---|---|---|
-| _[YYYY-MM-DD]_ | 0.1 | Initial use cases derived from the vision and scope feature list | _[Name]_ |
+| _[2026-09-11]_ | 0.1 | Initial use cases derived from the vision and scope feature list | _[Whitney]_ |
 
 ---
 
