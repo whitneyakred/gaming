@@ -30,6 +30,18 @@ _[Send the shortlist to your client the day before. A client who has seen the qu
 | ID | Question | Why it matters | Who can answer | Raised |
 |---|---|---|---|---|
 | OI-1 | _[The question, phrased so it has a definite answer. Not "tell us about reporting" but "who is allowed to see another student's evaluation scores?"]_ | _[What we get wrong if we guess. Name the artifact or decision it blocks.]_ | _[Client, instructor, a specific user, or the team itself]_ | _[YYYY-MM-DD]_ |
+OI-starting-mechanics: What are the core mechanics the player should begin with? 
+OI-initial-features: Which features should be included in the first playable version? 
+OI-style: What should the game's final visual/style direction be? 
+OI-roles-stations: Should character roles or ship stations have greater gameplay impact? 
+OI-role-type: Should roles be traditional survival roles or fantasy-like roles? 
+OI-NPC: What tasks and responsibilities should NPCs have in single-player? 
+OI-rescue: How should the raft/rescue mechanic work when a player or NPC falls overboard? 
+OI-coop: What specific co-op functionality should be added after single-player development? 
+OI-users: Who is the target player/audience for the game? 
+OI-scale: How many players/NPCs and how large should the game environment be? 
+OI-testing: How will the game be tested with players? 
+OI-maintenance: What happens to the game/project after the course is completed?
 
 ## Resolved
 
