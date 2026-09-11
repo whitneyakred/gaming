@@ -29,19 +29,18 @@ _[Send the shortlist to your client the day before. A client who has seen the qu
 
 | ID | Question | Why it matters | Who can answer | Raised |
 |---|---|---|---|---|
-| OI-1 | _[The question, phrased so it has a definite answer. Not "tell us about reporting" but "who is allowed to see another student's evaluation scores?"]_ | _[What we get wrong if we guess. Name the artifact or decision it blocks.]_ | _[Client, instructor, a specific user, or the team itself]_ | _[YYYY-MM-DD]_ |
-OI-starting-mechanics: What are the core mechanics the player should begin with? 
-OI-initial-features: Which features should be included in the first playable version? 
-OI-style: What should the game's final visual/style direction be? 
-OI-roles-stations: Should character roles or ship stations have greater gameplay impact? 
-OI-role-type: Should roles be traditional survival roles or fantasy-like roles? 
-OI-NPC: What tasks and responsibilities should NPCs have in single-player? 
-OI-rescue: How should the raft/rescue mechanic work when a player or NPC falls overboard? 
-OI-coop: What specific co-op functionality should be added after single-player development? 
-OI-users: Who is the target player/audience for the game? 
-OI-scale: How many players/NPCs and how large should the game environment be? 
-OI-testing: How will the game be tested with players? 
-OI-maintenance: What happens to the game/project after the course is completed?
+| OI-1 | What are the core mechanics the player should begin with? | Getting this wrong could block the initial gameplay mechanics and feature decisions for the first playable version. | The team itself | 2026-09-13 |
+| OI-2 | Which features should be included in the first playable version? | Getting this wrong could block the scope and requirements for the first playable version. | The team itself | 2026-09-13 |
+| OI-3 | What should the game's final visual/style direction be? | Getting this wrong could block the game's visual design and style decisions. | The team itself | 2026-09-13 |
+| OI-4 | Should character roles or ship stations have greater gameplay impact? | Getting this wrong could block the game's role and ship-station mechanics. | The team itself | 2026-09-13 |
+| OI-role-type | Should roles be traditional survival roles or fantasy-like roles? | Getting this wrong could block character role design and gameplay decisions. | The team itself | 2026-09-13 |
+| OI-NPC | What tasks and responsibilities should NPCs have in single-player? | Getting this wrong could block the design of NPC assistance and single-player gameplay. | The team itself | 2026-09-13 |
+| OI-rescue | How should the raft/rescue mechanic work when a player or NPC falls overboard? | Getting this wrong could block the design of the rescue mechanic and related gameplay features. | The team itself | 2026-09-13 |
+| OI-coop | What specific co-op functionality should be added after single-player development? | Getting this wrong could block the future co-op scope and requirements. | The team itself | 2026-09-13 |
+| OI-users | Who is the target player/audience for the game? | Getting this wrong could block decisions about game design and the intended player experience. | The team itself | 2026-09-13 |
+| OI-scale | How many players/NPCs should the game support, and how large should the game environment be? | Getting this wrong could block decisions about game scope, world size, and player/NPC capacity. | The team itself | 2026-09-13 |
+| OI-testing | How will the game be tested with players? | Getting this wrong could block the game's testing and evaluation process. | The team itself | 2026-09-13 |
+| OI-maintenance | What happens to the game/project after the course is completed? | Getting this wrong could block decisions about the project's long-term maintenance and ownership. | The team itself | 2026-09-13 |
 
 ## Resolved
 
