@@ -60,4 +60,3 @@ Each member adds their own line, in their own commit.
 - Gustavo Castillo Jr. <Sept 4th 10:37 AM>
 - Leiton Peterson <Sept 4th, 2026>
 - Ivan Lopez <Sept 4th, 2026>
-
