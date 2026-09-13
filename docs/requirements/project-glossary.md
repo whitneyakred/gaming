@@ -6,134 +6,169 @@
 
 **Client:** None — this is a student-proposed senior design project.
 
-**Version:** 0.1
+**Version:** 0.2
 
 ## Purpose and Project Context
 
-This glossary establishes a shared vocabulary for Man the Ship, a top-down 2D cooperative sailing and survival game. The student development team defines the game concept and requirements; there is no external client. Intended players and course instructors are stakeholders whose feedback informs the project.
+This glossary gives the development team a shared vocabulary for Man the Ship, a top-down 2D cooperative sailing and survival game. The ship is the primary focus: the crew operates it, maintains it, and uses it to travel toward Paradise Island.
 
-The current prototype is single-player. Four-player cooperative play is a planned direction, with networking deferred until the local sailing and station interactions are stable. Definitions describe the project vocabulary, not a commitment to implement every feature in the first milestone.
+The planned main game loop is: start aboard a docked ship, steer and adjust the sail according to the wind, manage hunger and thirst, optionally stop at nearby islands to dig up treasure chests and obtain supplies, then continue toward Paradise Island.
+
+The current minimal MVP contains only a stationary ship and one player-controlled character who can walk around its deck. Sailing, survival, islands, swimming, repairs, and cooperative networking are not implemented in that MVP. Definitions below describe the intended vocabulary and planned features, not a claim that those features already work or a commitment to implement them all in the next milestone.
+
+The supplied Miro board is the basis for this revision. Notes phrased as questions remain open ideas: additional chest loot, random events, broader island exploration, overboard rescue, and using Paradise Island as an extraction point. Exact player count, numerical settings, failure conditions, and detailed mechanics require team agreement.
 
 ## Conventions
 
-- Use one preferred term per concept across requirements, discussions, and code. List alternate names as synonyms instead of creating duplicate entries.
-- Keep definitions in alphabetical order and cite entries by their term names.
-- Define gameplay concepts rather than specific classes, controls, or numeric settings.
-- Use **development team** for the students building the game and **crew** for the characters aboard the ship.
-- Update this glossary when the team agrees on a new term or changes an existing meaning.
+- Use one preferred term per concept across requirements, discussions, and code. List alternate names as synonyms.
+- Keep definitions in alphabetical order and refer to entries by their term names.
+- Define gameplay concepts rather than specific scripts, keyboard controls, or numerical settings.
+- Use **development team** for the students building the game, **crew member** for a character, and **player** for the person controlling that character.
+- Treat a feature as planned unless it is explicitly included in the current MVP above. Entries labeled **open idea** need a team decision.
 
 ## Revision History
 
 | Date | Version | Description | Author |
 |---|---|---|---|
-| 2026-09-11 | 0.1 | Initial project-specific glossary based on the Man the Ship prototype and student-proposed project context; prepared for team review. | Leiton Peterson (with AI assistance) |
+| 2026-09-11 | 0.1 | Initial project-specific glossary based on the earlier prototype; prepared for team review. | Leiton Peterson (with AI assistance) |
+| 2026-09-13 | 0.2 | Align vocabulary with the Miro main game loop and feature board; distinguish the minimal MVP, planned features, and open ideas. | Leiton Peterson (with AI assistance) |
 
 ## Definitions
 
-### Capsize
-
-A voyage-ending loss of the ship's balance. In the current prototype, capsize occurs when stability reaches zero; it does not require a physically simulated overturned hull.
-
 ### Cooperative Play
 
-A game mode in which players work together as one crew to operate the same ship and survive a voyage. The planned mode supports up to four players; the current prototype supports one player.
+A planned game mode in which multiple players work together as the crew of one shared ship. The minimal MVP currently supports one player; the supported multiplayer crew size is to be confirmed by the team.
 
-**Synonyms:** Co-op.
+**Synonym:** Co-op.
 
 ### Crew
 
-The characters aboard the ship who carry out sailing and survival tasks. In the current prototype, the crew consists of one player-controlled character.
-
-**Not to be confused with:** The development team building the game.
+The group of characters aboard the ship who carry out sailing, maintenance, and survival tasks. The minimal MVP has one player-controlled crew member.
 
 ### Crew Member
 
-An individual character who can move around the deck and interact with stations. A crew member is the character in the game; a player is the person controlling that character.
+An individual character controlled by a player. A crew member can walk around the deck in the MVP; additional actions such as operating the ship or swimming are planned features.
 
 ### Deck
 
-The walkable area aboard the ship where crew members move between stations. Crew positions on the deck also affect the ship's balance.
+The walkable area aboard the ship. In the minimal MVP, its outer collision boundary keeps the player on the ship. Walking off the ship or going overboard is not currently supported.
 
 ### Development Team
 
-The Team 13 students designing, implementing, testing, and documenting Man the Ship. Because the project is student-proposed, the development team defines its product direction and scope without an external client.
+The Team 13 students designing, implementing, testing, and documenting the game. The development team defines the project direction, informed by feedback from intended players and course instructors.
+
+### Docked Ship
+
+A ship positioned at a dock before departure. The planned game loop begins with the crew aboard a docked ship; docking interactions and departure mechanics are not yet specified. The MVP's stationary ship does not include a dock.
+
+### Extraction Point
+
+**Open idea:** A location where collected loot could be secured or a voyage could conclude. The board asks whether Paradise Island should serve this purpose; extraction rules are not yet agreed.
+
+### Floating Chest
+
+A chest encountered floating in the ocean. Floating chests are a planned feature, separate from treasure chests dug up on islands. Their contents and collection method are not yet defined.
+
+### Food and Water
+
+Consumable supplies intended to satisfy hunger and thirst. The board suggests finding food and water in chests; quantities, consumption rules, and storage are not yet defined.
+
+### Game Loop
+
+The sequence of activities that structures play: depart from the dock, sail toward Paradise Island, manage hunger and thirst, and make optional island stops for treasure and supplies before continuing the voyage.
 
 ### Heading
 
-The direction the ship is pointing in the game world. Heading is distinct from the direction of the wind and from the direction a crew member faces.
-
-### Heel
-
-The ship's sideways lean in response to sailing forces, waves, and crew weight. Heel describes the lean itself; stability describes the ship's remaining ability to avoid capsizing.
+The direction the ship points. Heading is changed through steering and is distinct from wind direction or the direction a crew member faces.
 
 ### Helm
 
-The station where a crew member steers the ship and changes its heading.
+The ship's steering control, used by a crew member to change its heading. How the player interacts with the helm remains an implementation decision.
 
 **Synonyms:** Wheel, steering station.
 
-### Lookout
+### Hull Damage
 
-The station at the mast that gives a crew member an expanded view of the surrounding ocean. The term can also describe the crew member currently using that station; it does not imply a permanent character class.
+Damage to the ship's body that may require maintenance, such as holes. Ship damage and repair are planned; flooding, damage meters, and sinking or other failure rules have not been specified on the board.
 
-**Synonyms:** Lookout station.
+### Hunger and Thirst
 
-### Ocean Chunk
+The two survival needs identified in the planned game loop. Players manage them by consuming food and water. Depletion rates, penalties, and failure conditions are not yet defined.
 
-A reusable section of the ocean surrounding the ship. Chunks are repositioned as the ship travels so that ocean coverage can continue in any direction without requiring one enormous level.
+### Island
 
-### Paradise Cay
+A land area the crew may stop at during a voyage. Planned island activities include walking and digging for treasure; the extent of exploration beyond those activities remains open.
 
-The destination the crew must reach to win the current prototype's voyage. Reaching it requires keeping the ship stable and managing survival needs along the way.
+### Loot
 
-**Synonyms:** Paradise.
+Items or resources collected during a voyage. Food and water are suggested chest contents; additional loot types and any inventory or progression system are undecided.
+
+### Minimal MVP
+
+The smallest playable starting point for the team: a stationary ship and a single player-controlled character moving around its bounded deck. This version establishes the basic scene structure and movement without implementing the full planned game loop.
+
+### Overboard
+
+The state of a crew member being in the water outside the ship. Swimming is planned, but the ways a character enters the water or returns aboard still need definition.
+
+### Overboard Rescue
+
+**Open idea:** Helping a crew member return to safety after going overboard. The board raises rescue as a question; its inclusion and mechanics are not yet agreed.
+
+### Paradise Island
+
+The destination the crew aims to reach in the planned main game loop. Whether arrival simply completes the voyage or also serves as loot extraction remains undecided.
+
+**Earlier name:** Paradise Cay. Use Paradise Island to match the current board.
 
 ### Player
 
-A person controlling a crew member. The current prototype has one player, while the planned cooperative mode allows multiple players to share responsibility for the same ship.
+The person controlling a crew member. This distinguishes the human participant from the character in the game and from members of the development team.
 
-### Prototype
+### Random Event
 
-The early playable version used to test whether the core sailing, station, and survival interactions work well together. Its current single-player behavior does not imply that planned multiplayer features are already available.
+**Open idea:** An encounter or occurrence that could vary a voyage. The board suggests random events but does not yet define event types, triggers, or whether they will be included.
 
-### Sail Trim
+### Repair
 
-The adjustment of the sail's angle relative to the wind to affect propulsion and the ship's balance. Raising or lowering the sail changes how much sail is exposed and is a separate adjustment.
+A planned maintenance action that fixes ship damage, such as holes. Repair tools, materials, timing, and interactions remain to be decided.
 
-### Sailing Station
+### Sail Adjustment
 
-The station where a crew member adjusts the sail's angle and raises or lowers it. Operating this station controls how the ship uses the wind, while the helm controls steering.
+Changing the sail's orientation in relation to wind direction to influence the ship's movement and speed. This is separate from steering, which changes the ship's heading. The exact wind and speed model is not yet defined.
 
-**Synonyms:** Sail station, sail ropes.
+**Synonym:** Sail trim.
 
 ### Ship
 
-The shared moving home that carries the crew, stations, and supplies through the ocean. Crew members cooperate to operate and balance this vessel rather than each controlling a separate vessel.
+The shared vessel that carries the crew through the ocean and is the primary focus of the game. Planned crew activities center on sailing, maintaining, and surviving aboard it. In the minimal MVP, the ship remains stationary.
 
 **Synonyms:** Boat, sailboat.
 
-### Stability
+### Sprinting
 
-The gameplay measure of the ship's ability to remain upright. Sailing conditions and crew balance affect stability; reaching zero causes a capsize in the current prototype.
+Planned movement faster than ordinary walking, associated with stamina use. Sprint speed and stamina costs are not yet defined.
 
-**Not to be confused with:** Hull damage or a crew member's survival needs.
+### Stamina
 
-### Station
+A planned resource associated with sprinting and swimming and displayed through a stamina bar. Depletion, recovery, and the effects of exhaustion remain to be decided.
 
-An interaction location aboard the ship where a crew member performs a particular task, such as steering, adjusting sails, keeping lookout, or satisfying a survival need. Responsibilities are associated with stations so crew members can change tasks during a voyage.
+### Steering
 
-### Supplies
+Changing the ship's heading using its steering control. Steering and sail adjustment are separate responsibilities that together support sailing toward the destination.
 
-The food and drinking water carried aboard the ship to satisfy survival needs. The term does not imply a general inventory or crafting system.
+### Swimming
 
-### Survival Needs
+Planned movement through the water outside the ship, associated with stamina. Entry into the water, boarding, exhaustion, and rescue behavior are not yet specified.
 
-The crew's bodily needs that must be managed during a voyage: hunger, thirst, and the need to urinate or defecate. The current prototype represents these with meters and can end a voyage when a need becomes critical and is not addressed.
+### Treasure Chest
+
+A chest that the crew can dig up during a planned island stop. Food and water are suggested contents; additional rewards are undecided. This differs from a floating chest encountered at sea.
 
 ### Voyage
 
-One playable attempt to sail to the destination while keeping the crew alive and the ship stable. In the current prototype, a voyage ends with arrival at Paradise Cay or a failure condition, after which the player can restart.
+A planned journey beginning aboard the docked ship and progressing toward Paradise Island, with sailing, survival management, and optional island stops. The precise success, failure, restart, and extraction rules remain to be agreed.
 
 ### Wind Direction
 
-The direction in which the wind blows through the game world. Together with sail trim, it affects how the ship moves and leans; it is not the ship's heading.
+The direction in which wind travels through the game world. The planned sailing system uses its relationship to the sail to affect movement and speed. This term describes where the wind blows toward, not where it comes from.
