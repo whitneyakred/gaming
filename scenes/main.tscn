@@ -1,9 +1,15 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://dc3iw3gkgs8sq"]
 
-[ext_resource type="PackedScene" path="res://scenes/ship.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/sailing/sailing_ship.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/sailing/sailing_demo.tscn" id="2"]
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=695721396]
 
-[node name="Ship" parent="." instance=ExtResource("1")]
+[node name="Ship" parent="." unique_id=775136373 instance=ExtResource("1")]
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1512053227]
+
+[node name="SailingDemo" parent="." unique_id=1609399588 node_paths=PackedStringArray("ship", "helm", "camera") instance=ExtResource("2")]
+ship = NodePath("../Ship")
+helm = NodePath("../Ship/Helm")
+camera = NodePath("../Camera2D")
