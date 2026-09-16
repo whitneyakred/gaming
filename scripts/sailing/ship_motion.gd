@@ -28,6 +28,19 @@ func set_wheel_angle(degrees: float) -> void:
 	var limit := maximum_wheel_turns * 360.0
 	wheel_angle_degrees = clampf(degrees, -limit, limit)
 
+# Movement/weather state is owned here; each station captures its own controls.
+func capture_state() -> Dictionary:
+	return {"position": position, "rotation": rotation, "speed": speed,
+		"turn_rate": turn_rate, "wind": wind_velocity}
+
+func restore_state(state: Dictionary, restore_transform: bool = false) -> void:
+	speed = state.speed
+	turn_rate = state.turn_rate
+	wind_velocity = state.wind
+	if restore_transform:
+		position = state.position
+		rotation = state.rotation
+
 func set_sail_level(level: int) -> void:
 	var bounded_level := clampi(level, 0, 3)
 	if sail_level != bounded_level:
@@ -50,6 +63,9 @@ func get_target_speed() -> float:
 	return maximum_speed * (float(sail_level) / 3.0) * wind_factor
 
 func _physics_process(delta: float) -> void:
+	simulate_movement(delta)
+
+func simulate_movement(delta: float) -> void:
 	# Wheel displacement sets rudder strength. Centering the wheel eases out of a turn.
 	var rudder := wheel_angle_degrees / (maximum_wheel_turns * 360.0)
 	var steerage := clampf(speed / 100.0, 0.08, 1.0)

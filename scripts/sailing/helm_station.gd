@@ -6,8 +6,16 @@ extends ShipStation
 @export_range(0.0, 90.0) var center_assist_angle_degrees: float = 25.0
 @export_range(1.0, 180.0) var center_assist_speed_degrees: float = 60.0
 
-func _apply_controls(delta: float) -> void:
-	var direction := Input.get_axis("move_left", "move_right")
+func apply_controls(direction: Vector2, _action_pressed: bool, delta: float) -> void:
+	apply_steering(direction.x, delta)
+
+func capture_state() -> Dictionary:
+	return {"wheel": ship.wheel_angle_degrees}
+
+func restore_state(state: Dictionary) -> void:
+	ship.set_wheel_angle(state.wheel)
+
+func apply_steering(direction: float, delta: float) -> void:
 	var angle := ship.wheel_angle_degrees
 	if not is_zero_approx(direction):
 		angle += direction * wheel_turn_speed_degrees * delta

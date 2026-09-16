@@ -10,11 +10,20 @@ func _ready() -> void:
 	ship.sail_changed.connect(_update_artwork)
 	_update_artwork()
 
-func _apply_controls(delta: float) -> void:
-	var trim_input := Input.get_axis("move_left", "move_right")
+func apply_controls(direction: Vector2, action_pressed: bool, delta: float) -> void:
+	apply_sailing(direction.x, action_pressed, delta)
+
+func capture_state() -> Dictionary:
+	return {"level": ship.sail_level, "angle": ship.sail_angle_degrees}
+
+func restore_state(state: Dictionary) -> void:
+	ship.set_sail_level(state.level)
+	ship.set_sail_angle(state.angle)
+
+func apply_sailing(trim_input: float, cycle: bool, delta: float) -> void:
 	ship.set_sail_angle(ship.sail_angle_degrees + trim_input * trim_speed_degrees * delta)
 	# One deliberate press per step; holding a key cannot skip a deployment state.
-	if Input.is_action_just_pressed("move_up") or Input.is_action_just_pressed("move_down"):
+	if cycle:
 		ship.set_sail_level((ship.sail_level + 1) % 4)
 
 func _update_artwork() -> void:

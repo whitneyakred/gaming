@@ -14,7 +14,8 @@ func _process(_delta: float) -> void:
 	# The camera does not rotate, so the arrow uses the world wind direction.
 	wind_arrow.rotation = ship.wind_velocity.angle() + PI / 2.0
 	wind_arrow.visible = not ship.wind_velocity.is_zero_approx()
-	helm_wheel.set_helm_state(is_instance_valid(helm.operator), ship.wheel_angle_degrees)
+	var using_helm := is_instance_valid(helm.local_player) and helm.operator == helm.local_player
+	helm_wheel.set_helm_state(using_helm, ship.wheel_angle_degrees)
 	queue_redraw()
 
 func _draw() -> void:

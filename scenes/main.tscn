@@ -2,8 +2,11 @@
 
 [ext_resource type="PackedScene" path="res://scenes/sailing/sailing_ship.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/sailing_demo.tscn" id="2"]
+[ext_resource type="Script" path="res://scripts/multiplayer/network_session.gd" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/multiplayer/connection_menu.tscn" id="4"]
 
 [node name="Main" type="Node2D" unique_id=695721396]
+script = ExtResource("3")
 
 [node name="Ship" parent="." unique_id=775136373 instance=ExtResource("1")]
 
@@ -13,3 +16,5 @@
 ship = NodePath("../Ship")
 helm = NodePath("../Ship/Helm")
 camera = NodePath("../Camera2D")
+
+[node name="ConnectionMenu" parent="." instance=ExtResource("4")]

@@ -1,6 +1,8 @@
 class_name ShipStation
 extends Node2D
-## Local input adapter. Ownership is explicit so another station can share the player API.
+## Extend this for a new station. Override apply_controls and, for custom state,
+## capture_state/restore_state. Place identical scenes under Ship on every peer.
+## NetworkSession discovers stations automatically by their path relative to Ship.
 
 signal operator_changed(crew: CharacterBody2D)
 
@@ -63,6 +65,30 @@ func _control_changed() -> void:
 	pass
 
 func _apply_controls(_delta: float) -> void:
+	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var action_pressed := Input.is_action_just_pressed("move_up") or Input.is_action_just_pressed("move_down")
+	apply_controls(direction, action_pressed, _delta)
+
+# Runs on the server in multiplayer. Never read Input inside this method.
+func apply_controls(_direction: Vector2, _action_pressed: bool, _delta: float) -> void:
 	pass
+
+# Return only serializable values (numbers, strings, vectors, arrays, dictionaries).
+func capture_state() -> Dictionary:
+	return {}
+
+# Called on clients, including late joiners. Update visuals here or emit a signal.
+func restore_state(_state: Dictionary) -> void:
+	pass
+
+func set_network_operator(crew: CharacterBody2D) -> void:
+	if operator == crew:
+		return
+	release_control()
+	operator = crew
+	if is_instance_valid(operator):
+		operator.set("active_station", self)
+	_control_changed()
+	operator_changed.emit(operator)
 
 
