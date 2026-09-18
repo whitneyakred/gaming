@@ -2,9 +2,81 @@
 
 [ext_resource type="Script" uid="uid://bpnvxvcrykit2" path="res://scripts/player.gd" id="1"]
 [ext_resource type="Texture2D" uid="uid://v50473bfp0us" path="res://assets/player_viking.png" id="2"]
+[ext_resource type="Texture2D" uid="uid://dub4mvpn7yhrb" path="res://assets/player/animations/Fishing_Base/Fishing_Side-Sheet.png" id="3_fishing"]
 
 [sub_resource type="CircleShape2D" id="Feet"]
 radius = 7.0
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fishing_0"]
+atlas = ExtResource("3_fishing")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fishing_1"]
+atlas = ExtResource("3_fishing")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fishing_2"]
+atlas = ExtResource("3_fishing")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fishing_3"]
+atlas = ExtResource("3_fishing")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fishing_4"]
+atlas = ExtResource("3_fishing")
+region = Rect2(256, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fishing_5"]
+atlas = ExtResource("3_fishing")
+region = Rect2(320, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fishing_6"]
+atlas = ExtResource("3_fishing")
+region = Rect2(384, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fishing_7"]
+atlas = ExtResource("3_fishing")
+region = Rect2(448, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fishing_8"]
+atlas = ExtResource("3_fishing")
+region = Rect2(512, 0, 64, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_fishing"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fishing_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fishing_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fishing_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fishing_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fishing_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fishing_5")
+}, {
+"duration": 4.0,
+"texture": SubResource("AtlasTexture_fishing_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fishing_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fishing_8")
+}],
+"loop": 0,
+"name": &"fishing_side",
+"speed": 8.0
+}]
 
 [node name="Player" type="CharacterBody2D" unique_id=1181161114]
 motion_mode = 1
@@ -18,3 +90,13 @@ texture = ExtResource("2")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1082748856]
 shape = SubResource("Feet")
+
+[node name="FishingAnimation" type="AnimatedSprite2D" parent="." unique_id=90268030]
+visible = false
+texture_filter = 1
+position = Vector2(0, -16)
+scale = Vector2(1.45, 1.45)
+sprite_frames = SubResource("SpriteFrames_fishing")
+animation = &"fishing_side"
+
+[connection signal="animation_finished" from="FishingAnimation" to="." method="_on_fishing_animation_animation_finished"]

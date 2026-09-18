@@ -1,20 +1,33 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://c178oe1ssevis"]
 
-[ext_resource type="Texture2D" path="res://assets/ship.png" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3"]
+[ext_resource type="Texture2D" uid="uid://luj5vyt1jyq2" path="res://assets/ship.png" id="1"]
+[ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="3"]
+[ext_resource type="PackedScene" uid="uid://ujrk5hekymxt" path="res://scenes/stations/fishing_station.tscn" id="4_fishing"]
 
-[node name="Ship" type="Node2D"]
+[node name="Ship" type="Node2D" unique_id=1896270842]
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=58331157]
 texture_filter = 1
 scale = Vector2(0.42, 0.42)
 texture = ExtResource("1")
 
-[node name="DeckBoundary" type="StaticBody2D" parent="."]
+[node name="DeckBoundary" type="StaticBody2D" parent="." unique_id=1698926322]
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="DeckBoundary"]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="DeckBoundary" unique_id=1019846524]
 build_mode = 1
 polygon = PackedVector2Array(0, -196, 44, -154, 83, -64, 94, 0, 90, 139, 57, 199, -57, 199, -90, 139, -94, 0, -83, -64, -44, -154)
 
-[node name="Player" parent="." instance=ExtResource("3")]
+[node name="Player" parent="." unique_id=508776271 instance=ExtResource("3")]
 position = Vector2(-30, 90)
+
+[node name="FishingStation" parent="." unique_id=1204560490 instance=ExtResource("4_fishing")]
+position = Vector2(75, 116)
+
+[node name="Marker" parent="FishingStation" index="0" unique_id=1644867928]
+position = Vector2(6, 2)
+
+[node name="CollisionPolygon2D" parent="FishingStation" index="4" unique_id=437309802]
+position = Vector2(-3.0000038, -3.7252903e-09)
+polygon = PackedVector2Array(-7.036644, -16.037125, -5.0261765, -2.0046463, -8.951843, 24.104645, 19.194763, 25.106964, 23.215698, -1.9556885, 25.130898, -17.039444)
+
+[editable path="FishingStation"]

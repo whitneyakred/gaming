@@ -25,7 +25,6 @@ func make_fishing_rod() -> ItemData:
 	var item := ItemData.new()
 	item.id = &"fishing_rod"
 	item.display_name = "Fishing Rod"
-	item.description = "An old but useful tool for getting food and other items from the
-	sea."
+	item.description = "An old but useful tool for getting food and other items from the sea."
 	item.max_stack = 1
 	return item
