@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/ship.tscn" id="1"]
 [ext_resource type="Script" path="res://scripts/sailing/ship_motion.gd" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/helm_station.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/sail_station.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/sailing/anchor_station.tscn" id="5"]
 
 [node name="SailingShip" instance=ExtResource("1")]
 script = ExtResource("2")
@@ -14,5 +15,10 @@ ship = NodePath("..")
 local_player = NodePath("../Player")
 
 [node name="Sail" parent="." node_paths=PackedStringArray("ship", "local_player") instance=ExtResource("4")]
+ship = NodePath("..")
+local_player = NodePath("../Player")
+
+[node name="Anchor" parent="." node_paths=PackedStringArray("ship", "local_player") instance=ExtResource("5")]
+position = Vector2(-76, 105)
 ship = NodePath("..")
 local_player = NodePath("../Player")
