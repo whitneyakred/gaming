@@ -1,0 +1,78 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/multiplayer/connection_menu.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="PanelStyle"]
+bg_color = Color(0.06, 0.12, 0.16, 0.98)
+content_margin_left = 20.0
+content_margin_right = 20.0
+content_margin_top = 18.0
+content_margin_bottom = 18.0
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+
+[node name="ConnectionMenu" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1")
+
+[node name="Panel" type="PanelContainer" parent="."]
+theme_override_styles/panel = SubResource("PanelStyle")
+offset_left = 290.0
+offset_top = 180.0
+offset_right = 990.0
+offset_bottom = 510.0
+
+[node name="Rows" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Panel/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "MAN THE SHIP"
+horizontal_alignment = 1
+
+[node name="AddressLabel" type="Label" parent="Panel/Rows"]
+layout_mode = 2
+text = "Host IP address"
+
+[node name="Address" type="LineEdit" parent="Panel/Rows"]
+layout_mode = 2
+text = "127.0.0.1"
+placeholder_text = "Example: 192.168.1.20"
+
+[node name="Host" type="Button" parent="Panel/Rows"]
+layout_mode = 2
+text = "Host ship"
+
+[node name="Join" type="Button" parent="Panel/Rows"]
+layout_mode = 2
+text = "Join ship"
+
+[node name="Offline" type="Button" parent="Panel/Rows"]
+layout_mode = 2
+text = "Join Offline"
+[node name="Status" type="Label" parent="."]
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -56.0
+offset_right = 1240.0
+offset_bottom = -36.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 12
+text = "Host a ship, join a host on your local network, or play offline."
+
+[node name="Leave" type="Button" parent="."]
+visible = false
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -32.0
+offset_right = 124.0
+offset_bottom = -8.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 12
+text = "Leave session"

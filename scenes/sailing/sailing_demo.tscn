@@ -1,0 +1,43 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/sailing/sailing_demo.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/sailing/helm_wheel_widget.gd" id="2"]
+
+[node name="SailingDemo" type="Node2D"]
+z_index = -1
+script = ExtResource("1")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Wind" type="Control" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -250.0
+offset_top = 18.0
+offset_right = -135.0
+offset_bottom = 145.0
+grow_horizontal = 0
+mouse_filter = 2
+
+[node name="Arrow" type="Label" parent="HUD/Wind"]
+offset_left = 27.0
+offset_top = 18.0
+offset_right = 87.0
+offset_bottom = 78.0
+pivot_offset = Vector2(30, 30)
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.82, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 50
+text = "↑"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HelmWheel" type="Control" parent="HUD"]
+visible = false
+offset_left = 22.0
+offset_top = 295.0
+offset_right = 242.0
+offset_bottom = 510.0
+mouse_filter = 2
+script = ExtResource("2")
