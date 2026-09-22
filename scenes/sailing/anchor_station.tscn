@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/sailing/anchor_station.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/anchor_standalone.png" id="2"]
+
+[node name="Anchor" type="Node2D"]
+script = ExtResource("1")
+interaction_distance = 38.0
+
+[node name="AnchorArtwork" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(0.035, 0.035)
+texture = ExtResource("2")
