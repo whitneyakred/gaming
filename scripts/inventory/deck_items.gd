@@ -25,9 +25,11 @@ func _draw() -> void:
 		var entry: Dictionary = service.drops_view[key]
 		var item: ItemData = ItemDatabase.get_item(entry.id)
 		var point: Vector2 = entry.position + Vector2((key % 3 - 1) * 7, (key % 2) * 5)
-		draw_circle(point + Vector2(0, 6), 12, Color(0, 0, 0, 0.3))
+		draw_set_transform(point, UprightVisual.draw_rotation(self))
+		draw_circle(Vector2(0, 6), 12, Color(0, 0, 0, 0.3))
 		if item != null and item.icon != null:
-			draw_texture_rect(item.icon, Rect2(point - Vector2(13, 13), Vector2(26, 26)), false)
+			draw_texture_rect(item.icon, Rect2(Vector2(-13, -13), Vector2(26, 26)), false)
+	draw_set_transform(Vector2.ZERO)
 
 func draw_ellipse_shadow(point: Vector2) -> void:
 	draw_style_box(_shadow(), Rect2(point - Vector2(21, 10), Vector2(42, 29)))

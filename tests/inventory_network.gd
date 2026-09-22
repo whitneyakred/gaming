@@ -20,7 +20,7 @@ func _process(delta: float) -> void:
 	if host and main != null:
 		# Place test crew at the chest on the authoritative host.
 		for id: int in main.players:
-			main.players[id].position = service.storage_position
+			main.players[id].position = Vector2(-70, -90) if id == 1 else service.storage_position
 
 func run() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -49,12 +49,15 @@ func run() -> void:
 	while not main.running or service.local_slots.is_empty() or not service.near_storage(multiplayer.get_unique_id()):
 		await get_tree().process_frame
 	if "--late" in args:
-		if service.drops_view.size() != 1 or not service.storage_view[0].is_empty():
+		if not service.storage_view[0].is_empty() or (service.drops_view.is_empty() and service.local_slots[0].get("id") != &"fish_cod"):
 			fail("Late join did not receive current chest and deck state")
 			return
-		service.request("pickup", int(service.drops_view.keys()[0]))
 	else:
-		service.request("take", 0)
+		service.request_drag({"index": 0, "storage": true, "revision": service.view_revision}, 3, false)
+		while service.local_slots[3].is_empty():
+			await get_tree().process_frame
+		await get_tree().create_timer(0.15).timeout
+		service.request_drag({"index": 3, "storage": false, "revision": service.view_revision}, 0, false)
 	while service.local_slots[0].is_empty():
 		await get_tree().process_frame
 	if service.local_slots[0].id != &"fish_cod" or service.local_slots[0].quantity != 8:
@@ -62,9 +65,13 @@ func run() -> void:
 		return
 	await get_tree().create_timer(0.2).timeout
 	if "--late" not in args:
-		service.request("drop", 0)
+		service.request_drag({"index": 0, "storage": false, "revision": service.view_revision})
 		while service.drops_view.is_empty() or not service.local_slots[0].is_empty():
 			await get_tree().process_frame
+		await get_tree().create_timer(2.0).timeout
+		if not service.local_slots[0].is_empty() or service.drops_view.size() != 1:
+			fail("Waiting inside the trigger must not reabsorb dropped items")
+			return
 	print("INVENTORY NETWORK CLIENT: PASS ", "late join + pickup" if "--late" in args else "take + drop")
 	main.end_session("Done")
 	get_tree().quit()

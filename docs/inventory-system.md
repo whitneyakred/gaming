@@ -5,13 +5,13 @@ Each player starts with four empty pockets. The small wooden supply chest is on 
 right side of the deck, just forward of the helm. Approach it to collect test supplies.
 
 - **1–4**, **mouse wheel**, or click a pocket: select a slot.
-- **F** near the chest: open/close shared storage; **Esc** also closes it.
-- While storage is open, click a chest slot to take a stack or a pocket to store it.
-- **Q**: drop the selected stack at your feet, aboard the ship.
-- **G**: pick up the nearest loose stack within reach.
+- **E / Space** near the chest: open/close shared storage; **Esc** also closes it.
+- Drag stacks between chest and pocket slots to choose their exact destination. Shift-click a stack while storage is open to quick-transfer it into available space.
+- Drag a stack outside the inventory panels to drop it at your feet aboard the ship. Releasing over panel padding cancels the drag. There is no drop key.
+- Enter the 24-pixel radius of loose items to collect automatically if there is room. Full pockets leave items on deck; partial stacks take only what fits. There is no timer or pickup key. Players already inside when an item drops must leave the radius and return. A failed or partial pickup also requires a fresh entry, even after you free a slot.
 - Hover over slots for item descriptions and stack limits.
 
-Transfers move as much as fits and leave the remainder in the source. Tools occupy
+Quick transfers move as much as fits and leave the remainder in the source. Exact-slot drags merge matching stacks or swap unlike items. Drag revisions prevent moving an item that changed during the drag. Chest interaction uses the nearest eligible station/chest, so one E/Space press cannot activate both. Tools occupy
 one slot each. Cod stacks to 10, water to 5, and rope to 25. Items dropped on deck
 follow the ship through movement and rotation. Leaving a station is required before
 handling supplies. Walking away closes storage. Disconnected crew leave carried
@@ -36,7 +36,7 @@ water and tools do not yet have use effects. There is no save system or bag pick
 In the Godot **Scene** dock, select **InventorySystem** under **Main**. The **Inspector**
 exposes **Starting Slots**, **Storage Slots**, **Storage Position** and
 **Interaction Distance**. Keep Starting Slots at 4 for this milestone. Inventory state
-is managed independently of the sailing station scripts. The network protocol is 5;
+is managed independently of the sailing station scripts. The network protocol is 8;
 all peers must run this version with the same item catalog.
 
 ## Verification
@@ -60,3 +60,7 @@ For a rendered UI capture, run the smoke scene without `--headless` and append
 `-- --capture`; output is `.godot/inventory-preview.png`. Tests are excluded from the
 Windows export. Manual checks: two players race for the last stack, walk out of chest
 range, drop supplies while sailing/turning, and pick them up from another player.
+
+Run the rendered mouse interaction checks with godot --path . res://tests/inventory_mouse.tscn. These exercise native mouse dragging, exact-slot placement, outside dropping, Shift-click, and cancellation over panel padding.
+
+Player artwork uses scripts/visuals/upright_visual.gd to stay upright on each local screen, with its offset above the feet preserved. Attach this script to future Node2D artwork beneath a gameplay anchor to reuse the behavior. DeckItems uses the same rotation helper for loose items. The ship, chest, stations and collision bodies retain their normal transforms.

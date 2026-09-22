@@ -4,6 +4,32 @@ var entry: Dictionary = {}
 var number: String = ""
 var selected: bool = false
 @export var slot_size := Vector2(76, 80)
+var hud: Node
+var slot_index: int = -1
+var is_storage: bool = false
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and event.shift_pressed:
+		hud.quick_transfer(slot_index, is_storage)
+		accept_event()
+
+func _get_drag_data(_position: Vector2) -> Variant:
+	if entry.is_empty() or hud == null or Input.is_key_pressed(KEY_SHIFT):
+		return null
+	var preview := TextureRect.new()
+	preview.texture = ItemDatabase.get_item(entry.id).icon
+	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	preview.custom_minimum_size = Vector2(40, 40)
+	preview.size = Vector2(40, 40)
+	preview.modulate.a = 0.85
+	set_drag_preview(preview)
+	return {"inventory_drag": true, "index": slot_index, "storage": is_storage, "revision": hud.service.view_revision}
+
+func _can_drop_data(_position: Vector2, data: Variant) -> bool:
+	return hud != null and hud.valid_drag(data) and (not is_storage or hud.storage_open)
+
+func _drop_data(_position: Vector2, data: Variant) -> void:
+	hud.service.request_drag(data, slot_index, is_storage)
 
 func _ready() -> void:
 	custom_minimum_size = slot_size

@@ -48,6 +48,29 @@ func transfer_to(index: int, target: ShipInventory) -> int:
 func capture() -> Array[Dictionary]:
 	return slots.duplicate(true)
 
+func move_to(index: int, target: ShipInventory, destination: int) -> bool:
+	if index < 0 or index >= slots.size() or destination < 0 or destination >= target.slots.size():
+		return false
+	if slots[index].is_empty() or (target == self and index == destination):
+		return false
+	var source := slots[index]
+	var other := target.slots[destination]
+	if not other.is_empty() and source.id == other.id:
+		var limit: int = ItemDatabase.get_item(source.id).max_stack
+		var moved := mini(int(source.quantity), limit - int(other.quantity))
+		if moved <= 0:
+			return false
+		other.quantity += moved
+		remove(index, moved)
+	else:
+		# Empty destinations move; unlike items swap atomically, even when full.
+		slots[index] = other
+		target.slots[destination] = source
+		changed.emit()
+	if target != self:
+		target.changed.emit()
+	return true
+
 func add_capacity(extra_slots: int) -> void:
 	# Future bags can grant capacity on the host without changing the hotbar UI.
 	if extra_slots <= 0:

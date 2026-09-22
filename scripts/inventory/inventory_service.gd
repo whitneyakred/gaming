@@ -6,6 +6,8 @@ signal feedback(message: String)
 @export var storage_slots: int = 12
 @export var storage_position := Vector2(48, 65)
 @export var interaction_distance: float = 65.0
+@export_range(8.0, 64.0) var pickup_distance: float = 24.0
+var pickup_inside: Dictionary = {} # drop ID -> crew already inside its trigger.
 var session: Node
 var crew: Dictionary = {}
 var storage: ShipInventory
@@ -26,6 +28,7 @@ func _ready() -> void:
 func reset() -> void:
 	crew.clear()
 	drops.clear()
+	pickup_inside.clear()
 	last_request.clear()
 	next_drop_id = 1
 	revision = 0
@@ -52,23 +55,13 @@ func remove_crew(id: int, position: Vector2) -> void:
 			if not entry.is_empty():
 				_spawn_drop(entry, position)
 	crew.erase(id)
+	for occupants: Dictionary in pickup_inside.values():
+		occupants.erase(id)
 	last_request.erase(id)
 	publish()
 
 func near_storage(id: int) -> bool:
 	return session.players.has(id) and session.players[id].position.distance_to(storage_position) <= interaction_distance
-
-func nearest_drop(id: int) -> int:
-	if not session.players.has(id):
-		return -1
-	var closest := -1
-	var distance := interaction_distance
-	for key: int in drops_view:
-		var candidate: float = session.players[id].position.distance_to(drops_view[key].position)
-		if candidate < distance:
-			distance = candidate
-			closest = key
-	return closest
 
 func request(action: String, index: int = -1) -> void:
 	if multiplayer.is_server():
@@ -77,11 +70,18 @@ func request(action: String, index: int = -1) -> void:
 		request_action.rpc_id(1, action, index, view_revision)
 
 @rpc("any_peer", "call_remote", "reliable")
-func request_action(action: String, index: int, expected_revision: int) -> void:
+func request_action(action: String, index: int, expected_revision: int, destination: int = -1, from_storage: bool = false, to_storage: bool = false) -> void:
 	if multiplayer.is_server():
-		_execute(multiplayer.get_remote_sender_id(), action, index, expected_revision)
+		_execute(multiplayer.get_remote_sender_id(), action, index, expected_revision, destination, from_storage, to_storage)
 
-func _execute(id: int, action: String, index: int, expected_revision: int) -> void:
+func request_drag(data: Dictionary, destination: int = -1, to_storage: bool = false) -> void:
+	var action := "move" if destination >= 0 else ("drop_storage" if data.storage else "drop")
+	if multiplayer.is_server():
+		_execute(1, action, data.index, data.revision, destination, data.storage, to_storage)
+	else:
+		request_action.rpc_id(1, action, data.index, data.revision, destination, data.storage, to_storage)
+
+func _execute(id: int, action: String, index: int, expected_revision: int, destination: int = -1, from_storage: bool = false, to_storage: bool = false) -> void:
 	if not session.running or not crew.has(id) or not session.players.has(id):
 		return
 	var now := Time.get_ticks_msec()
@@ -96,6 +96,13 @@ func _execute(id: int, action: String, index: int, expected_revision: int) -> vo
 		return
 	var inventory: ShipInventory = crew[id]
 	match action:
+		"move":
+			if (from_storage or to_storage) and not near_storage(id):
+				return
+			var source: ShipInventory = storage if from_storage else inventory
+			var target: ShipInventory = storage if to_storage else inventory
+			if not source.move_to(index, target, destination):
+				return
 		"take", "store":
 			if not near_storage(id):
 				_reply(id, "Move closer to the supply chest.")
@@ -105,23 +112,14 @@ func _execute(id: int, action: String, index: int, expected_revision: int) -> vo
 			if source.transfer_to(index, target) == 0:
 				_reply(id, "No room for that stack.")
 				return
-		"drop":
-			if index < 0 or index >= inventory.slots.size() or inventory.slots[index].is_empty():
+		"drop", "drop_storage":
+			if action == "drop_storage" and not near_storage(id):
 				return
-			_spawn_drop(inventory.slots[index], session.players[id].position)
-			inventory.remove(index, inventory.slots[index].quantity)
-		"pickup":
-			if not drops.has(index) or session.players[id].position.distance_to(drops[index].position) > interaction_distance:
+			var source: ShipInventory = storage if action == "drop_storage" else inventory
+			if index < 0 or index >= source.slots.size() or source.slots[index].is_empty():
 				return
-			var entry: Dictionary = drops[index]
-			var remainder := inventory.add(entry.id, entry.quantity)
-			if remainder == int(entry.quantity):
-				_reply(id, "Your pockets are full. Store or drop a stack.")
-				return
-			if remainder == 0:
-				drops.erase(index)
-			else:
-				entry.quantity = remainder
+			_spawn_drop(source.slots[index], session.players[id].position)
+			source.remove(index, source.slots[index].quantity)
 		_:
 			return
 	publish()
@@ -129,7 +127,39 @@ func _execute(id: int, action: String, index: int, expected_revision: int) -> vo
 func _spawn_drop(entry: Dictionary, position: Vector2) -> void:
 	# Ship-local coordinates keep loose supplies aboard through translation/rotation.
 	drops[next_drop_id] = {"id": entry.id, "quantity": entry.quantity, "position": position}
+	# Spawning underneath somebody is not a new entry. They must leave and return.
+	var occupants: Dictionary = {}
+	for id: int in crew:
+		if session.players.has(id) and session.players[id].position.distance_to(position) <= pickup_distance:
+			occupants[id] = true
+	pickup_inside[next_drop_id] = occupants
 	next_drop_id += 1
+
+func collect_nearby(_delta: float) -> void:
+	if not multiplayer.is_server() or not session.running:
+		return
+	var changed := false
+	for key: int in drops.keys():
+		var occupants: Dictionary = pickup_inside[key]
+		var entry: Dictionary = drops[key]
+		for id: int in crew:
+			if not session.players.has(id) or session.players[id].position.distance_to(entry.position) > pickup_distance:
+				occupants.erase(id)
+				continue
+			if occupants.has(id):
+				continue
+			occupants[id] = true
+			var remainder: int = crew[id].add(entry.id, entry.quantity)
+			if remainder == int(entry.quantity):
+				continue # Full pockets stay silent; another player may have room.
+			changed = true
+			if remainder == 0:
+				drops.erase(key)
+				pickup_inside.erase(key)
+				break
+			entry.quantity = remainder
+	if changed:
+		publish()
 
 func publish() -> void:
 	if not multiplayer.is_server():

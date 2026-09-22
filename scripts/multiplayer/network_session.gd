@@ -3,7 +3,7 @@ extends Node2D
 ## The host plays too; other computers connect directly over the local network.
 
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
-const PROTOCOL := 5 # Inventory RPCs and catalog added; all players need matching builds.
+const PROTOCOL := 8 # Entry-triggered pickup; all players need matching builds.
 const MAX_CREW := 4
 const UPDATE_INTERVAL := 1.0 / 60.0 # Match the default physics rate for smoother LAN movement.
 const CREW_COLORS := [Color.WHITE, Color("80caff"), Color("ffb080"), Color("b6ff91")]
@@ -228,6 +228,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not running or event.is_echo():
 		return
 	if event.is_action_pressed("station_interact"):
+		if $InventoryHUD.handle_interact():
+			get_viewport().set_input_as_handled()
+			return
 		pending_interact = true
 		get_viewport().set_input_as_handled()
 	if event.is_action_pressed("move_up") or event.is_action_pressed("move_down"):
@@ -314,6 +317,8 @@ func _simulate(delta: float) -> void:
 			crew.call("apply_movement", direction)
 		command.interact = false
 		command.cycle = false
+
+	$InventorySystem.collect_nearby(delta)
 
 func _send_snapshot() -> void:
 	var crew_state: Dictionary = {}

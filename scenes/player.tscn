@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bpnvxvcrykit2" path="res://scripts/player.gd" id="1"]
 [ext_resource type="Texture2D" uid="uid://v50473bfp0us" path="res://assets/player_viking.png" id="2"]
+[ext_resource type="Script" path="res://scripts/visuals/upright_visual.gd" id="3"]
 
 [sub_resource type="CircleShape2D" id="Feet"]
 radius = 7.0
@@ -15,6 +16,7 @@ texture_filter = 1
 position = Vector2(0, -18)
 scale = Vector2(0.038, 0.038)
 texture = ExtResource("2")
+script = ExtResource("3")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1082748856]
 shape = SubResource("Feet")
