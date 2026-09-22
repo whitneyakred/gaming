@@ -3,7 +3,7 @@ extends Node2D
 ## The host plays too; other computers connect directly over the local network.
 
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
-const PROTOCOL := 4 # Increment when the wire format changes; all players need matching builds.
+const PROTOCOL := 5 # Inventory RPCs and catalog added; all players need matching builds.
 const MAX_CREW := 4
 const UPDATE_INTERVAL := 1.0 / 60.0 # Match the default physics rate for smoother LAN movement.
 const CREW_COLORS := [Color.WHITE, Color("80caff"), Color("ffb080"), Color("b6ff91")]
@@ -175,6 +175,7 @@ func _add_player(id: int, slot: int) -> void:
 	slots[id] = slot
 	inputs[id] = {"direction": Vector2.ZERO, "interact": false, "cycle": false,
 		"received": -1.0, "last_interact": -1.0, "last_cycle": -1.0}
+	$InventorySystem.add_crew(id)
 	if id == multiplayer.get_unique_id():
 		for station: ShipStation in stations.values():
 			station.local_player = crew
@@ -182,6 +183,7 @@ func _add_player(id: int, slot: int) -> void:
 func _remove_player(id: int) -> void:
 	if not players.has(id):
 		return
+	$InventorySystem.remove_crew(id, players[id].position)
 	for station: ShipStation in stations.values():
 		if station.operator == players[id]:
 			station.release_control()
