@@ -1,9 +1,9 @@
 # Client Interview Guide
 
-**Project:** _[Your project name]_
-**Team:** _[Team NN]_
-**Client:** _[Client name and organization]_
-**Meeting:** _[Which one. This is meeting 1 of several.]_
+**Project:** Gaming
+**Team:** _Liliana Matte, Ivan Lopez, Leiton Peterson, Shana Billiot, Gustavo Castillo, Whitney Akred
+**Client:** Ourselves
+**Meeting:** Group meeting 1
 
 ---
 
@@ -33,12 +33,12 @@ This is about order, not silence. Some clients want to think out loud with you, 
 
 | | |
 |---|---|
-| **Date** | _[YYYY-MM-DD]_ |
-| **Time and location** | _[Where, and in person or remote]_ |
-| **Client participants** | _[Name, role. Everyone, including whoever only listened.]_ |
-| **Team participants** | _[Name (lead), Name (scribe), Name (observer), ...]_ |
-| **Recording** | _[Asked? Granted or declined]_ |
-| **Photos of screens or forms** | _[Asked? Granted or declined]_ |
+| **Date** | 9/11/26 |
+| **Time and location** | Discord Video Chat |
+| **Client participants** | Collective group |
+| **Team participants** | Whitney Akred (lead), Shana Billiot (scribe), Liliana Matte (observer)
+| **Recording** | Did not record meeting |
+| **Photos of screens or forms** | No photos required |
 
 _Ask to record, and say why: so nobody is transcribing instead of listening. If they decline, the scribe matters more. Ask separately about photographing screens, forms, and reports. A photo of the spreadsheet they actually use beats a page of notes about it._
 
@@ -69,6 +69,7 @@ _**Must ask. 5 min.** Not small talk. Whose problem is this, how much of the dom
 _Adapt: Tell me about being an HR manager. How did you choose that line of work? What do you most and least like about it? How does this project fit alongside the rest of your work?_
 
 **What they said:**
+The client is the team itself, consisting of Shana, Whitney, Liliana, Leiton, Ivan, and Gustavo. The group is developing the game collectively and will make decisions together. The group established that new ideas should be communicated to and discussed with the entire team before implementation
 
 ---
 
@@ -81,6 +82,20 @@ _**Must ask. 5 min.** You are here for vocabulary as much as facts. Every term y
 _Adapt: Give us some background on recruiting here. Why does it matter to the company? Who else is involved? Any documents, slides, or videos that would get us up to speed on the terminology? When you say [term], what does that cover?_
 
 **What they said:**
+ The project is a PC survival game centered around a "man on a ship" concept. The team decided to continue with this concept and plans to research similar games to inform the game's design and mechanics.
+
+The game will initially focus on a fully developed single-player experience. Co-op functionality may be developed after the single-player version is complete.
+
+The team identified Raft and Don't Sleep With the Fishes as games to research for comparison and inspiration.
+
+Terms for the glossary, in their words:
+
+Survival game: The genre selected for the project.
+Single-player: The initial development focus of the game.
+Co-op: A possible future multiplayer mode to be developed after the single-player experience.
+NPC: Potential non-player characters that could assist the player with tasks or roles.
+Ship stations: Potential locations or jobs on the ship that could affect gameplay.
+Roles: Potential character responsibilities or attributes that could influence gameplay.
 
 **Terms for the glossary, in their words:** _[Term: what they said it means. Flag any term two people used differently.]_
 
@@ -93,9 +108,16 @@ _Expect to miss it here. Baselines surface in section 4, when they are looking a
 _Adapt: Why did you propose this project? What is the main problem, or the opportunity? Who is affected, and who benefits? What happens if we do nothing? How will you know it worked, and what is that number today?_
 
 **What they said:**
+The team wants to create a survival game based around the "man on a ship" idea. The team wants to establish the game's style, mechanics, and features through research and mockups before implementation.
+
+The team also wants to research similar games to better understand existing survival mechanics and identify design ideas that could inform the project.
 
 **Candidate objectives (`BO-<slug>`), with baselines where you got them:** _[Or "baseline unknown, `OI-*` raised".]_
 
+BO-ship-survival: Develop a PC survival game centered around a man surviving on a ship.
+BO-single-player: Fully develop the single-player experience before beginning co-op development.
+BO-game-research: Research similar survival games to inform the project's mechanics and design.
+BO-design-vision: Establish the game's visual style, starting mechanics, and core features before implementation.
 ---
 
 # The process
@@ -109,8 +131,23 @@ _Walk one real recent case end to end. "Take me through the last one you did" be
 _Adapt: What are the steps in hiring a technical candidate? Could you show me your interview guide, and the notes from the last few? Who does what at each step? Where does it get stuck? What do you do when it goes wrong?_
 
 **What they said:** _[Numbered steps, in their order, not yours.]_
+The game has not yet been implemented. The current development process is in the planning and research stage.
+
+The team has established the following initial process:
+
+Maintain meeting notes and project documentation in the team's Google Doc.
+Research similar survival games.
+Develop and research possible stylistic concepts.
+Develop mockups for possible features and designs.
+Discuss proposed ideas with the entire team before implementation.
+Determine starting mechanics and features.
+Develop the single-player game.
+Develop co-op functionality after the single-player experience is fully developed.
 
 **Artifacts they showed us:** _[Spreadsheets, forms, reports, current tools, screenshots taken. Ask for copies of everything.]_
+Group meeting notes/documentation
+Research references for Don't Sleep With the Fishes and Raft
+Planned Miro/Pinterest boards and sketches for future mockups
 
 ## 5. What is hard about it
 
@@ -119,8 +156,18 @@ _**Must ask. 5 min.** The complaint is usually the requirement. Listen for "must
 _Adapt: What is the most frustrating part? Walk me through the last time it went badly. What takes longest? What do you have to redo? What do people get wrong? What do you check by hand because you do not trust the system?_
 
 **What they said:**
+The team has not yet finalized the game's mechanics, features, or visual style. Several design decisions still need to be made, including:
+
+What the starting mechanics should be.
+Which features should be included in the initial version.
+Whether character roles or ship stations should have a greater gameplay impact.
+Whether roles should be traditional survival roles or fantasy-like roles such as mages.
+How NPCs should assist the player in single-player mode.
+How the raft/rescue mechanic should work for players or NPCs who fall overboard.
 
 **Rules heard (candidate `BR-*` for week 4):** _[Write each as their policy, not as software behavior.]_
+BR-team-input: New ideas should be communicated to and discussed with the entire team before implementation.
+BR-single-player-first: Single-player development should be completed before co-op development.
 
 ## 6. What already works
 
@@ -129,7 +176,11 @@ _**Must ask. 3 min.** Ask what is good before you propose replacing it. A team t
 _Adapt: What would you keep exactly as it is? What would you miss if it disappeared? Has anything been tried before that did not work, and why?_
 
 **What they said:** _[Explicitly: what must not change.]_
+The team agreed to continue with the "man on a ship" concept.
 
+The team also agreed that the current approach of discussing ideas as a group before implementation should continue.
+
+The use of a shared Google Doc for meeting notes and documentation was established.
 ## 7. Volumes and scale
 
 _**Must ask. 3 min.** These numbers decide most of your architecture, and they are cheap to ask for and expensive to guess. Twenty records a semester and two hundred thousand a day are different systems._
@@ -137,6 +188,9 @@ _**Must ask. 3 min.** These numbers decide most of your architecture, and they a
 _Adapt: How many of these in a week? A year? How many at the busiest moment, and when is that? How big is the largest one? How much history has to stay available? How many people use it at once on the worst day?_
 
 **What they said:** _[Get a number, or record that you did not.]_
+Not established during this meeting.
+
+The number of players for the eventual co-op mode, number of NPCs, size of the ship/world, and other scale requirements have not yet been determined.
 
 ## 8. Who the users are
 
@@ -147,9 +201,13 @@ _**If you cannot reach the real users, that is a project risk, not a scheduling 
 _Adapt: Who uses this day to day? How many? What do they use today? Can we talk to two or three, and watch one of them work? Will they test it before handover?_
 
 **What they said:**
+The intended application is a PC game.
 
+The initial game will be single-player, with co-op planned as a possible later development stage.
+
+The exact target audience/player profile was not established during this meeting.
 **Can we reach real users? If not, why, and what is the risk:**
-
+Not established. User testing plans have not yet been determined.
 ---
 
 # The boundaries
@@ -161,7 +219,14 @@ _**Must ask. 4 min.** Nobody asks these in meeting 1 and everybody regrets it in
 _Adapt: Is there anything we are required to use, or forbidden from using? Does IT have to approve the technology, and how long does that take? Does this touch personal data, student records, health information, or payments? Any regulations or policies it has to satisfy? Any hard dates we do not know about? Is there a budget for hosting, and who signs off?_
 
 **What they said:**
+Platform: PC
+Genre: Survival
+Single-player should be fully developed before co-op.
+The team will research similar games before finalizing mechanics and design.
+New ideas should be discussed with the entire team before implementation.
+AI may be used to help implement features step by step and to provide outside sources for reference.
 
+Other technical, budget, development-time, and technology constraints were not established during this meeting.
 ## 10. External dependencies
 
 _**Must ask. 3 min.** What your system has to talk to. Access credentials take weeks to obtain, so the ask has to happen now._
@@ -169,6 +234,11 @@ _**Must ask. 3 min.** What your system has to talk to. Access credentials take w
 _Adapt: What other systems does this exchange data with, in which direction, in what format? Who owns them, and who do we ask for access? How long does that usually take? Is there documentation? What does the service cost, and who pays?_
 
 **What they said:**
+No external system dependencies at this time.
+The team identified external games as research references:
+Don't Sleep With the Fishes
+Raft
+The team plans to use sources such as Miro and Pinterest for design research/mockups.
 
 ## 11. Lifetime and who maintains it
 
@@ -177,6 +247,7 @@ _**Must ask. 2 min.** The question students never ask and every client can answe
 _Adapt: How long should this keep running? Who supports it after we graduate from TCU? What do they already maintain, in what languages? Who pays for hosting next year, and who owns the accounts?_
 
 **What they said:**
+The long-term maintenance plan after completion of the course has not yet been determined.
 
 ## 12. Other stakeholders
 
@@ -185,7 +256,7 @@ _**If there is time. 1 min.** Cheap, and occasionally it turns out somebody with
 _Adapt: Who else could influence this, or be affected by it? Whose approval do we need? Anyone who would rather this project did not happen?_
 
 **What they said:**
-
+The project is being developed by the team for itself, so the team is currently serving as the client.
 ---
 
 # The close
@@ -197,7 +268,14 @@ _**Must ask. 1 min.** Ask it, then stop talking and wait through the silence. Hi
 _Adapt: Is there anything I should have asked and did not? What have we not talked about that worries you?_
 
 **What they said:**
+The team discussed several possible future features and design directions:
 
+NPCs assisting the player with tasks/roles in single-player.
+A raft mechanic for rescuing players or NPCs who have fallen overboard.
+Determining whether character roles or ship stations should have more impact.
+Deciding between fantasy-like roles and traditional survival roles.
+
+The team also reviewed Ivan's survey concerning members' preferred roles, games they have played, and industry experience.
 ## 14. The read-back
 
 _**Never skip. 5 min.** The part teams cut when they run late, and the highest-value five minutes of the hour. Say what you understood in your own words and watch for the correction. A client who is nodding may be being polite; a client correcting you is engaged, and that correction is usually the single most useful sentence of the meeting._
@@ -207,18 +285,22 @@ _Read back four things: the problem in one sentence, the objectives with any num
 _Fill in the [vision-and-scope.md](vision-and-scope.md) vision statement table during the meeting, read its six rows aloud, and see what they fix. Ninety seconds._
 
 **What we read back, and what they corrected:** _[Corrections first. They matter more than the agreements.]_
-
+The group agreed that the project will be a PC survival game centered around the "man on a ship" idea. The single-player experience will be developed first, with co-op planned as a later stage.
+The team has not yet finalized the game's visual style, starting mechanics, or initial feature set. These will be researched and discussed before implementation.
+The team will research similar games, particularly Raft and Don't Sleep With the Fishes, and prepare mockups for possible styles and features.
+The team also agreed that proposed ideas should be communicated to and discussed with the entire group before implementation.
+No corrections to this understanding were recorded.
 ## 15. Before you leave the room
 
 _**Never skip. 4 min.** Unglamorous, and where teams lose two weeks._
 
-- [ ] **Next meeting on the calendar** before anyone stands up. Not "we will be in touch". _[Date, time, place:]_
-- [ ] **Cadence agreed:** how often, roughly how long, and in person or remote. This course expects meetings **in person, on campus** where your client can travel; if they are outside DFW, agree the tool and who sends the link. _[Cadence:]_
-- [ ] **Contact channel and how fast they reply.** _[Channel, turnaround:]_
-- [ ] **Who to contact between meetings**, including when this person is away. _[Name, contact:]_
-- [ ] **Copies requested** of every artifact you were shown. _[What, and who is sending it:]_
-- [ ] **Introductions requested** to anyone named in sections 8 and 12. _[Who:]_
-- [ ] **Say what happens next**, in one sentence, so they know what to expect and when.
+- [ ] **Next meeting on the calendar** before anyone stands up. Not "we will be in touch". _[Date, time, place:]_ Sunday 3-5pm, library
+- [ ] **Cadence agreed:** how often, roughly how long, and in person or remote. This course expects meetings **in person, on campus** where your client can travel; if they are outside DFW, agree the tool and who sends the link. _[Cadence:]_ TCU library, every Sunday for two hours minimu. 
+- [ ] **Contact channel and how fast they reply.** _[Channel, turnaround:]_ Discord, 1 day.
+- [ ] **Who to contact between meetings**, including when this person is away. _[Name, contact:]_ Liliana Matte
+- [ ] **Copies requested** of every artifact you were shown. _[What, and who is sending it:]_ No copies requested
+- [ ] **Introductions requested** to anyone named in sections 8 and 12. _[Who:]_No instructions requested
+- [ ] **Say what happens next**, in one sentence, so they know what to expect and when. Team members will bring research on similar games and mockups for stylistic ideas and potential features to the next meeting.
 
 ---
 
@@ -241,15 +323,42 @@ _File everything within 24 hours, while you still remember why each answer matte
 ## Initial ideas
 
 _[Solutions anyone floated, yours or theirs. Record them here and nowhere else yet. A solution the client already picked ("then I select the state from a drop-down") is not a requirement, and writing it into the specification makes a design decision on their behalf. Ask why until you reach the need underneath, then write down the need.]_
+The following ideas were discussed but are not yet finalized requirements:
+
+NPCs could assist the player with tasks or roles in single-player.
+A raft could be used to rescue players or NPCs who have fallen overboard.
+Character roles could have gameplay attributes.
+Ship stations could have greater gameplay impact than character roles.
+Roles could be traditional survival roles.
+Roles could instead have a fantasy-like direction, such as mages.
+Co-op could be added after the single-player game is fully developed.
+
+These ideas require further discussion and research before being treated as final requirements.
 
 ## Disagreements and hesitations
 
 _[The observer's section, and the one that evaporates fastest. Two participants using the same word differently. A question answered by the wrong person. A topic they returned to three times. An answer that changed between the start and the end. A visible pause before "yes". None of it is evidence on its own; all of it tells you where to look next.]_
+Whether roles or ship stations should have a greater impact on gameplay.
+Whether the game should use traditional survival roles or fantasy-like roles.
+Which starting mechanics should be included.
+Which features should be included in the initial version.
+The final visual/style direction of the game.
 
 ## Open questions
 
 _[Everything you could not answer, and everything they answered with "I would have to check". Copy each into [OPEN-ISSUES.md](OPEN-ISSUES.md) as an `OI-*` with the person who can answer it, then sort them before the next meeting by what it costs you to stay wrong.]_
-
+OI-starting-mechanics: What are the core mechanics the player should begin with?
+OI-initial-features: Which features should be included in the first playable version?
+OI-style: What should the game's final visual/style direction be?
+OI-roles-stations: Should character roles or ship stations have greater gameplay impact?
+OI-role-type: Should roles be traditional survival roles or fantasy-like roles?
+OI-NPC: What tasks and responsibilities should NPCs have in single-player?
+OI-rescue: How should the raft/rescue mechanic work when a player or NPC falls overboard?
+OI-coop: What specific co-op functionality should be added after single-player development?
+OI-users: Who is the target player/audience for the game?
+OI-scale: How many players/NPCs and how large should the game environment be?
+OI-testing: How will the game be tested with players?
+OI-maintenance: What happens to the game/project after the course is completed?
 ---
 
 _**Within 24 hours**, send the client your notes and the open questions. It creates the record and gives them a second chance to correct you while the meeting is fresh. Then commit this file._
