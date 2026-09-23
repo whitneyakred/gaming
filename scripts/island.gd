@@ -7,12 +7,13 @@ extends Node2D
 @onready var time_label: Label = $CanvasLayer/TimeLabel
 @onready var pirate_ship_icon: Polygon2D = $CanvasLayer/PirateTrack/PirateShipIcon
 @onready var message_label: Label = $CanvasLayer/MessageLabel
-@onready var player: CharacterBody2D = $Player
+@onready var player: CharacterBody2D = $World/Player
 
 # How far the pirate ship icon travels across the track, in pixels.
-# Matches PirateTrack's width in island.tscn so the ship reaches the
-# right edge exactly when time runs out.
-const TRACK_DISTANCE: float = 140.0
+# PirateTrack is 280px wide (island.tscn); the icon's tip sits 8px ahead
+# of its own position, so 272 puts the tip exactly on the right edge
+# when time runs out.
+const TRACK_DISTANCE: float = 272.0
 
 var _collected_count: int = 0
 var _total_count: int = 0
@@ -79,12 +80,14 @@ func _win() -> void:
 	if player:
 		player.set_physics_process(false)
 	await get_tree().create_timer(1.5).timeout
+	# Tell the ship scene to play the "row back to the ship" sequence.
+	Ship.returning_from_island = true
 	get_tree().change_scene_to_file("res://scenes/ship.tscn")
 
 func _lose(reason: String) -> void:
 	_run_ended = true
 	message_label.visible = true
-	message_label.text = reason + "Game Over!"
+	message_label.text = reason + " Game Over!"
 	if player:
 		player.set_physics_process(false)
 	await get_tree().create_timer(2.0).timeout
