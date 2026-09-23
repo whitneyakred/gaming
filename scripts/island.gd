@@ -19,11 +19,17 @@ var _collected_count: int = 0
 var _total_count: int = 0
 var _time_remaining: float = 0.0
 var _run_ended: bool = false
+# Name shown in the HUD, read from the item catalog so it stays in sync
+# if the coconut item is renamed in scripts/item-system/items.gd.
+var _coconut_name: String = "Coconut"
 
 func _ready() -> void:
 	# Every Coconut instance in this scene is placed in the "coconuts" group
 	# (see island.tscn), so this works no matter how many are scattered here.
 	var coconuts := get_tree().get_nodes_in_group("coconuts")
+	var coconut_item: ItemData = ItemDatabase.get_item(&"coconut")
+	if coconut_item:
+		_coconut_name = coconut_item.display_name
 	_total_count = coconuts.size()
 	for coconut in coconuts:
 		coconut.collected.connect(_on_coconut_collected)
@@ -44,12 +50,12 @@ func _process(delta: float) -> void:
 	if _time_remaining <= 0.0:
 		_lose("The pirate ship reached the island!")
 
-func _on_coconut_collected() -> void:
+func _on_coconut_collected(_item_id: StringName) -> void:
 	_collected_count += 1
 	_update_coconut_label()
 
 func _update_coconut_label() -> void:
-	coconut_label.text = "Coconuts: %d / %d" % [_collected_count, _total_count]
+	coconut_label.text = "%ss: %d / %d" % [_coconut_name, _collected_count, _total_count]
 
 func _update_time_label() -> void:
 	time_label.text = "Time left: %ds" % int(ceil(_time_remaining))

@@ -18,6 +18,12 @@ func _ready() -> void:
 		"Fishing Rod",
 		"An old but useful tool for getting food and other items from the sea."
 	))
+	ItemDatabase.register_item(make_item(
+		&"coconut",
+		"Coconut",
+		"A fresh coconut gathered from a tropical island.",
+		20
+	))
 
 func make_item(
 	item_id: StringName,
