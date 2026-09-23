@@ -1,7 +1,11 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/ship.png" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3"]
+[ext_resource type="Script" path="res://scripts/scene_trigger.gd" id="4"]
+
+[sub_resource type="RectangleShape2D" id="GangplankShape"]
+size = Vector2(40, 20)
 
 [node name="Ship" type="Node2D"]
 
@@ -18,3 +22,11 @@ polygon = PackedVector2Array(0, -196, 44, -154, 83, -64, 94, 0, 90, 139, 57, 199
 
 [node name="Player" parent="." instance=ExtResource("3")]
 position = Vector2(-30, 90)
+
+[node name="Gangplank" type="Area2D" parent="."]
+position = Vector2(0, 190)
+script = ExtResource("4")
+target_scene = "res://scenes/island.tscn"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Gangplank"]
+shape = SubResource("GangplankShape")

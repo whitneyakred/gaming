@@ -1,0 +1,99 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/coconut.tscn" id="2"]
+[ext_resource type="Script" path="res://scripts/island.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/rowboat.gd" id="4"]
+[ext_resource type="Texture2D" path="res://assets/island.png" id="5"]
+
+[sub_resource type="RectangleShape2D" id="RowboatShape"]
+size = Vector2(40, 20)
+
+[node name="Island" type="Node2D"]
+script = ExtResource("3")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("5")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(0, 0)
+
+[node name="IslandBoundary" type="StaticBody2D" parent="."]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="IslandBoundary"]
+build_mode = 1
+polygon = PackedVector2Array(294, -193, 195, -192, 221, -91, 142, -92, 91, -194, -187, -191, -284, -91, -284, 150, -255, 157, -283, 279, -186, 256, -239, 208, -238, 157, -48, 183, 2, 107, 106, 76, 239, 105, 247, 181, 71, 209, 41, 148, 23, 233, 269, 230, 269, 35, 220, 31, 143, -75, 269, -48)
+
+[node name="Player" parent="." instance=ExtResource("1")]
+position = Vector2(-119, 148)
+
+[node name="Coconut1" parent="." groups=["coconuts"] instance=ExtResource("2")]
+position = Vector2(-9, -62)
+
+[node name="Coconut2" parent="." groups=["coconuts"] instance=ExtResource("2")]
+position = Vector2(121, 8)
+
+[node name="Coconut3" parent="." groups=["coconuts"] instance=ExtResource("2")]
+position = Vector2(-124, -162)
+
+[node name="Rowboat" type="Area2D" parent="."]
+position = Vector2(-244, 213)
+script = ExtResource("4")
+
+[node name="Hull" type="Polygon2D" parent="Rowboat"]
+color = Color(0.45, 0.3, 0.15, 1)
+polygon = PackedVector2Array(-16, 6, -10, -6, 10, -6, 16, 6, 8, 10, -8, 10)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Rowboat"]
+shape = SubResource("RowboatShape")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="CoconutLabel" type="Label" parent="CanvasLayer"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 220.0
+offset_bottom = 48.0
+text = "Coconuts: 0 / 3"
+
+[node name="TimeLabel" type="Label" parent="CanvasLayer"]
+offset_left = 16.0
+offset_top = 48.0
+offset_right = 220.0
+offset_bottom = 80.0
+text = "Time left: 60s"
+
+[node name="PirateLabel" type="Label" parent="CanvasLayer"]
+offset_left = 16.0
+offset_top = 80.0
+offset_right = 300.0
+offset_bottom = 100.0
+text = "Pirate ship approaching:"
+
+[node name="PirateTrack" type="Control" parent="CanvasLayer"]
+offset_left = 16.0
+offset_top = 102.0
+offset_right = 296.0
+offset_bottom = 122.0
+
+[node name="TrackBackground" type="ColorRect" parent="CanvasLayer/PirateTrack"]
+offset_right = 280.0
+offset_bottom = 20.0
+color = Color(0.09, 0.14, 0.22, 1)
+
+[node name="PirateShipIcon" type="Polygon2D" parent="CanvasLayer/PirateTrack"]
+position = Vector2(0, 10)
+color = Color(0.5, 0.08, 0.08, 1)
+polygon = PackedVector2Array(-8, -6, 8, 0, -8, 6)
+
+[node name="MessageLabel" type="Label" parent="CanvasLayer"]
+offset_left = 340.0
+offset_top = 320.0
+offset_right = 940.0
+offset_bottom = 380.0
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+vertical_alignment = 1
+visible = false
+text = ""
