@@ -1,0 +1,17 @@
+78098b89c88a74ebe8c20117b8754620
+::res://::1789334438
+AGENTS.md::TextFile::-1::1789334196::0::1::::<><><>0<>0<><>::
+icon.svg::CompressedTexture2D::2254486946958882193::1789334197::1789334440::1::::<><><>0<>0<>3465df67d75efdfc0e140c52a0a0ea7d<>res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex::
+README.md::TextFile::-1::1788554431::0::1::::<><><>0<>0<><>::
+::res://assets/::1789334197
+player_viking.png::CompressedTexture2D::1537468485917341446::1789334197::1789334440::1::::<><><>0<>0<>e21b92c5b0e0ed9f620fb96fe5cca482<>res://.godot/imported/player_viking.png-cad69907f6c74f3eafde4b2a779ad788.ctex::
+ship.png::CompressedTexture2D::813966002815655651::1789334197::1789334440::1::::<><><>0<>0<>76d79be5e5ac74449ade7775ab354498<>res://.godot/imported/ship.png-0b2a8e7064d2d88a0149f9491a8ea676.ctex::
+::res://docs/::1789334197
+minimal-mvp.md::TextFile::-1::1789334197::0::1::::<><><>0<>0<><>::
+team-contract.md::TextFile::-1::1789334197::0::1::::<><><>0<>0<><>::
+::res://scenes/::1789334197
+main.tscn::PackedScene::-1::1789334197::0::1::::<><><>0<>0<><>::res://scenes/ship.tscn
+player.tscn::PackedScene::131061088475216875::1789334197::0::1::::<><><>0<>0<><>::uid://bpnvxvcrykit2::::res://scripts/player.gd<>uid://v50473bfp0us::::res://assets/player_viking.png
+ship.tscn::PackedScene::-1::1789334197::0::1::::<><><>0<>0<><>::res://assets/ship.png<>res://scenes/player.tscn
+::res://scripts/::1789334197
+player.gd::GDScript::3467407486059111345::1789334197::0::1::::<>CharacterBody2D<><>0<>0<><>::
