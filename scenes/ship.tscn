@@ -1,20 +1,87 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=12 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/ship.png" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3"]
+[ext_resource type="Script" path="res://scripts/ship.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/ocean.gd" id="2"]
+[ext_resource type="Texture2D" path="res://assets/island_pixel.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/ship_sailing.png" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="5"]
+[ext_resource type="Texture2D" path="res://assets/rowboat.png" id="6"]
+[ext_resource type="Texture2D" path="res://assets/player_viking.png" id="7"]
+
+[sub_resource type="RectangleShape2D" id="SternShape"]
+size = Vector2(44, 40)
 
 [node name="Ship" type="Node2D"]
+script = ExtResource("1")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Ocean" type="Node2D" parent="."]
+z_index = -20
+script = ExtResource("2")
+
+[node name="Island" type="Node2D" parent="."]
+position = Vector2(400, -40)
+
+[node name="Sprite2D" type="Sprite2D" parent="Island"]
 texture_filter = 1
-scale = Vector2(0.42, 0.42)
-texture = ExtResource("1")
+scale = Vector2(2, 2)
+texture = ExtResource("3")
+
+[node name="ShipSprite" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(2, 2)
+texture = ExtResource("4")
 
 [node name="DeckBoundary" type="StaticBody2D" parent="."]
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="DeckBoundary"]
 build_mode = 1
-polygon = PackedVector2Array(0, -196, 44, -154, 83, -64, 94, 0, 90, 139, 57, 199, -57, 199, -90, 139, -94, 0, -83, -64, -44, -154)
+polygon = PackedVector2Array(4, -208, 24, -188, 40, -164, 56, -128, 66, -88, 72, -38, 74, 12, 72, 72, 68, 122, 62, 156, 52, 166, 22, 166, 22, 196, -10, 196, -10, 166, -44, 166, -54, 156, -60, 122, -64, 72, -66, 12, -64, -38, -58, -88, -48, -128, -32, -164, -16, -188)
 
-[node name="Player" parent="." instance=ExtResource("3")]
+[node name="Rowboat" type="Node2D" parent="."]
+position = Vector2(4, 238)
+
+[node name="Sprite2D" type="Sprite2D" parent="Rowboat"]
+texture_filter = 1
+scale = Vector2(2, 2)
+texture = ExtResource("6")
+
+[node name="Rider" type="Sprite2D" parent="Rowboat"]
+visible = false
+texture_filter = 1
+position = Vector2(0, -12)
+scale = Vector2(0.03, 0.03)
+texture = ExtResource("7")
+
+[node name="SternZone" type="Area2D" parent="."]
+position = Vector2(6, 180)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SternZone"]
+shape = SubResource("SternShape")
+
+[node name="Player" parent="." instance=ExtResource("5")]
 position = Vector2(-30, 90)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="StatusLabel" type="Label" parent="HUD"]
+offset_left = 290.0
+offset_top = 18.0
+offset_right = 990.0
+offset_bottom = 58.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
+text = "Sailing the open sea..."
+
+[node name="PromptLabel" type="Label" parent="HUD"]
+offset_left = 290.0
+offset_top = 650.0
+offset_right = 990.0
+offset_bottom = 690.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+text = "Press E to take the rowboat to the island"
