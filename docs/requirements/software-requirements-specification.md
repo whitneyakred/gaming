@@ -1,8 +1,8 @@
 # Software Requirements Specification
 
-**Project:** _[Your project name]_
-**Team:** _[Team NN]_
-**Client:** _[Client name and organization]_
+**Project:** Man the Ship
+**Team:** Team 13
+**Client:** No external client
 **Version:** 0.1
 
 ---
@@ -38,15 +38,17 @@ _Requirements cited from elsewhere keep their own identifiers: `UC-*` from [use-
 
 | Date | Version | Description | Author |
 |---|---|---|---|
-| _[YYYY-MM-DD]_ | 0.1 | Initial draft | _[Name]_ |
+| _[2026-09-13]_ | 0.1 | Initial draft | _[Ivan Lopez]_ |
 
 ---
 
 ## 1. Introduction
 
-### 1.1 The purpose of _[project name]_
+### 1.1 The purpose of _[Man the Ship]_
 
 _[What the system is for: who wants it, why, and who will use it. Even though the vision and scope answers this, restate it in a paragraph here, because people read this document without having read that one.]_
+
+This project is a PC survival-adventure game being developed by Team 13 of TCU's 2026 senior design cohort. The game centers on the player's ability to navigate a ship, gather resources, explore locations, discover secrets, and manage limited resources while progressing toward a final destination. Version 1.0 is planned as a single-player experience, with multiplayer considered as a future enhancement.
 
 ### 1.2 The purpose of this document
 
@@ -54,9 +56,13 @@ _[What this specification covers and for which release.]_
 
 _Example: "This document describes the functional and nonfunctional requirements for release 1.0 of the Cafeteria Ordering System. It serves as the reference for the project's requirements, defining the scope, functionality, and constraints for stakeholders, developers, and testers."]_
 
+This document describes the minimum functional mechanics and systems required for Version 1.0 of Man the Ship. It serves as a guideline and reference for the project's requirements, defining its scope, limitations, required functionality, and constraints for players, developers, and other interested parties.
+
 ### 1.3 Document conventions
 
 _[Any typographical conventions, and the identifier formats above, so that someone adding a requirement later knows how to name it.]_
+
+This document uses several gaming-related abbreviations. Non-player characters are referred to as NPCs, PC refers to a personal computer, and Godot refers to the game engine used to develop the project. Requirement identifiers use the formats defined in the Identifiers section.
 
 ### 1.4 References
 
@@ -68,6 +74,8 @@ _[Every document this specification refers to, with a link. At minimum, the four
 - _[Business rules](business-rules.md)_
 - _[Open issues](OPEN-ISSUES.md)_
 - _[The Easy Approach to Requirements Syntax (EARS)](https://alistairmavin.com/ears/)_
+- _[Place Holder item and Player Sprites during Development](https://anokolisa.itch.io/free-pixel-art-asset-pack-topdown-tileset-rpg-16x16-sprites)_
+- _[Place Holder tilesets used during Development](https://pixelartjourney.itch.io/island-tileset-1)_
 
 ---
 
@@ -77,13 +85,19 @@ _[Every document this specification refers to, with a link. At minimum, the four
 
 _[How this system relates to other systems and to the user's environment. Self-contained, or one component of something larger? Link to the product perspective section of your vision and scope and to your architecture's context diagram rather than redrawing them.]_
 
+Man the Ship is a self-contained PC survival-adventure game developed in the Godot game engine. It is not intended to be part of a larger software system and does not require external services, online accounts, or network connectivity during gameplay. Version 1.0 provides a single-player experience in which the player navigates a ship, explores islands, collects resources, and manages survival needs while progressing toward a final destination. Multiplayer functionality may be considered for a future release but is outside the scope of Version 1.0.
+
 ### 2.2 User classes and characteristics
 
 _[The kinds of user, and what distinguishes them: frequency of use, technical skill, privilege level, whether they are inside or outside the client's organization. Link to the stakeholder profiles in your vision and scope; what belongs here is what affects the software's behavior, especially permissions.]_
 
+The primary user class is a PC player who plays Man the Ship in single-player mode. Gameplay requires basic keyboard and mouse knowledge to control the player character, interact with ship stations, explore locations, collect items, and manage survival needs. Players are expected to have basic familiarity with PC game controls and will receive introductory guidance for core mechanics. Version 1.0 does not use user accounts, special authorization, or different player privilege levels. Players need only install and launch the game.
+
 ### 2.3 Operating environment
 
 _[The environment the software runs in: hardware, operating systems and versions, browsers, where users and servers are located, and any other software it has to coexist with.]_
+
+The initial release of Man the Ship is intended to run as a downloadable desktop application on Windows-based computers. Support for macOS will be considered after the Windows release has been tested. Minimum hardware requirements have not yet been determined and will be established through testing. Users need access to a keyboard and mouse for gameplay controls.
 
 _Examples:_
 
@@ -103,6 +117,13 @@ _Examples:_
 
 _The constraint students forget: **who maintains this after you graduate, and what do they already know how to run?** If the answer is one person who knows Python, a Spring Boot service is a constraint violation nobody wrote down._
 
+Constraints:
+
+- `CO-maintenance`: Access to the Godot game engine and the project's GitHub repository is required to modify and maintain the game.
+- `CO-language`: Game scripts shall be written in GDScript, the scripting language supported by Godot.
+- `CO-art-format`: Art assets shall use a format that can be imported into the Godot engine.
+- `CO-coding-standard`: Design, code, and maintenance documentation shall follow the team's agreed coding and game-development standards.
+
 ### 2.5 Assumptions and dependencies
 
 _[An assumption is a factor you believe true without proof, which would change these requirements if it turned out false. A dependency is something outside your control that the project relies on: an external API, a third-party library, a change someone else has to make.]_
@@ -113,6 +134,11 @@ _Examples:_
 - _`DE-payroll-integration`: Operation depends on changes being made in the Payroll System to accept payment requests for meals ordered through this system._
 
 ---
+
+- `AS-user-download-access`: Users can download the game from the project's repository or distribution website.
+- `AS-user-hardware`: Users have access to a Windows-based computer, keyboard, and mouse for gameplay.
+- `DE-godot-engine`: Development and maintenance depend on continued access to the Godot game engine.
+- `DE-placeholder-assets`: Prototype visuals depend on the availability and license terms of the selected placeholder asset packs.
 
 ## 3. Project Glossary
 
@@ -179,9 +205,13 @@ _[Each entity's fields, with data type, allowed values, defaults, and validation
 
 _[Any report the system generates: who reads it, what it contains, how often, and in what format. Reports are where clients discover late that a field they need was never captured, so specify them early.]_
 
+No player-facing or administrative reports are required for Version 1.0. The software is a game therefore no outward facing reports are generated unless specifically required for users.
+
 ### 7.4 Data acquisition, integrity, retention, and disposal
 
 _[Where the data comes from, how it is kept correct, how long it is kept, and how it is destroyed. If your system holds anything about students or other identifiable people, this section is not optional, and its content is usually a business rule you should cite rather than invent.]_
+
+Version 1.0 does not collect personal player data. Game state is created through player actions during a game session. If save functionality is implemented, save data shall be stored locally on the player's computer and may be deleted by uninstalling the game or deleting its save files.
 
 ---
 
@@ -191,21 +221,34 @@ _[Where the data comes from, how it is kept correct, how long it is kept, and ho
 
 _[The user-facing surfaces, at requirement level: which views exist, standards they must conform to, accessibility requirements. Link to wireframes or prototypes rather than describing pixel layouts.]_
 
+- `UI-main-menu`: The system shall provide a main menu with options to start a new game, access settings, and exit the game.
+- `UI-gameplay-hud`: During gameplay, the system shall display the player's current stamina and relevant resources.
+- `UI-station-feedback`: When the player uses a ship station, the system shall display feedback showing the outcome of the interaction.
+- `UI-pause-menu`: The system shall provide a pause menu during active gameplay.
+
 ### 8.2 Hardware interfaces
 
 _[Any hardware the system talks to, or "none".]_
+
+The game does not interface with specialized hardware. Version 1.0 uses standard keyboard and mouse input.
 
 ### 8.3 Software interfaces
 
 _[Other software systems yours connects to: what crosses the boundary, in which direction, in what format, and what happens when the other side is unavailable.]_
 
+The game uses the Godot game engine and locally imported art assets. Version 1.0 does not integrate with external software systems, web services, or third-party APIs during gameplay.
+
 ### 8.4 API document
 
 _[Link to your API documentation. It is generated from the code, so link it rather than transcribing endpoints that will be stale within a week.]_
 
+Not applicable. Version 1.0 does not provide or consume an external API.
+
 ### 8.5 Communications interfaces
 
 _[Email, notifications, messaging, and the protocols involved.]_
+
+Not applicable. Version 1.0 does not require in-game messaging, email, network communication, or multiplayer communication. As of filling out this form we do not have plans for multiplayer implementation before 1.0 release. However following initial release multiplayer will be added though how that will function has not been discussed yet.
 
 ---
 
@@ -221,29 +264,46 @@ _Write one subsection per attribute your project actually has, and say "not appl
 
 _Example: `USE-wcag-aa`: All user-facing views shall conform to WCAG 2.1 level AA._
 
+- `USE-controls-guidance`: The system shall provide on-screen instructions when the player first encounters a core ship station.
+- `USE-feedback`: When a player completes or fails an interaction, the system shall display feedback indicating the result.
+
 ### 9.2 Performance
 
 _Example: `PER-report-load`: A peer evaluation report for a section of 80 students shall render within 2 seconds at the 95th percentile._
+
+Not yet set wil be determined during next team meeting.
 
 ### 9.3 Security
 
 _Example: `SEC-authentication`: The system shall authenticate every request to a non-public endpoint, and shall reject unauthenticated requests without disclosing whether the requested resource exists._
 
+- `SEC-no-account-data`: Version 1.0 shall not require or store player account credentials or personally identifiable information.
+
 ### 9.4 Safety
 
 _[Conditions under which the system could contribute to harm, and what prevents it. For most projects in this course the honest answer is `SAF-not-applicable`, with a sentence saying why.]_
+
+- `SAF-not-applicable`: The game does not control physical equipment or make safety-critical decisions; therefore, no safety requirements apply beyond standard software stability.
 
 ### 9.5 Availability
 
 _Example: `AVL-uptime`: The system shall be available 99% of the time during the academic term, excluding announced maintenance windows._
 
+- `AVL-offline-play`: The game shall be playable without an internet connection after installation.
+
 ### 9.6 Robustness
 
 _Example: `ROB-edit-loss-bound`: On an unexpected client disconnect, the system shall lose no more than 30 seconds of a student's in-progress edits._
 
+- `ROB-invalid-action`: If the player attempts an unavailable interaction, then the system shall prevent the action without terminating the game session.
+- `ROB-resource-bound`: The system shall prevent item quantities and stamina values from falling below zero.
+
 ### 9.7 Scalability, interoperability, maintainability
 
 _[Add the ones that apply, with `SCA-`, `INT-`, and `MNT-` identifiers. Maintainability is the one this course cares about most, because someone inherits your code in January.]_
+
+- `MNT-source-control`: The project's source code and documentation shall be maintained in the team's GitHub repository.
+- `MNT-documentation`: The team shall document setup, build, and run instructions in the project README.
 
 ---
 
@@ -251,11 +311,17 @@ _[Add the ones that apply, with `SCA-`, `INT-`, and `MNT-` identifiers. Maintain
 
 _[Languages, character sets, time zones, date and currency formats. If the answer is a single locale, say so and say why, because that is a real constraint on who can use the system.]_
 
+Version 1.0 will be released in English only. The game will use English text, U.S. English spelling, and no region-specific currency or date formats. Localization into additional languages is outside the scope of Version 1.0.
+
 ---
 
 ## 11. Other Requirements
 
 _[Anything real that fits nowhere above: legal, licensing, installation, training, documentation. Delete this section if it is empty rather than leaving it as a placeholder.]_
+
+- `OR-asset-licensing`: The team shall document the source and license of every third-party asset used in the project.
+- `OR-installation`: The project README shall provide instructions for downloading, installing, and launching the game.
+- `OR-documentation`: The project README shall identify the required Godot version and the steps necessary to run the project from source.
 
 ---
 
