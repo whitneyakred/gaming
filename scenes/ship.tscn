@@ -1,20 +1,24 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://r6br2kubkgu"]
 
-[ext_resource type="Texture2D" path="res://assets/ship.png" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3"]
+[ext_resource type="Texture2D" uid="uid://luj5vyt1jyq2" path="res://assets/ship.png" id="1"]
+[ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/Cooking.tscn" id="4"]
 
-[node name="Ship" type="Node2D"]
+[node name="Ship" type="Node2D" unique_id=1965887700]
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1001270308]
 texture_filter = 1
 scale = Vector2(0.42, 0.42)
 texture = ExtResource("1")
 
-[node name="DeckBoundary" type="StaticBody2D" parent="."]
+[node name="DeckBoundary" type="StaticBody2D" parent="." unique_id=1305653966]
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="DeckBoundary"]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="DeckBoundary" unique_id=659407607]
 build_mode = 1
 polygon = PackedVector2Array(0, -196, 44, -154, 83, -64, 94, 0, 90, 139, 57, 199, -57, 199, -90, 139, -94, 0, -83, -64, -44, -154)
 
-[node name="Player" parent="." instance=ExtResource("3")]
+[node name="Player" parent="." unique_id=656477266 instance=ExtResource("3")]
 position = Vector2(-30, 90)
+
+[node name="Cooking" parent="." unique_id=1082873872 instance=ExtResource("4")]
+position = Vector2(66, 72)
