@@ -27,13 +27,22 @@ scale = Vector2(2, 2)
 texture = ExtResource("3")
 
 [node name="ShipSprite" type="Sprite2D" parent="."]
+[gd_scene format=3 uid="uid://r6br2kubkgu"]
+
+[ext_resource type="Texture2D" uid="uid://luj5vyt1jyq2" path="res://assets/ship.png" id="1"]
+[ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/Cooking.tscn" id="4"]
+
+[node name="Ship" type="Node2D" unique_id=1965887700]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1001270308]
 texture_filter = 1
 scale = Vector2(2, 2)
 texture = ExtResource("4")
 
-[node name="DeckBoundary" type="StaticBody2D" parent="."]
+[node name="DeckBoundary" type="StaticBody2D" parent="." unique_id=1305653966]
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="DeckBoundary"]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="DeckBoundary" unique_id=659407607]
 build_mode = 1
 polygon = PackedVector2Array(4, -208, 24, -188, 40, -164, 56, -128, 66, -88, 72, -38, 74, 12, 72, 72, 68, 122, 62, 156, 52, 166, 22, 166, 22, 196, -10, 196, -10, 166, -44, 166, -54, 156, -60, 122, -64, 72, -66, 12, -64, -38, -58, -88, -48, -128, -32, -164, -16, -188)
 
@@ -85,3 +94,8 @@ theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
 theme_override_font_sizes/font_size = 24
 horizontal_alignment = 1
 text = "Press E to take the rowboat to the island"
+[node name="Player" parent="." unique_id=656477266 instance=ExtResource("3")]
+position = Vector2(-30, 90)
+
+[node name="Cooking" parent="." unique_id=1082873872 instance=ExtResource("4")]
+position = Vector2(66, 72)
