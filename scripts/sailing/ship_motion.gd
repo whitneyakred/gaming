@@ -19,6 +19,7 @@ var sail_level: int = 0
 var sail_angle_degrees: float = 0.0
 var wheel_angle_degrees: float = 0.0
 var turn_rate: float = 0.0
+var stations_enabled: bool = true
 
 func _ready() -> void:
 	# Move the shared parent before crew perform their own walking/collision step.

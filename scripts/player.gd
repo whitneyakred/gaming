@@ -2,12 +2,15 @@ extends CharacterBody2D
 
 # Exposed as Walk Speed in the Inspector (pixels per second).
 @export var walk_speed: float = 145.0
+var using_station: bool:
+	get:
+		return is_instance_valid(active_station)
 
 # Stations claim movement through this small interface, without player-to-helm coupling.
 var active_station: Node = null
 
 func try_use_station(station: Node) -> bool:
-	if not is_instance_valid(station) or is_instance_valid(active_station):
+	if not is_instance_valid(station) or using_station or not is_physics_processing():
 		return false
 	active_station = station
 	velocity = Vector2.ZERO
@@ -18,7 +21,7 @@ func leave_station(station: Node) -> void:
 		active_station = null
 
 func _physics_process(_delta: float) -> void:
-	if is_instance_valid(active_station):
+	if using_station:
 		velocity = Vector2.ZERO
 		return
 	# Read WASD / arrow keys; diagonal movement stays the same speed.

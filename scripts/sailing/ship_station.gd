@@ -15,7 +15,7 @@ func can_interact(crew: CharacterBody2D) -> bool:
 	return is_instance_valid(crew) and global_position.distance_to(crew.global_position) <= interaction_distance
 
 func try_take_control(crew: CharacterBody2D) -> bool:
-	if not is_instance_valid(ship) or is_instance_valid(operator) or not can_interact(crew):
+	if not is_instance_valid(ship) or not ship.stations_enabled or is_instance_valid(operator) or not can_interact(crew):
 		return false
 	if not crew.has_method("try_use_station") or not crew.call("try_use_station", self):
 		return false
@@ -39,7 +39,7 @@ func _exit_tree() -> void:
 	release_control()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("station_interact") and not event.is_echo():
+	if event.is_action_pressed("interact") and not event.is_echo():
 		if is_instance_valid(operator) and operator == local_player:
 			release_control()
 			get_viewport().set_input_as_handled()
@@ -64,5 +64,3 @@ func _control_changed() -> void:
 
 func _apply_controls(_delta: float) -> void:
 	pass
-
-

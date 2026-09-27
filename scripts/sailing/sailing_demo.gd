@@ -4,6 +4,7 @@ extends Node2D
 @export var ship: ShipMotion
 @export var helm: HelmStation
 @export var camera: Camera2D
+@export var draw_ocean_marks: bool = true
 @onready var wind_arrow: Label = $HUD/Wind/Arrow
 @onready var helm_wheel: HelmWheelWidget = $HUD/HelmWheel
 
@@ -18,7 +19,7 @@ func _process(_delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	if not is_instance_valid(camera):
+	if not draw_ocean_marks or not is_instance_valid(camera):
 		return
 	# Recycle a bounded grid of world-anchored wave marks around the camera.
 	# Integer cell coordinates make the pattern repeatable in every direction.
