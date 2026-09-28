@@ -13,6 +13,8 @@ extends Node2D
 @export var foam_color: Color = Color8(95, 132, 168)
 # Area to cover around this node (bigger than the 1280x720 viewport).
 @export var cover_size: Vector2 = Vector2(1600, 1000)
+## Use world coordinates for sailing; islands may still use the ambient scroll.
+@export var world_anchored: bool = false
 
 const TILE: int = 192
 const PIXEL: int = 2   # matches the ship's 2x pixel scale
@@ -37,12 +39,15 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var half := cover_size / 2.0
 	draw_rect(Rect2(-half, cover_size), water_color)
-	var tiles_x := int(ceil(cover_size.x / TILE)) + 1
+	var tiles_x := int(ceil(cover_size.x / TILE)) + 2
 	var tiles_y := int(ceil(cover_size.y / TILE)) + 2
 	var start := Vector2(-tiles_x / 2 * TILE, -tiles_y / 2 * TILE)
+	var offset := Vector2(0, scroll_offset)
+	if world_anchored:
+		offset = Vector2(fposmod(-global_position.x, TILE), fposmod(-global_position.y, TILE))
 	for ty in tiles_y:
 		for tx in tiles_x:
-			var origin := start + Vector2(tx * TILE, ty * TILE + scroll_offset)
+			var origin := start + Vector2(tx * TILE, ty * TILE) + offset
 			for i in _waves.size():
 				var w: Vector3 = _waves[i]
 				# Small sideways sway so the sea looks alive even at anchor.

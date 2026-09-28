@@ -6,6 +6,3 @@
 
 [node name="Ship" parent="." unique_id=11612192 instance=ExtResource("1")]
 position = Vector2(0, -2)
-
-[node name="Camera2D" type="Camera2D" parent="." unique_id=321606360]
-position = Vector2(0, 1)

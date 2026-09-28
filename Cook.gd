@@ -34,6 +34,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func interact() -> void:
+	if crew_nearby.is_empty() or crew_nearby[0].get("using_station") == true:
+		return
 	match state:
 		State.IDLE:
 			if raw_fish <= 0 or crew_nearby.is_empty():
@@ -47,9 +49,9 @@ func interact() -> void:
 
 func _start_preparation() -> void:
 	active_crew = crew_nearby[0]
-	if active_crew.get("using_station") == true:
+	if not active_crew.try_use_station(self):
+		active_crew = null
 		return
-	active_crew.set("using_station", true)
 	state = State.PREPARING
 	prep_layer = CanvasLayer.new()
 	prep_layer.layer = 20
@@ -61,7 +63,7 @@ func _start_preparation() -> void:
 
 func _release_crew() -> void:
 	if is_instance_valid(active_crew):
-		active_crew.set("using_station", false)
+		active_crew.leave_station(self)
 	active_crew = null
 	if is_instance_valid(prep_layer):
 		prep_layer.queue_free()
@@ -80,7 +82,7 @@ func _on_preparation_cancelled() -> void:
 
 func _exit_tree() -> void:
 	if is_instance_valid(active_crew):
-		active_crew.set("using_station", false)
+		active_crew.leave_station(self)
 
 func _finish_cooking() -> void:
 	state = State.READY
