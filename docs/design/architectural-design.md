@@ -1,297 +1,417 @@
 # Architectural Design
 
-**Project:** _[Your project name]_
-**Team:** _[Team NN]_
-**Client:** _[Client name and organization]_
-**Version:** 0.1
+**Project:** Man the Ship
 
----
+**Team:** Team 13 (Gaming) — Whitney Akred, Shana Billiot, Liliana Matte, Gustavo Castillo, Leiton Peterson, Ivan Lopez
 
-_**How to use this template.** Instructions appear in italic square brackets. Fill in underneath them and leave them in place until the document is stable. Every section says which checkpoint it is due at. A section that is not due yet stays as it is; do not fill it with guesses to make the document look finished._
+**Client:** Student-led project; the development team serves as the client
 
-_**What this document is.** Your system's **architecture-of-record**: the one map of the whole system, every use case area, every component, every external system, and the few decisions that are expensive to change later. It is **breadth-complete and depth-shallow**. Every part of the system is named, and nothing is designed further than its responsibility. How one use case works inside its component is a design-of-record, which comes in week 7, one per use case area, and it is written against real code._
+**Version:** 0.2
 
-_**What it is not.** A second copy of your requirements. The specification says what the system must do and how well; this document says how the system is shaped to do it. It **cites** `UC-*`, `CO-*`, `SEC-*`, `PER-*` and the rest by identifier and never restates them. A threshold that appears here and nowhere in the specification is a requirement hiding in the wrong document._
+**Architecture baseline:** Architectural documentation branch, October 2, 2026
 
-_**The test for what belongs here.** Decide now what is hard to reverse, affects the whole system, and is forced by a quality attribute or a constraint: how many deployables, where the data lives, how users sign in, which external systems you depend on. Leave to per-area design what is local and cheap to change: class names, endpoint shapes, table columns._
+This document describes the system's boundaries, responsibilities, and architectural decisions. It distinguishes the **implemented prototype** from the **planned architecture** and covers all six use case areas without committing all of them to the next milestone.
 
-_**Structure.** The sections follow **arc42** (Starke and Hruschka), with **C4** diagrams (Simon Brown) for context and containers, written as mermaid so they diff in git. All twelve arc42 sections are here in arc42's order, numbering, and titles. The three subsections whose content another document already owns (the requirements overview, the stakeholders, and the quality requirements overview) are kept as one-line links to that document, so the numbering matches arc42's and nothing is written twice. arc42 orders sections by topic, not by when you write them, so Checkpoint 1 covers sections 1–5, 8, and 9, and sections 6 and 7 come later. The full worked example is Project Pulse's [architecture-of-record](https://github.com/Washingtonwei/project-pulse/blob/main/docs/design/architectural-design.md); read it for the shape, then write your own, because your client's quality attributes are not Project Pulse's.]_
+The implementation contains one stationary ship, one controllable character, deck collision, a fixed camera, and an in-memory item definition catalog. Sailing, interactive stations, survival, procedural travel, islands, trading, saving, and networking are not implemented. The catalog was added after the movement-only description in [Minimal MVP](../minimal-mvp.md).
+
+### Sources and interpretation
+
+Runtime claims are grounded in [project.godot](../../project.godot), [scenes](../../scenes/), and [scripts](../../scripts/). Development constraints come from [AGENTS.md](../../AGENTS.md). Product intent comes from the [use cases](../requirements/use-cases.md), [project glossary](../requirements/project-glossary.md), [vision and scope](../requirements/vision-and-scope.md), and recorded answers in the [client interview](../requirements/client-interview-guide.md).
+
+The software requirements specification is still a template: its example quality, security, interface, and constraint identifiers are not Man the Ship requirements. This document cites actual sources rather than inventing requirement handles or performance targets. Missing requirements and conflicting older statements are recorded in section 11.2. Proposed conventions and decisions are labeled and do not claim prior team approval.
 
 ## Identifiers
 
-_[The new identifiers this document creates. Everything else it cites keeps the identifier of the document that owns it.]_
-
-| Space | For | Example |
+| Space | Purpose | Example |
 |---|---|---|
-| `KD-<slug>` | Key architectural decisions | `KD-single-deployable` |
-| `QS-<slug>` | Quality scenarios | `QS-cross-employee-order-denied` |
-| `RISK-<slug>` | Technical risks | `RISK-payroll-api-unavailable` |
-| `TD-<slug>` | Technical debt the architecture knowingly carries | `TD-no-rate-limiting` |
+| `KD-<slug>` | Key architectural decisions | `KD-deployment-shape` |
+| `QS-<slug>` | Quality scenarios | `QS-deck-boundary` |
+| `RISK-<slug>` | Technical risks | `RISK-moving-deck` |
+| `TD-<slug>` | Known technical debt | `TD-item-validation` |
 
-_[These are slugs, like every other identifier in your project, so an inserted decision renumbers nothing and a citation says what it points at. Project Pulse uses the same form: `KD-modular-monolith`, `QS-cross-team-denial`.]_
+Identifiers from other documents retain their original names. Only `UC-NAV-steer-ship` has a full use case specification; unnamed backlog entries are referenced by area rather than assigned new identifiers here.
 
 ## Revision History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1 | | | Initial draft for Checkpoint 1 |
-
----
+| 0.1 | Not recorded in original draft | Original contributors | Architecture template and section 5.1 diagram |
+| 0.2 | 2026-10-02 | AI-assisted draft for Team 13 review | Complete architectural sections from repository evidence, preserve the original diagram, and distinguish implementation from plans and unresolved requirements |
 
 ## 1. Introduction and Goals
 
-_Due: Checkpoint 1._
-
 ### 1.1 Requirements overview
 
-_[Your [specification](../requirements/software-requirements-specification.md) and your [use cases](../requirements/use-cases.md) are the requirements overview. Link them here; do not summarize them.]_
+See the [software requirements specification](../requirements/software-requirements-specification.md) and [use cases](../requirements/use-cases.md).
 
 ### 1.2 Quality goals
 
-_[The **three** quality attributes that most shape your system, in priority order. Pick them from section 9 of your [specification](../requirements/software-requirements-specification.md) and cite their identifiers. If you cannot rank them, ask your client which one they would give up first; that answer is the ranking._
+This priority order is proposed from the single-player-first direction and project instructions. It is not a client-approved ranking or a substitute for measurable requirements in specification section 9.
 
-_These are usually the top rows of the table in section 9.1, and the two do different jobs. Here, say why each goal matters to your client. There, say which decision it forces._
-
-_Example, from the Cafeteria Ordering System:]_
-
-| Priority | Quality goal | Specification handles | Why it shapes the architecture |
+| Priority | Quality goal | Existing source | Why it shapes the architecture |
 |---|---|---|---|
-| 1 | _Payroll data stays confidential_ | _`SEC-payroll-auth`, `SEC-employee-own-orders`_ | _Orders are paid by payroll deduction, so an order record carries an employee's pay account. A leak is a legal problem, not a bug._ |
-| 2 | _Orders placed before 10:00 are not lost_ | _`ROB-order-persisted`, `AVL-lunch-window`_ | _The lunch rush is the only load that matters, and a lost order is a hungry employee with a payroll charge._ |
-| 3 | _Cafeteria staff can run it without IT_ | _`CO-no-dedicated-ops`, `MNT-menu-self-service`_ | _Nobody on the cafeteria side can deploy, restart, or patch anything._ |
+| 1 | Reliable, understandable local gameplay | `FEAT-single-player-survival`; `UC-NAV-steer-ship`; AGENTS.md | Movement and shared-ship interactions need to work consistently before multiplayer makes failures harder to diagnose. |
+| 2 | Maintainable separation of crew responsibilities | AGENTS.md; use case areas; team contract section 4 | Reusable scenes and station-oriented components let teammates develop different responsibilities without putting every mechanic in the player script. |
+| 3 | Sustainable travel and compatible rendering | AGENTS.md; project.godot | Indefinite horizontal travel needs bounded active world content, while Compatibility rendering and Web compatibility constrain rendering choices. |
 
 ### 1.3 Stakeholders
 
-_[Your stakeholders are profiled in section 3.1 of [vision and scope](../requirements/vision-and-scope.md). Link it here; do not copy it.]_
+See [vision and scope, section 3.1](../requirements/vision-and-scope.md#31-stakeholder-profiles); the [client interview, section 1](../requirements/client-interview-guide.md#1-get-to-know-your-client) confirms that the team itself is the client.
 
 ## 2. Architecture Constraints
 
-_Due: Checkpoint 1._
+No project-specific `CO-*` or `OE-*` requirements have been established in specification sections 2.3–2.4. These existing sources govern the architecture until those sections are completed.
 
-_[The constraints the architecture has to honor. They are already written as `CO-*` in section 2.4 of your specification, and `OE-*` in section 2.3; **list the identifiers here, do not restate them.** Add one sentence only where a constraint narrows an architectural choice in a way that is not obvious from its text._
+| Source | Constraint and architectural consequence |
+|---|---|
+| AGENTS.md | Use Godot 4 and GDScript, retaining the Compatibility renderer and HTML5/Web compatibility; C# is outside the project's direction. |
+| AGENTS.md; client interview sections 2 and 9 | Develop the local boat/station loop before networking; eventual four-player support influences ownership boundaries, not the current deployment count. |
+| AGENTS.md | Build indefinite travel with deterministic/recycled ocean chunks rather than one enormous water mesh. |
+| AGENTS.md | Favor reusable scenes, signals, typed GDScript, Inspector-configurable properties, and replaceable placeholder artwork. |
+| AGENTS.md; `OI-1`, `OI-2` | Preserve a narrow playable milestone; the backlog does not authorize large inventory, crafting, or progression systems. |
+| Vision and scope sections 3.2 and 4.4 | PC is the initial target; operating systems, hardware limits, distribution, and long-term maintenance remain unresolved. Web compatibility is a constraint, not evidence of a published browser build. |
 
-_Your technology stack is a constraint only if something external fixes it: the client's IT department, an existing system, or the person who maintains this after you graduate. A stack your team chose is a decision, and it goes in section 9 with the alternative you rejected.]_
+The project configuration declares Godot 4.7 features, and the MVP guide names Godot 4.7.2. These are repository settings, not an independently established platform support matrix.
 
 ## 3. Context and Scope
 
-_Due: Checkpoint 1._
-
-_[One C4 context diagram: your system as a single box, every kind of user, and **every external system** it talks to (email, payment, an identity provider, a client database, an LLM, a file store). An external system discovered halfway through the build is a schedule risk you could have seen at the start._
-
-_Your specification already lists the external systems. Every system named in a software interface (`SI-*`, section 8.3), a communications interface (`CI-*`, section 8.5), or a dependency (`DE-*`, section 2.5) is a box here. A box with none of those behind it is an interface your specification is missing, so add it there too._
-
-_This is your project's one context diagram. Section 4.1 of [vision and scope](../requirements/vision-and-scope.md) holds the first draft: redraw it here in C4, then replace the drawing there with a link to this section, so there is one diagram to keep current._
-
-_arc42 divides context into a **business context** (who and what crosses the boundary) and a **technical context** (the channels and protocols). This diagram is the business context. The protocols go on the arrows of the container diagram in section 5.1._
-
-_The **trust boundary** is not drawn here. You name it in writing in section 8.1, as Project Pulse does._
-
-_Example:]_
+The game is a self-contained local application today. Crew Member and Host are the actor names in the use cases; Host's session-management capabilities belong to later cooperative play. Development Team builds the application rather than representing a privileged in-game account.
 
 ```mermaid
 C4Context
-    title System Context: Cafeteria Ordering System
-
-    Person(patron, "Patron", "Employee ordering a meal")
-    Person(staff, "Cafeteria Staff", "Prepares and delivers orders")
-    Person(menu, "Menu Manager", "Maintains the daily menu")
-
-    System(cos, "Cafeteria Ordering System", "Takes, prepares, and delivers meal orders")
-
-    System_Ext(payroll, "Payroll System", "Deducts meal payments from pay")
-    System_Ext(sso, "Corporate Sign-On", "Authenticates employees")
-    System_Ext(email, "Corporate Email", "Order confirmations")
-
-    Rel(patron, cos, "Orders meals")
-    Rel(staff, cos, "Fulfils orders")
-    Rel(menu, cos, "Edits menu")
-    Rel(cos, payroll, "Submits payment requests")
-    Rel(cos, sso, "Verifies identity")
-    Rel(cos, email, "Sends confirmations")
+    title Man the Ship - current application and planned cooperative context
+    Person(crew, "Crew Member", "Player controlling a character; one local player today")
+    Person(host, "Host", "Crew member managing a future cooperative session")
+    Person(dev, "Development Team", "Builds, tests, and maintains the game")
+    System(game, "Man the Ship", "Top-down 2D sailing and survival game; local movement prototype implemented")
+    System_Ext(lan, "Local Network", "Planned crew-PC connection; networking not implemented")
+    System_Ext(engine, "Godot Engine", "Development editor and export tools; runtime bundled with the game")
+    System_Ext(assets, "Placeholder Assets", "Development-time artwork inputs")
+    System_Ext(repo, "GitHub Repository", "Source and documentation; distribution unconfigured")
+    Rel(crew, game, "Plays local prototype and planned voyage")
+    Rel(host, game, "Manages a session, planned")
+    Rel(game, lan, "Exchanges session state, planned")
+    Rel(dev, engine, "Edits, runs, and exports")
+    Rel(engine, game, "Builds the application")
+    Rel(assets, game, "Supplies packaged artwork")
+    Rel(dev, repo, "Versions source and documentation")
 ```
+
+This view retains the ecosystem in the original section 5.1 diagram while labeling development and future dependencies. Local Network is a transport environment, not a selected matchmaking or authentication service. Godot's runtime is inside the game; editor/export tools, asset sources, and GitHub are development dependencies. No runtime calls to external services appear in the code, consistent with client interview section 10.
+
+The original drawing mentions itch.io packs and GitHub player downloads. Those labels express the intended workflow: the checkout does not establish artwork provenance or contain a release pipeline. These are verification items in section 11.2. No store, account provider, analytics service, cloud database, or dedicated multiplayer server has been selected.
 
 ## 4. Solution Strategy
 
-_Due: Checkpoint 1._
-
-_[Three to five bullets: the few moves that shape everything else. arc42 suggests four kinds: the technology you build on, how the system is divided at the top level, how the quality goals in section 1.2 are met, and any organizational choice that shapes the code (who maintains what, what you buy instead of build)._
-
-_Each bullet is one sentence, and it cites what explains it: the key decision in section 9.2 where one exists, and otherwise the quality goal and the building block in section 5 it shapes. Keep it short; the reasoning lives in section 9. A bullet that cites nothing is either not load-bearing, or it is a decision you have not written down yet._
-
-_Example:]_
-
-- _**One deployable with one managed database** (`KD-deployment-shape`), because nobody on the cafeteria side can operate infrastructure (quality goal 3)._
-- _**Payment is the only component that talks to the Payroll System** (section 5.2), so payroll data crosses the trust boundary in exactly one place (quality goal 1)._
-- _**Divided by use case area**, Ordering, Menu, and Delivery, each owning its own rules, so a menu change never touches ordering code (quality goal 3, `MNT-menu-self-service`)._
+- Run the local prototype as one Godot application with bundled resources and in-memory state (`KD-deployment-shape`), keeping initial gameplay independent of backend services.
+- Divide gameplay into reusable scenes and components organized by use case area, separating stations from character movement (`KD-station-components`; section 5.2).
+- Establish local gameplay and ownership rules before cooperative transport (`KD-local-first`), using `UC-NAV-steer-ship` as the next specified station interaction.
+- Generate or recycle nearby ocean chunks deterministically when travel is implemented, retaining Compatibility rendering (`KD-world-chunks`).
+- Keep the item catalog distinct from inventories and saved progress; add persistence after its requirements are established (`KD-deployment-shape`; section 8.2.8).
 
 ## 5. Building Block View
 
-_Due: Checkpoint 1. This section is most of what your TA checks._
-
 ### 5.1 Containers
 
-_[One C4 container diagram: the separately running or separately stored pieces inside your system box. For most projects that is a front end, a back end, and a database, and sometimes a file store. Name each container's technology. Every external system from section 3 appears again here, attached to the container that talks to it._
+The original team diagram is retained below. It shows the wider development and planned play environment; the container view that follows makes the execution boundary explicit.
 
-_Label every arrow with what it does and the protocol it uses ("Sends confirmations [SMTP]"). Those protocols are arc42's technical context._
+<img width="463" height="550" alt="Original team architecture diagram showing Crew Member, Host, Man the Ship, Local Network, Placeholder Assets, Godot Engine, GitHub Repository, and Development Team" src="https://github.com/user-attachments/assets/7f57a997-c63a-48a0-9a7a-0f3639e0e184" />
 
-_Under the diagram, one or two sentences on **why the system is divided this way**, citing `KD-deployment-shape`. A reader who sees three containers should not have to guess why there are not seven._
+```mermaid
+C4Container
+    title Man the Ship - local deployment and deferred connections
+    Person(crew, "Crew Member", "One local player")
+    Person(host, "Host", "Future cooperative session owner")
+    Person(dev, "Development Team", "Builds and maintains the game")
+    System_Ext(lan, "Local Network", "Future crew-PC connection")
+    System_Ext(engine, "Godot Engine", "Editor and export tools")
+    System_Ext(assets, "Placeholder Assets", "Development-time artwork sources")
+    System_Ext(repo, "GitHub Repository", "Source and documentation")
+    System_Boundary(game, "Man the Ship") {
+        Container(app, "Game Application", "Godot 4 / GDScript / Compatibility renderer", "Scene tree, input, physics, rendering, and in-memory catalog")
+        Container(files, "Bundled Game Resources", "Godot scenes, scripts, and textures", "Source files during development; packaged resources for export")
+    }
+    Rel(crew, app, "Moves character / keyboard through Godot Input")
+    Rel(app, crew, "Displays scene / local rendering")
+    Rel(host, app, "Manages future session / UI not implemented")
+    Rel(app, files, "Loads content / res:// resource access")
+    Rel(app, lan, "Future session traffic / protocol undecided")
+    Rel(dev, engine, "Edits and runs / local editor UI")
+    Rel(engine, app, "Launches or exports / local Godot tools")
+    Rel(assets, files, "Imports artwork / local file import")
+    Rel(dev, repo, "Versions source / Git transport depends on checkout")
+    Rel(repo, files, "Provides source checkout / Git")
+```
 
-_Three containers is a normal answer. If you have more than five, check each one against section 9: which decision, driven by which quality attribute, requires it to run separately?_
-<img width="463" height="550" alt="Screenshot 2026-10-02 at 10 33 37 AM" src="https://github.com/user-attachments/assets/7f57a997-c63a-48a0-9a7a-0f3639e0e184" />
+There is one running application; Bundled Game Resources is a storage boundary shipped with it, not another process (`KD-deployment-shape`). Player, ship, stations, and item services are internal components. `ItemDatabase` is an autoloaded in-memory dictionary, not a database deployment or durable player storage.
 
 ### 5.2 Use case areas and components
 
-_[One row per use case area in your [use cases](../requirements/use-cases.md), taken from the area column of [traceability.md](../traceability.md) section 1, plus one row per **cross-cutting component** that no single area owns (authentication, notifications, file handling, an integration with an external system). A use case area with no row is a part of your system with no home; a component with no area and no cross-cutting reason is one nobody asked for._
-
-_**Responsibility** is one sentence, what the component owns, not how it works. **Depends on** names other components and external systems, never classes. **Status** is `provisional` until the component has been built through at least one use case, and `proven` after that. At Checkpoint 1 every row is `provisional`; Checkpoint 2 turns at least one to `proven`._
-
-_Project Pulse's component tables also name each component's package. They can because its code exists; yours does not yet, so a row here is a name and a responsibility, and packages come with the design-of-record in week 7._
-
-_Example:]_
+The area list comes from use cases section 3; no traceability.md exists in this checkout. **Provisional** means a component has not completed an end-to-end specified use case. Existing code is identified separately rather than presented as proof of sailing or inventory behavior.
 
 | Use case area | Component | Responsibility | Depends on | Status |
 |---|---|---|---|---|
-| _`ORD`_ | _Ordering_ | _Owns an order from placement to cancellation, and the cut-off rules_ | _Menu, Payment, Identity_ | _provisional_ |
-| _`MNU`_ | _Menu_ | _Owns daily menus and item availability_ | _Identity_ | _provisional_ |
-| _`DEL`_ | _Delivery_ | _Owns delivery slots and the staff's fulfilment queue_ | _Ordering, Notification_ | _provisional_ |
-| _(cross-cutting)_ | _Payment_ | _The only component that talks to the Payroll System_ | _Payroll System_ | _provisional_ |
-| _(cross-cutting)_ | _Identity_ | _Maps a signed-on employee to a role_ | _Corporate Sign-On_ | _provisional_ |
-| _(cross-cutting)_ | _Notification_ | _Sends every email the system sends_ | _Corporate Email_ | _provisional_ |
+| `NAV` | Navigation and Sailing | Owns heading, propulsion, wind effects, and navigation actions in the steering case and backlog. | Ship State, Station Interaction, World and Ocean, Crew Control | Provisional; no sailing code |
+| `SHIP` | Ship Systems and Maintenance | Owns hull condition, repairs, rescue, and floating-chest handling when specified. | Ship State, Station Interaction, Crew Control, Item Catalog, World and Ocean | Provisional; ship supplies only art/collision |
+| `SURV` | Crew Survival | Owns hunger, thirst, stamina, recovery, and kitchen actions per crew member. | Crew Control, Station Interaction, Item Catalog | Provisional; not implemented |
+| `ISLE` | Island Exploration | Owns landing/exploration, treasure interactions, and visited-island state. | World and Ocean, Crew Control, Item Catalog | Provisional; not implemented |
+| `TRADE` | Trading and NPC Encounters | Owns proposed encounters and exchanges, including currency if approved. | World and Ocean, Crew Control, Item Catalog | Provisional; not fully specified |
+| `LOBBY` | Session Setup | Owns session creation, membership, customization, and readiness for cooperative play. | Crew Control; Local Network through a future adapter | Provisional; launch enters the scene directly |
+| Cross-cutting | Crew Control | Owns movement and routes crew intent to the relevant gameplay owner. | Godot input/physics; Station Interaction when implemented | Provisional overall; deck movement exists |
+| Cross-cutting | Ship State | Owns shared vessel transform/state so stations do not keep conflicting copies. | Godot scene tree and physics | Provisional; stationary ship exists |
+| Cross-cutting | Station Interaction | Owns range checks, exclusive occupancy, and release of station control. | Crew identity/position supplied by callers | Provisional; no interactive stations |
+| Cross-cutting | World and Ocean | Owns active chunks, deterministic placement, and spatial information. | Godot scene tree and bundled resources | Provisional; blue background only |
+| Cross-cutting | Item Catalog | Owns reusable item definitions and lookup by stable identifier. | Bundled Game Resources | Provisional as gameplay integration; registration exists |
 
-_[Check before Checkpoint 1: every area in your use case file appears in the first column, and every external system in section 3 appears in some Depends on cell.]_
+Dependencies describe intended boundaries, not implemented call chains. Stations manage occupancy and forward intent; the relevant area changes its own state. Mutable inventories must be separate from shared definitions. Backlog areas do not require separate services.
+
+Godot tools, Placeholder Assets, and GitHub support all areas through section 5.1's build/content workflow; they are not gameplay components. Local Network belongs to the deferred Session Setup/transport boundary.
+
+### 5.3 Current implementation map
+
+| File | Implemented responsibility |
+|---|---|
+| [project.godot](../../project.godot) | Main scene, input, viewport, renderer, and ItemDatabase/Items autoloads. |
+| [main.tscn](../../scenes/main.tscn) | Ship instance and fixed Camera2D. |
+| [ship.tscn](../../scenes/ship.tscn) | Ship art, perimeter collision, and player instance. |
+| [player.tscn](../../scenes/player.tscn), [player.gd](../../scripts/player.gd) | Character sprite/collider, exported speed, and physics-frame movement. |
+| [item_data.gd](../../scripts/item-system/item_data.gd) | ItemData Resource with exported descriptive fields. |
+| [item_database.gd](../../scripts/item-system/item_database.gd) | Typed in-memory catalog, lookup, and ID assertions. |
+| [items.gd](../../scripts/item-system/items.gd) | Registers Cod, Rope, and Fishing Rod; does not grant player inventory. |
 
 ## 6. Runtime View
 
-_Due: Checkpoint 2. [One sequence diagram, for the use case your proving slice builds, from the user's action through every container and external system it touches. Leave this section empty until the slice exists; a sequence diagram of code nobody has written describes a guess._
+The implemented slice is deck movement, a prerequisite for approaching the helm in `UC-NAV-steer-ship`, not completed steering. Participants use the container names from section 5.1; internal calls identify behavior without treating nodes as processes.
 
-_Draw it as a mermaid `sequenceDiagram`, and name the participants exactly as the containers in section 5.1 name them. If the use case calls an external system, show what happens when that system fails or does not answer; arc42 counts error scenarios among the most useful runtime views. Under the diagram, a sentence or two on anything a reader would not guess from it. Cite the use case by its `UC-*` identifier; do not restate its steps.]_
+```mermaid
+sequenceDiagram
+    actor Crew as Crew Member
+    participant App as Game Application
+    participant Files as Bundled Game Resources
+    Note over App: Godot initializes configured autoloads
+    App->>Files: Load item scripts and ItemData Resource type
+    Files-->>App: Script resources
+    App->>App: Items._ready registers three definitions in ItemDatabase
+    App->>Files: Load main scene, nested scenes, and textures
+    Files-->>App: Scene and texture resources
+    Crew->>App: Press WASD or an arrow key
+    loop Physics updates
+        App->>App: Input.get_vector reads movement actions
+        App->>App: Set velocity from direction and walk_speed
+        App->>App: move_and_slide resolves deck collision
+        alt Movement reaches deck perimeter
+            App->>App: Collision constrains character motion
+        else Movement remains inside deck
+            App->>App: Advance character position
+        end
+    end
+    App-->>Crew: Render character at resulting position
+```
+
+The catalog initializes independently; the player script never queries it. No external service, network exchange, save transaction, helm claim, or ship movement occurs. Invalid built-in registration triggers an assertion in debug builds; missing lookup returns null. User-facing recovery for resource/data failures is not implemented.
+
+Once steering exists, its runtime view must show acquisition/denial, heading/speed changes, release, and applicable use case extensions. Synchronization must be documented against an actual transport and authority model.
 
 ## 7. Deployment View
 
-_Due: Checkpoint 3. [Filled in once your pipeline exists, after week 11. Three things:_
+### 7.1 Container placement
 
-- _**Where each container runs.** Every container in section 5.1 is mapped to the host, service, or device it runs on, in each environment you have (at least development and production). A table is enough; a diagram helps once there are more than two hosts._
-- _**How a change gets there.** From a merged pull request to production: what builds it, what tests it, and where it is released first._
-- _**What survives a restart.** Which state is in the database or a file store, and which is lost when the application restarts._
+| Container or dependency | Development | Player release |
+|---|---|---|
+| Game Application | Local Godot editor/command-line execution. | Planned local export; production unconfigured. |
+| Bundled Game Resources | Files under res:// in the checkout plus import caches. | Packaged with game; exact packaging unselected. |
+| Godot Engine tools | Installed for editing, import, execution, and export. | Editor unnecessary; runtime accompanies export. |
+| GitHub Repository | Shared source/docs under team review workflow. | Diagram's download channel unconfigured. |
+| Placeholder Assets | Committed art and import metadata. | Included subject to verified permissions. |
+| Local Network | Unused by current code. | Cooperative transport deferred. |
 
-_Section 4.4 of [vision and scope](../requirements/vision-and-scope.md) says who can operate the system and where its users are. Cite it; this section says how the deployment meets it.]_
+This follows [vision and scope section 4.4](../requirements/vision-and-scope.md#44-deployment-considerations). No production server, supported OS matrix, or browser hosting provider is established.
+
+### 7.2 Delivery workflow
+
+The [team contract, section 5](../team-contract.md#5-git-workflow-and-review) requires feature branches and two independent approvals before merging into main. No CI workflow, export preset, automated suite, or publishing configuration exists. A merge updates source, not a published build.
+
+To run source, open project.godot in Godot and select **Run Project (F5)**. The proposed release workflow is to import/validate the merged revision, check gameplay, configure a target under **Project > Export**, build with **Export Project**, and test that artifact before distribution. This is a proposed manual workflow, not an existing pipeline. Web compatibility still requires exported-build validation.
+
+### 7.3 Restart behavior
+
+Scenes, scripts, artwork, configuration, and built-in definitions survive restart as application content. Character position/runtime state are recreated; definitions are re-registered in memory. There is no saved voyage, inventory, profile, or transaction to restore. The generated .godot cache is development data, not player progress.
 
 ## 8. Crosscutting Concepts
 
-_[arc42 leaves this section an open list of concepts. This template fixes its first entry, 8.1 Security, because Checkpoint 1 asks for the trust boundary; 8.2 holds every other concept.]_
-
 ### 8.1 Security
 
-_Due: named at Checkpoint 1, detailed at Checkpoint 2._
+**Trust boundary.** Game Application owns the local simulation; keyboard input enters through Godot Input. No application endpoints are exposed today. Future traffic from other PCs crosses a separate trust boundary and must be treated as untrusted, with gameplay requests validated by the session authority. Neither transport nor session admission is selected, so authenticated LAN traffic is not an implemented property.
 
-_[Four short paragraphs. The last three each cite the `SEC-*` requirement they answer:_
+**Authentication.** The prototype has no accounts, credentials, or sign-in. Crew Member and Host are gameplay actors rather than identity-provider roles. Before networking, define how a peer joins and how a connection maps to crew identity; an account service is not implied by the current scope.
 
-- _**Trust boundary:** the line between what you control and what you do not. Name the container that is the boundary and what sits outside it (the browser, every external system). Every request that crosses it is authenticated and authorized, and it covers every path your deployable answers, framework endpoints included. Project Pulse's Security & Compliance section shows the shape in three sentences._
-- _**Authentication:** how a user proves who they are, and who issues the credential (your system, the client's sign-on, a third party)._
-- _**Authorization:** the roles, and the rule for what a user may see beyond their role (a patron sees only their own orders). The second part is where most real breaches happen._
-- _**Sensitive data:** what personal or regulated data the system stores, in which container, and which external systems receive any of it. How long it is kept and how it is disposed of are already in section 7.4 of your specification; cite them._
+**Authorization.** Future Station Interaction owns occupancy checks from `UC-NAV-steer-ship`; local presentation must not grant authority to take another crew member's station. Session Setup owns Host-only operations when implemented. The referenced `BR-single-helmsman` is absent from business-rules.md, so the steering use case supplies the current behavioral source.
 
-_Secrets (passwords, API keys, connection strings) never appear in this document or in the repository. Say where they will live, not what they are.]_
+**Sensitive data.** The gameplay code neither collects nor persists personal data or account information. Team names in documents are not runtime player records. Specification section 7.4 has no project retention policy; define one if player identifiers, telemetry, or profiles are introduced. No runtime secrets are required today; future publishing credentials belong in the release environment's secret storage. Project-specific `SEC-*` requirements are still missing, not replaced by template web-application examples.
 
 ### 8.2 Other concepts
 
-_Due: Checkpoint 1, a subsection for every concept in the table below; then kept current, adding the file that shows each rule once code exists and a new concept whenever one appears. [Anything every component must do the same way. Your agent starts every session with no memory of the last, so a convention that is not written here gets reinvented each time. Write every concept now, while each is still cheap to choose; the last column says when a missing one would start to hurt._
+These rules combine existing conventions with labeled proposals for unbuilt systems. Examples name real files only where the behavior exists.
 
-_One short subsection each: the rule in one sentence, why, and the file that shows it done right once one exists. Put the one-line instruction in your charter too, citing this subsection, because the charter is what your agent always reads. Project Pulse's Crosscutting Concepts section is a worked example; its headings differ from this template's.]_
+#### 8.2.1 Error handling
 
-| Concept | The question it settles | When it usually bites |
-|---|---|---|
-| _Error handling_ | _What does a failure look like to the caller, and where is it caught?_ | _The second endpoint_ |
-| _Time and time zones_ | _Whose clock decides a deadline, what zone is stored, and can a test set the time?_ | _The first deadline or "submitted late"_ |
-| _API conventions_ | _What shape does every response take, and how are endpoints named?_ | _The second endpoint_ |
-| _Code conventions_ | _Which libraries and idioms does every file use, and which are banned? (Formatting belongs to a formatter, not here.)_ | _The first file an agent writes_ |
-| _Validation_ | _Where is input checked, and which check is the one that counts?_ | _The first form_ |
-| _Configuration and secrets_ | _What differs between development and production, and where does it live?_ | _The first deploy_ |
-| _Logging_ | _What is logged, at what level, and what must never be?_ | _The first bug you cannot reproduce_ |
-| _Persistence and concurrency_ | _Where does a transaction begin and end, and what happens when two people edit at once?_ | _The first shared record_ |
-| _Auditing_ | _Who changed what, and when?_ | _The first "who did this?"_ |
-| _Testing_ | _Which kinds of test, at which layer, with what data?_ | _The first pull request_ |
+Proposed rule: reject invalid actions at the state-owning component and return a result the UI can explain without partially applying an action. Occupied-wheel denial in the steering use case motivates this rule. Currently item_database.gd asserts on invalid built-in IDs and returns null for unknown lookups; this is not a complete runtime recovery strategy.
 
-_Example, from the Cafeteria Ordering System:_
+#### 8.2.2 Time and time zones
 
-**8.2.1 Error handling.** _Every endpoint returns `{ "ok": false, "error": { "code", "message" } }` on failure, produced by one exception handler; no controller builds its own error body, and no response carries an exception's own message. Why: the ordering screen and the menu screen share one error display, and an exception's message can reveal the database behind it. Shown in: `ApiExceptionHandler`._
+Use simulation time for movement and future gameplay durations, keeping wall-clock time out of steering/survival rules. player.gd sets velocity in _physics_process; move_and_slide handles physics-step movement. Proposed timers should use elapsed simulation time for reproducibility. There are no civil-time deadlines or stored time zones; pause and multiplayer timing rules remain unspecified.
 
-## 9. Architecture Decisions
+#### 8.2.3 API conventions
 
-_Due: the table and one decision at Checkpoint 1; more as they are made._
+Keep gameplay interfaces inside Godot through typed methods, Resources, and signals; no HTTP or JSON API exists. ItemDatabase.register_item and get_item are local examples. Proposed station interfaces accept crew identity and intent while leaving mutation to state owners; a later adapter can translate network requests into those operations.
+
+#### 8.2.4 Code conventions
+
+Follow AGENTS.md: GDScript, reusable scenes, typed values, signals for decoupled notifications, and Inspector-exposed settings. player.gd demonstrates an exported speed and typed callback; ItemData demonstrates a Resource. Keep artwork replaceable without rewriting gameplay. A project-wide signal pattern has not yet been implemented.
+
+#### 8.2.5 Validation
+
+Proposed rule: the state owner performs decisive range, ownership, and value checks; a visual prompt alone never grants control. ItemDatabase currently asserts nonempty/unique IDs, but does not validate all fields or provide release-safe rejection. Consumers must handle unknown IDs and distinguish definitions from owned quantities.
+
+#### 8.2.6 Configuration and secrets
+
+Keep input/render/application settings in project.godot and gameplay tuning in exported properties or Resources, as shown by walk_speed and ItemData. No service configuration exists. Future export presets should express packaging, with credentials outside source control. Current speed and viewport values are settings, not requirement thresholds.
+
+#### 8.2.7 Logging
+
+Proposed rule: log actionable initialization/validation failures and state transitions, avoiding per-frame movement noise and future credentials/personal data. No structured logging subsystem exists; item-registration assertions are the explicit diagnostics in current gameplay scripts. Future network diagnostics should distinguish disconnects from invalid actions.
+
+#### 8.2.8 Persistence and concurrency
+
+Runtime state lives in one local process; the catalog is reconstructed at launch. Proposed ownership assigns each shared mutation to one component, including a station claim as one check-and-claim operation. There are no database transactions or saves. Save format, crash recovery, session authority, and disconnect synchronization require decisions before their respective features are implemented.
+
+#### 8.2.9 Auditing
+
+Git history and reviews record development changes. No runtime account, financial, or regulated operations require an audit trail in the documented scope. Proposed multiplayer debugging may log ownership transitions locally; this is diagnostic output rather than a selected persistent audit service. Revisit retention if identifiable player events are stored.
+
+#### 8.2.10 Testing
+
+Use Godot command-line import/parser and startup checks when available, followed by focused gameplay checks, as directed in AGENTS.md. Minimal MVP describes launch, movement, and deck collision checks. There is no committed automated suite. Future checks should exercise station contention/release, sailing, deterministic recycling, and actual desktop/Web exports; headless checks cannot establish visual or input usability.
+
+## 9. Architectural Decisions
 
 ### 9.1 Architecturally significant requirements
 
-_[Not every requirement shapes the architecture. The **architecturally significant requirements** are the few that do: quality attributes and constraints where a wrong guess costs a redesign, not a bug fix. Functionality can be delivered by many structures; these are what choose among them._
+The ranking is provisional and based on project evidence, not a quantified client assessment. Actual sources replace specification handles that have not yet been established.
 
-_Your quality goals from section 1.2 are usually the top rows; cite them by identifier and do not explain them again. This table can also hold what is nobody's goal but still forces structure, such as a `CO-*` constraint._
-
-_List three to six, ranked by importance to your client times difficulty to achieve. Reuse the specification's identifiers, never new ones. **At least one row is a `SEC-*` attribute.** Every system your team builds this year holds some personal data, and if no security requirement appears here, that data's protection was never designed; it will be added later, which is where security bugs come from.]_
-
-| Rank | Requirement | Specification handles | Importance × difficulty | Drives |
+| Rank | Driver | Source | Importance and difficulty | Drives |
 |---|---|---|---|---|
-| 1 | _Payroll data confidential_ | _`SEC-payroll-auth`_ | _High × Medium_ | _`KD-payment-isolated`_ |
+| 1 | Consistent local movement and station loop | AGENTS.md; `UC-NAV-steer-ship`; `FEAT-single-player-survival` | Core behavior; moving-deck integration unproven | `KD-deployment-shape`, `KD-local-first` |
+| 2 | Modular crew responsibilities | AGENTS.md; team contract section 4 | Affects all future areas; establish boundaries before networking | `KD-station-components` |
+| 3 | Bounded content during indefinite travel | AGENTS.md | Architectural constraint; performance budget and state retention unresolved | `KD-world-chunks` |
+| 4 | Compatibility rendering and Web compatibility | AGENTS.md; project.godot | Needs validation on actual exports | `KD-deployment-shape`, `KD-world-chunks` |
+| 5 | Ownership validation at the future peer boundary | `UC-NAV-steer-ship`; `FEAT-cooperative-play` | Security-relevant before cooperative release; project security handle missing | `KD-local-first`; section 8.1 |
 
 ### 9.2 Key decisions
 
-_[One entry per key decision (`KD-*`), in the form below; it is what the wider industry calls an architecture decision record (ADR). Checkpoint 1 requires exactly one: **`KD-deployment-shape`**, whether your system ships as one deployable or several, and why. Every team makes this decision, and it is where over-engineering usually shows up first. Add others when you make them; do not invent them to fill the section._
+#### KD-deployment-shape: One local application with bundled content
 
-_A decision without a **rejected alternative** is not a decision, it is a description. Name what you did not do and why not, so the next person does not redo the argument._
+**Status:** Implemented baseline; distribution packaging remains open.
 
-_A decision that turns out wrong is not deleted or rewritten. Mark it **Superseded by `KD-<new-slug>`** and write the new decision as its own entry, so the reasoning behind both stays readable._
+- **Drivers:** Existing code, single-player-first direction, and no external runtime dependencies in client interview section 10.
+- **Context:** The prototype needs local input, physics, rendering, and definitions; no backend or persistent player data exists.
+- **Decision:** Keep gameplay in one Godot process, loading bundled content through res://. ItemDatabase remains an internal catalog.
+- **Alternative not adopted:** Separate gameplay services or a remote inventory database add deployment/connectivity dependencies without a specified need. Database discussion in napkin-round-0.md is an early brainstorm, not an implemented dependency.
+- **Trade-off:** Gameplay shares one process and its failures; progress does not survive restart without a future save design.
 
-_Example:]_
+#### KD-local-first: Defer networking until the local boat/station loop is stable
 
-**`KD-deployment-shape`: one deployable.** _Accepted._
+**Status:** Required by AGENTS.md and consistent with the recorded single-player-first direction.
 
-- **Driving requirements:** _`CO-no-dedicated-ops`; `AVL-lunch-window`._
-- **Context:** _About 400 patrons, one lunch peak a day, and nobody on the client side who can operate infrastructure._
-- **Decision:** _The front end is built into the back end's package and ships as one container to one host, with one managed database._
-- **Rejected:** _Separate services for ordering, menu, and delivery. They would add network calls, three deployments, and failure modes between them, to solve a scaling problem 400 users do not have._
-- **Trade-off:** _The system scales only as a whole, and a bad deploy takes all of it down._
+- **Drivers:** AGENTS.md; `FEAT-cooperative-play`; `UC-NAV-steer-ship`.
+- **Context:** Four-player cooperation is the architecture target, but even local steering is not implemented.
+- **Decision:** Establish explicit local state ownership before adding session transport.
+- **Alternative not adopted:** Adding synchronization to the initial prototype couples gameplay debugging to connection and replication problems prematurely.
+- **Trade-off:** Current play remains single-player; authority, latency, and disconnect handling still require later work. LAN appears in the original diagram, but no protocol or networking API is selected here.
+
+#### KD-station-components: Separate character control, stations, and ship state
+
+**Status:** Required direction in AGENTS.md; detailed boundaries proposed here, not implemented.
+
+- **Drivers:** Station-oriented systems in AGENTS.md and exclusive wheel control in `UC-NAV-steer-ship`.
+- **Context:** Movement lives in player.gd while the ship contains only visuals and collision.
+- **Decision:** Preserve character movement as a separate responsibility; stations manage participation and send intent to ship/survival state owners.
+- **Alternative not adopted:** One player script for steering, repairs, survival, and inventory would couple unrelated features and complicate multiple crew members.
+- **Trade-off:** Components need explicit references/signals and lifecycle handling. Class and interface details belong in later use-case designs grounded in code.
+
+#### KD-world-chunks: Deterministic, recycled ocean content
+
+**Status:** Required direction in AGENTS.md; not implemented.
+
+- **Drivers:** Indefinite horizontal travel and lightweight Web-compatible rendering.
+- **Context:** The ocean is currently a background color, not a world or water mesh.
+- **Decision:** Generate/reuse nearby chunks from stable world coordinates and deterministic generation inputs, keeping an active neighborhood instantiated.
+- **Alternative not adopted:** One enormous mesh or keeping all visited chunks allocated ties resource use to distance traveled.
+- **Trade-off:** Seams, revisits, coordinate precision, and modified locations require further design. Deterministic layout alone does not preserve collected loot or changed island state.
 
 ## 10. Quality Requirements
 
 ### 10.1 Quality requirements overview
 
-_[Section 9 of your [specification](../requirements/software-requirements-specification.md) is the overview. Link it here; do not copy it.]_
+See [software requirements specification, section 9](../requirements/software-requirements-specification.md#9-quality-attributes); project-specific quality requirements remain to be established.
 
 ### 10.2 Quality scenarios
 
-_Due: one scenario at Checkpoint 2; one per top-ranked requirement in section 9.1 by Checkpoint 3._
+These scenarios define observable checks without inventing frame-rate, timing, availability, or retention commitments. Proposed checks remain unverified until components and tests exist.
 
-_[A quality attribute says how good; a scenario says how you will know. Each one is: a **source** does a **stimulus** in an **environment**, the system gives a **response**, and a **measure** tells you it worked. The measure cites the specification's attribute for its number; it never introduces one._
-
-_**Verified by** names the test, or the repeatable manual check, that shows the measure holds. Leave it empty until that test exists; an empty cell is an honest "not yet verified".]_
-
-| ID | Source and stimulus | Environment | Response | Measure | Verified by |
+| ID | Source and stimulus | Environment | Response | Measure and source | Verification method / status |
 |---|---|---|---|---|---|
-| _`QS-cross-employee-order-denied`_ | _A signed-on patron requests another patron's order by its ID_ | _Normal operation_ | _Refused before any order data is read_ | _Every such request is refused and returns no order fields (`SEC-employee-own-orders`)_ | _An integration test that signs in as one patron and requests another patron's order_ |
+| `QS-deck-boundary` | Player holds movement toward a deck edge. | Current prototype | Collision constrains motion. | No crossing the perimeter; Minimal MVP and ship.tscn. | Manual: Run Project (F5), move against edges/corners with WASD/arrows; visual check required. |
+| `QS-station-ownership` | Another crew member claims an occupied helm. | Future local test with two crew identities | Preserve owner and deny new claim with feedback. | Extension 2a of `UC-NAV-steer-ship`. | Proposed component/integration check; not implemented. |
+| `QS-station-release` | Helmsman releases or leaves permitted range. | Future local steering | Wheel becomes unclaimed. | Main flow and extension 6a of steering use case; range unspecified. | Proposed lifecycle check; disconnect branch waits for networking. |
+| `QS-station-isolation` | Developer adds a station responsibility. | Future station architecture | Existing movement and stations remain intact. | Separation required by AGENTS.md; inspect dependencies and regressions. | Proposed review/regression check; not implemented. |
+| `QS-world-recycling` | Ship crosses chunks and revisits coordinates. | Future procedural world | Recycle distant chunks and reproduce unchanged layout. | Bounded active set and deterministic layout per AGENTS.md; numeric budget absent. | Proposed seeded travel check with node/memory observations. |
+| `QS-compatible-export` | Player launches an exported build. | Selected PC and future Web targets | Scene, movement, and collision work. | Prototype behavior and Compatibility/Web direction in AGENTS.md. | Proposed export smoke check; presets/support matrix absent. |
 
 ## 11. Risks and Technical Debt
 
-_Due: Checkpoint 2, kept current after._
+### 11.1 Technical risks and known debt
 
-_[**Technical** risks and debt only. Business risks are `RI-*` in [vision and scope](../requirements/vision-and-scope.md); do not copy them here. Project risks, such as a teammate dropping the course, belong in neither document. Seed this list from the technical `RI-*` items and from any [OPEN-ISSUES.md](../requirements/OPEN-ISSUES.md) entry whose answer could change the architecture._
-
-_A **risk** might happen: an external system you have never called, a client dataset you have never seen. **Debt** has already happened: a shortcut you took on purpose and intend to pay back. Each row says how you would find out, or how you would fix it._
-
-_A risk written as a category ("security", "performance") is not a risk. Write the mechanism: what fails, and what that breaks.]_
-
-| ID | Type | What could go wrong, and what it breaks | Mitigation or fix | Cites |
+| ID | Type | Failure mechanism and consequence | Mitigation or fix | Source |
 |---|---|---|---|---|
-| _`RISK-payroll-api-unavailable`_ | _Risk_ | _Nobody has seen the Payroll System's interface. If it only accepts a nightly batch file, ordering cannot confirm payment at order time._ | _Ask for the interface document at the next client meeting; build Payment against a stub until then._ | _`DE-payroll-integration`, `OI-4`_ |
+| `RISK-moving-deck` | Risk | Translating/rotating the ship may create drift, jitter, or incorrect collision because the existing deck is stationary. | Prove moving-deck behavior locally before additional stations or networking. | ship.tscn; player.gd; steering use case |
+| `RISK-peer-authority` | Risk | Peers accepting independent claims or updates could create conflicting state or permit invalid actions. | Select session authority and validate ownership before cooperative implementation. | `OI-coop`; steering extension 2a |
+| `RISK-world-growth` | Risk | Retained visited nodes or excessive generation could grow memory use or stall play. | Recycle chunks, profile crossings, and define modified-state retention. | AGENTS.md; `OI-scale` |
+| `RISK-travel-precision` | Risk | Large coordinates could reduce precision and disrupt collision or seams. | Evaluate rebasing/chunk-relative positions when implementing travel; test distant coordinates. | AGENTS.md indefinite-travel constraint |
+| `RISK-export-gap` | Risk | Editor-only testing could miss incompatible resources, input, or performance on exports. | Establish targets and test actual artifacts. | Vision and scope section 4.4; AGENTS.md |
+| `TD-item-validation` | Debt | Registration relies on debug assertions and does not reject invalid stack limits; unknown IDs return null. | Add release-safe validation and missing-item handling when gameplay consumes the catalog. | item_database.gd; item_data.gd |
+| `TD-placeholder-ocean` | Debt | Clear-color water has no world, hazards, or travel behavior. | Replace the shortcut with chunked content during navigation work. | project.godot; `KD-world-chunks` |
+| `TD-manual-verification` | Debt | No committed tests or pipeline means regressions can escape informal checks. | Add focused checks as slices arrive and automate validation when targets are chosen. | Repository tree; section 7.2 |
+
+Saving, survival, and networking are unimplemented features, not automatically technical debt; their absence fits the narrow milestone.
+
+### 11.2 Source gaps and decisions still required
+
+These findings mark evidence limits and decisions needed before affected release commitments. The development team owns them; existing issue identifiers refer to [OPEN-ISSUES.md](../requirements/OPEN-ISSUES.md).
+
+| Gap or inconsistency | Architectural impact | Existing home / next action |
+|---|---|---|
+| Specification contains generic examples rather than project constraints, interfaces, security requirements, and quality targets. | Formal requirement traceability cannot yet be completed honestly. | Complete specification sections 2, 7, 8, and 9 from team decisions; `OI-testing` covers playtests. |
+| Most listed use cases are unnamed and unspecified. | A component home does not imply approved delivery scope. | `OI-1`, `OI-2`; specify selected cases before implementation. |
+| Steering cites undefined `BR-single-helmsman`; collision and tuning are open. | Rule traceability and numeric acceptance checks are incomplete. | Resolve steering Open Issues and file its rule in the proper requirements home. |
+| Older glossary/vision text leaves crew count undecided, while AGENTS.md/use cases specify eventual four-player support. | This document uses four-player readiness, without claiming shipped multiplayer. | Reconcile older documents under `OI-scale` and `OI-coop`. |
+| Original diagram names LAN and GitHub downloads; no transport, export preset, or publishing workflow exists. | Joining, protocols, disconnects, targets, and distribution remain undecided. | `OI-coop`; vision and scope section 4.4. |
+| Diagram labels assets as itch.io packs; current PNGs have no provenance/license record in the checkout. | Redistribution permissions and attribution cannot be verified. | Record origins/permissions before publishing an export. |
+| Saving and modified-world retention are unspecified. | Deterministic generation cannot identify collected loot; durability could change storage design. | Vision and scope section 4.4; settle before saved voyages. |
+| Post-course support and ownership remain unresolved. | Release/maintenance tools lack a confirmed long-term operator. | `OI-maintenance`; vision and scope section 4.4. |
+| Minimal MVP calls player.gd the only gameplay script, but item scripts/autoloads now exist. | Using the guide alone omits a subsystem. | Section 5.3 records current code; update the guide when documenting the item feature. |
 
 ## 12. Glossary
 
-_[Domain terms live in your [project glossary](../requirements/project-glossary.md). Link it and add nothing here unless you need an architecture term your team uses in a special sense.]_
+Domain vocabulary lives in the [project glossary](../requirements/project-glossary.md). These terms clarify architectural usage:
 
----
-
-## Working this document with your agent
-
-_[Delegate: drawing the C4 diagrams in mermaid from your use case list and your specification's interfaces; checking that every use case area has a component and every external system has a component that depends on it; checking that every identifier this document cites exists in the document that owns it; drafting the rejected alternative for a decision you have already made._
-
-_Keep human: the ranking in section 9.1 and every `KD-*`. The decisions are the part of this document your client and the team that inherits this system will hold you to, and they depend on facts about your client that are not in any file._
-
-_**The specific failure to watch for: over-engineering.** Ask an agent for an architecture and it will propose the one it has seen most often in writing, which is built for a company a thousand times your size: microservices, a message queue, Kubernetes, a cache in front of a database that holds ten thousand rows. Every one of those is a real answer to a problem you do not have, and each one adds something that can break at 2 a.m. with nobody to fix it. For every container and every decision the agent proposes, ask which requirement in section 9.1 forces it. If the answer is none, cut it.]_
+| Term | Meaning here |
+|---|---|
+| Container | A running application or separately described storage boundary in C4; not a Docker container. |
+| Component | An internal responsibility within Game Application, not a separately deployed service. |
+| Autoload | A Godot node loaded at startup and accessible across scenes; used by ItemDatabase and Items. |
+| Item Catalog | In-memory definitions shared by item ID, distinct from inventory/ownership and durable storage. |
+| Station ownership | The crew member permitted to operate an exclusive station, distinct from code ownership. |
+| Chunk | A bounded world portion generated, loaded, or recycled independently. |
+| Provisional | A responsibility not yet exercised through a complete specified use case. |
+| Session authority | The future simulation owner deciding valid shared-state changes; networking implementation unselected. |
