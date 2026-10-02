@@ -1,6 +1,6 @@
 # Architectural Design
 
-**Project:** Man the Ship
+**Project:** Holy Ship!
 
 **Team:** Team 13 (Gaming) — Whitney Akred, Shana Billiot, Liliana Matte, Gustavo Castillo, Leiton Peterson, Ivan Lopez
 
@@ -18,7 +18,7 @@ The implementation contains one stationary ship, one controllable character, dec
 
 Runtime claims are grounded in [project.godot](../../project.godot), [scenes](../../scenes/), and [scripts](../../scripts/). Development constraints come from [AGENTS.md](../../AGENTS.md). Product intent comes from the [use cases](../requirements/use-cases.md), [project glossary](../requirements/project-glossary.md), [vision and scope](../requirements/vision-and-scope.md), and recorded answers in the [client interview](../requirements/client-interview-guide.md).
 
-The software requirements specification is still a template: its example quality, security, interface, and constraint identifiers are not Man the Ship requirements. This document cites actual sources rather than inventing requirement handles or performance targets. Missing requirements and conflicting older statements are recorded in section 11.2. Proposed conventions and decisions are labeled and do not claim prior team approval.
+The software requirements specification is still a template: its example quality, security, interface, and constraint identifiers are not Holy Ship requirements. This document cites actual sources rather than inventing requirement handles or performance targets. Missing requirements and conflicting older statements are recorded in section 11.2. Proposed conventions and decisions are labeled and do not claim prior team approval.
 
 ## Identifiers
 
@@ -79,7 +79,7 @@ The game is a self-contained local application today. Crew Member and Host are t
 
 ```mermaid
 C4Context
-    title Man the Ship - current application and planned cooperative context
+    title Holy Ship - current application and planned cooperative context
     Person(crew, "Crew Member", "Player controlling a character; one local player today")
     Person(host, "Host", "Crew member managing a future cooperative session")
     Person(dev, "Development Team", "Builds, tests, and maintains the game")
@@ -115,11 +115,11 @@ The original drawing mentions itch.io packs and GitHub player downloads. Those l
 
 The original team diagram is retained below. It shows the wider development and planned play environment; the container view that follows makes the execution boundary explicit.
 
-<img width="463" height="550" alt="Original team architecture diagram showing Crew Member, Host, Man the Ship, Local Network, Placeholder Assets, Godot Engine, GitHub Repository, and Development Team" src="https://github.com/user-attachments/assets/7f57a997-c63a-48a0-9a7a-0f3639e0e184" />
+<img width="463" height="550" alt="Original team architecture diagram showing Crew Member, Host, Holy Ship, Local Network, Placeholder Assets, Godot Engine, GitHub Repository, and Development Team" src="https://github.com/user-attachments/assets/7f57a997-c63a-48a0-9a7a-0f3639e0e184" />
 
 ```mermaid
 C4Container
-    title Man the Ship - local deployment and deferred connections
+    title Holy Ship - local deployment and deferred connections
     Person(crew, "Crew Member", "One local player")
     Person(host, "Host", "Future cooperative session owner")
     Person(dev, "Development Team", "Builds and maintains the game")
@@ -127,7 +127,7 @@ C4Container
     System_Ext(engine, "Godot Engine", "Editor and export tools")
     System_Ext(assets, "Placeholder Assets", "Development-time artwork sources")
     System_Ext(repo, "GitHub Repository", "Source and documentation")
-    System_Boundary(game, "Man the Ship") {
+    System_Boundary(game, "Holy Ship") {
         Container(app, "Game Application", "Godot 4 / GDScript / Compatibility renderer", "Scene tree, input, physics, rendering, and in-memory catalog")
         Container(files, "Bundled Game Resources", "Godot scenes, scripts, and textures", "Source files during development; packaged resources for export")
     }
