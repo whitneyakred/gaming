@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://r6br2kubkgu"]
+[gd_scene load_steps=15 format=3 uid="uid://r6br2kubkgu"]
 
 [ext_resource type="Script" path="res://scripts/ship.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/ocean.gd" id="2"]
@@ -11,6 +11,8 @@
 [ext_resource type="PackedScene" path="res://scenes/sailing/helm_station.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/sail_station.tscn" id="10"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/sailing_demo.tscn" id="11"]
+[ext_resource type="Script" path="res://scripts/islands/world_island.gd" id="12"]
+[ext_resource type="Texture2D" path="res://assets/island_large.png" id="13"]
 
 [sub_resource type="RectangleShape2D" id="SternShape"]
 size = Vector2(44, 40)
@@ -23,13 +25,30 @@ z_index = -20
 script = ExtResource("2")
 world_anchored = true
 
-[node name="Island" type="Node2D" parent="."]
-position = Vector2(400, -40)
+[node name="Islands" type="Node2D" parent="."]
 
-[node name="Sprite2D" type="Sprite2D" parent="Island"]
+[node name="CoconutIsland" type="Node2D" parent="Islands"]
+position = Vector2(-360, -2260)
+script = ExtResource("12")
+display_name = "Coconut Island"
+scene = "res://scenes/island.tscn"
+
+[node name="Sprite2D" type="Sprite2D" parent="Islands/CoconutIsland"]
 texture_filter = 1
 scale = Vector2(2, 2)
 texture = ExtResource("3")
+
+[node name="TreasureIsland" type="Node2D" parent="Islands"]
+position = Vector2(1400, -940)
+script = ExtResource("12")
+display_name = "Treasure Island"
+scene = "res://scenes/islands/treasure_island.tscn"
+
+[node name="Sprite2D" type="Sprite2D" parent="Islands/TreasureIsland"]
+texture_filter = 1
+position = Vector2(-1, -47)
+scale = Vector2(0.8, 0.8)
+texture = ExtResource("13")
 
 [node name="ShipSprite" type="Sprite2D" parent="."]
 texture_filter = 1
