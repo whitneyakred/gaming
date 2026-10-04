@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ship.tscn" id="1"]
+
+; Keep the original sailing scene usable with the integrated island and cooking flow.
+[node name="SailingShip" instance=ExtResource("1")]
