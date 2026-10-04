@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://cx41u6oa2ga7r" path="res://scripts/inventory-system/player_inventory.gd" id="4_7j21i"]
 [ext_resource type="PackedScene" uid="uid://ujrk5hekymxt" path="res://scenes/stations/fishing_station.tscn" id="4_fishing"]
 
-[sub_resource type="Resource" id="Resource_3m36u"]
+[sub_resource type="Resource" id="Resource_gudjc"]
 resource_local_to_scene = true
 script = ExtResource("4_7j21i")
 player_id = &"player_1"
@@ -31,12 +31,24 @@ position = Vector2(75, 116)
 position = Vector2(-24.5, -232.5)
 scale = Vector2(0.7916667, 0.875)
 
+[node name="ProgressBar" parent="FishingStation" index="1" unique_id=1974804629]
+offset_left = 12.0
+offset_top = -253.0
+offset_right = 102.0
+offset_bottom = -239.0
+
+[node name="StatusLabel" parent="FishingStation" index="2" unique_id=109003463]
+offset_left = -15.0
+offset_top = -281.0
+offset_right = 129.0
+offset_bottom = -258.0
+
 [node name="CollisionPolygon2D" parent="FishingStation" index="4" unique_id=437309802]
 position = Vector2(-39, -236)
 polygon = PackedVector2Array(-8.041885, -21.048729, -1.0052338, -4.009285, 22.115185, 35.081207, 35.18325, 30.069603, 23.215698, -1.9556885, 11.057594, -21.048729)
 
 [node name="Player" parent="." unique_id=508776271 instance=ExtResource("3")]
 position = Vector2(-30, 90)
-player_inventory = SubResource("Resource_3m36u")
+player_inventory = SubResource("Resource_gudjc")
 
 [editable path="FishingStation"]
