@@ -41,6 +41,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			complete_attempt()
 
 func start_attempt() -> void:
+	if not interacting_player_has_fishing_rod():
+		status_label.text = "Fishing rod required"
+		status_label.show()
+		return
+
 	if loot_ids.is_empty():
 		push_warning("Fishing station has no loot IDs configured.")
 		return
@@ -68,6 +73,17 @@ func complete_attempt() -> void:
 		reset_attempt()
 		return
 
+	var player_inventory := get_interacting_player_inventory()
+	if player_inventory == null:
+		push_warning("Fishing station could not find the interacting player's inventory.")
+		reset_attempt()
+		return
+
+	if not player_inventory.add_item(item):
+		print("Could not keep %s: inventory or item stack is full." % item.display_name)
+		reset_attempt()
+		return
+
 	print("Caught: %s" % item.display_name)
 	item_caught.emit(item_id)
 	if interacting_player != null and interacting_player.has_method("play_fishing_animation"):
@@ -84,12 +100,28 @@ func reset_attempt() -> void:
 	progress_bar.hide()
 	status_label.hide()
 
+func interacting_player_has_fishing_rod() -> bool:
+	var player_inventory := get_interacting_player_inventory()
+	return player_inventory != null and player_inventory.get_quantity(&"fishing_rod") > 0
+
+func get_interacting_player_inventory() -> PlayerInventory:
+	if interacting_player == null:
+		return null
+
+	return interacting_player.get("player_inventory") as PlayerInventory
+
+func update_idle_prompt() -> void:
+	if interacting_player_has_fishing_rod():
+		status_label.text = "Hold E to fish"
+	else:
+		status_label.text = "Fishing rod required"
+
 func _on_body_entered(body: Node2D) -> void:
 	if body is CharacterBody2D:
 		is_player_in_range = true
 		interacting_player = body
 		if state == State.IDLE:
-			status_label.text = "Hold E to fish"
+			update_idle_prompt()
 			status_label.show()
 
 func _on_body_exited(body: Node2D) -> void:

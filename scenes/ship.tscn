@@ -2,7 +2,14 @@
 
 [ext_resource type="Texture2D" uid="uid://luj5vyt1jyq2" path="res://assets/ship.png" id="1"]
 [ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="3"]
+[ext_resource type="Script" uid="uid://ctrdifj18g6xg" path="res://scripts/item-system/item_data.gd" id="3_gudjc"]
+[ext_resource type="Script" uid="uid://cx41u6oa2ga7r" path="res://scripts/inventory-system/player_inventory.gd" id="4_7j21i"]
 [ext_resource type="PackedScene" uid="uid://ujrk5hekymxt" path="res://scenes/stations/fishing_station.tscn" id="4_fishing"]
+
+[sub_resource type="Resource" id="Resource_3m36u"]
+resource_local_to_scene = true
+script = ExtResource("4_7j21i")
+player_id = &"player_1"
 
 [node name="Ship" type="Node2D" unique_id=1896270842]
 
@@ -17,17 +24,19 @@ texture = ExtResource("1")
 build_mode = 1
 polygon = PackedVector2Array(0, -196, 44, -154, 83, -64, 94, 0, 90, 139, 57, 199, -57, 199, -90, 139, -94, 0, -83, -64, -44, -154)
 
-[node name="Player" parent="." unique_id=508776271 instance=ExtResource("3")]
-position = Vector2(-30, 90)
-
 [node name="FishingStation" parent="." unique_id=1204560490 instance=ExtResource("4_fishing")]
 position = Vector2(75, 116)
 
 [node name="Marker" parent="FishingStation" index="0" unique_id=1644867928]
-position = Vector2(6, 2)
+position = Vector2(-24.5, -232.5)
+scale = Vector2(0.7916667, 0.875)
 
 [node name="CollisionPolygon2D" parent="FishingStation" index="4" unique_id=437309802]
-position = Vector2(-3.0000038, -3.7252903e-09)
-polygon = PackedVector2Array(-7.036644, -16.037125, -5.0261765, -2.0046463, -8.951843, 24.104645, 19.194763, 25.106964, 23.215698, -1.9556885, 25.130898, -17.039444)
+position = Vector2(-39, -236)
+polygon = PackedVector2Array(-8.041885, -21.048729, -1.0052338, -4.009285, 22.115185, 35.081207, 35.18325, 30.069603, 23.215698, -1.9556885, 11.057594, -21.048729)
+
+[node name="Player" parent="." unique_id=508776271 instance=ExtResource("3")]
+position = Vector2(-30, 90)
+player_inventory = SubResource("Resource_3m36u")
 
 [editable path="FishingStation"]
