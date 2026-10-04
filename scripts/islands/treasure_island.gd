@@ -113,9 +113,6 @@ func _update_heat() -> void:
 		hud.set_objective_color(HEAT_LEVELS[index][2])
 	refresh_hud()
 
-
-# --- Placeholder visuals (swap for real sprites later) ----------------------
-
 func _add_dig_mark(at: Vector2) -> void:
 	var hole := Polygon2D.new()
 	var points := PackedVector2Array()
