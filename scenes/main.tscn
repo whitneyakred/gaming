@@ -4,5 +4,7 @@
 
 [node name="Main" type="Node2D" unique_id=1725585849]
 
-[node name="Ship" parent="." unique_id=11612192 instance=ExtResource("1")]
-position = Vector2(0, -2)
+[node name="Ship" parent="." unique_id=312772550 instance=ExtResource("1")]
+position = Vector2(21, 12)
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1292319160]
