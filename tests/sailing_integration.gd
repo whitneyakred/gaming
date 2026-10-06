@@ -41,9 +41,9 @@ func _run() -> void:
 	var initial_position := ship.global_position
 	await _wait(7.0)
 	_check(ship.global_position.is_equal_approx(initial_position), "Stowed sails must not automatically move the ship")
-	_check(not ship.island.visible, "Waiting without sailing must not spawn an island")
+	_check(ship.get_islands().size() == 2, "Both islands must be placed on the map")
+	_check(ship.status_label.text.begins_with("Nearest island:"), "The status line must name the nearest island")
 	_check(get_first_node_in_group("crew") == player, "Main must keep the cooking-compatible player")
-	ship.travel_before_island = 10000.0
 	ship.wind_velocity = Vector2.UP
 	player.position = Vector2(-20, 0)
 	await _wait(0.2)
@@ -90,18 +90,14 @@ func _run() -> void:
 	ship.turn_rate = 0
 	ship.global_rotation = 0
 	ship.set_sail_angle(0)
-	ship._travel_distance = 0
-	ship.travel_before_island = 80
-	ship.island_start_distance = 180
+	# Put the ship just south of Coconut Island's docking circle and let it sail in.
+	var coconut_island := ship.get_island(&"CoconutIsland")
+	var land_position := coconut_island.global_position
 	ship.docking_distance = 30
-	for frame in range(300):
-		await physics_frame
-		if ship._state == Ship.State.APPROACHING:
-			break
-	_check(ship._state == Ship.State.APPROACHING, "Sailing distance must reveal the island")
-	var land_position := ship.island.global_position
+	ship.global_position = coconut_island.get_dock_position() + Vector2(0, 120)
 	await _wait(0.3)
-	_check(ship.island.global_position.is_equal_approx(land_position), "The island must stay fixed as the ship sails")
+	_check(coconut_island.global_position.is_equal_approx(land_position), "Islands must stay fixed on the map as the ship sails")
+	_check(ship.get_nearest_island() == coconut_island, "The nearest island must be tracked")
 	for frame in range(300):
 		await physics_frame
 		if ship._state == Ship.State.ANCHORED:
@@ -125,7 +121,7 @@ func _run() -> void:
 		return
 	var island_game = current_scene
 	for coconut in get_nodes_in_group("coconuts"):
-		island_game._on_coconut_collected(&"coconut")
+		island_game._on_item_collected(&"coconut")
 	island_game.try_escape()
 	for frame in range(600):
 		await process_frame
@@ -141,6 +137,8 @@ func _run() -> void:
 		if ship._state == Ship.State.SAILING:
 			break
 	_check(ship._state == Ship.State.SAILING, "Return cutscene must finish")
+	_check(ship.global_position.distance_to(ship.get_island(&"CoconutIsland").get_dock_position()) < 1, "Returning must put the ship back at the island it left from")
+	_check(ship.get_nearest_island() == ship.get_island(&"TreasureIsland"), "A finished island must no longer count as the nearest island")
 	_check(ship.player.visible and not ship.player.using_station, "Returning must restore player movement")
 	_check(ship.has_node("Cooking") and ship.has_node("Sail") and ship.has_node("Helm"), "All stations must survive the island round trip")
 	_check(ship.get_node("Camera2D").is_current(), "Returning directly to the ship must retain the camera")

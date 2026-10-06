@@ -1,7 +1,7 @@
 extends Area2D
 
 # Emitted when the player walks over this coconut.
-# island.gd listens for this to update the on-screen count.
+# The island's CollectIsland script listens for this to update the on-screen count.
 signal collected(item_id: StringName)
 
 # Which catalog item this pickup gives (see scripts/item-system/items.gd).

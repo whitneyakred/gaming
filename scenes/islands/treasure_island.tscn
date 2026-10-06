@@ -1,0 +1,221 @@
+[gd_scene format=3 uid="uid://bwm58uqkpc5yp"]
+
+[ext_resource type="Script" uid="uid://bp5isweg1kdgc" path="res://scripts/islands/treasure_island.gd" id="1"]
+[ext_resource type="Script" uid="uid://cdk143q5q8kk7" path="res://scripts/ocean.gd" id="2"]
+[ext_resource type="Texture2D" uid="uid://1j6kbg87jkwv" path="res://assets/island_large.png" id="3"]
+[ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="4"]
+[ext_resource type="Script" uid="uid://d0p5ddal0wg2" path="res://scripts/rowboat.gd" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_hud.tscn" id="6"]
+
+[sub_resource type="CircleShape2D" id="TrunkShape"]
+radius = 6.0
+
+[sub_resource type="RectangleShape2D" id="RowboatShape"]
+size = Vector2(110, 40)
+
+[node name="TreasureIsland" type="Node2D" unique_id=401015893]
+script = ExtResource("1")
+time_limit_seconds = 45.0
+intro_message = "Find the buried treasure!
+Watch hot/cold top-left. Press E to dig."
+intro_message_seconds = 4.0
+win_message = "You rowed away with the treasure!"
+incomplete_message = "Find the treasure first!"
+
+[node name="Ocean" type="Node2D" parent="." unique_id=1487771624]
+z_index = -20
+script = ExtResource("2")
+scroll_speed = 6.0
+cover_size = Vector2(1600, 1400)
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1113096097]
+z_index = -10
+texture_filter = 1
+scale = Vector2(1.25, 1.25)
+texture = ExtResource("3")
+
+[node name="IslandBoundary" type="StaticBody2D" parent="." unique_id=1944876497]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="IslandBoundary" unique_id=255677150]
+build_mode = 1
+polygon = PackedVector2Array(193.8, -345, 178.8, -346.2, 171.2, -342.5, 133.8, -310, 136.2, -306.2, 126.2, -296.2, 85, -296.2, 67.5, -282.5, 52.5, -277.5, 43.8, -278.8, 31.2, -266.2, 13.8, -268.8, -2.5, -255, -15, -270, -15, -291.2, -3.8, -305, -3.8, -311.2, 13.8, -328.8, 1.2, -343.8, 2.5, -353.8, -16.2, -361.2, -30, -345, -41.2, -347.5, -56.2, -325, -67.5, -323.8, -88.8, -337.5, -96.2, -332.5, -137.5, -323.8, -151.2, -315, -172.5, -290, -195, -278.8, -212.5, -290, -226.2, -287.5, -275, -246.2, -298.8, -197.5, -318.8, -181.2, -323.8, -151.2, -321.2, -121.2, -326.2, -88.8, -362.5, -43.8, -381.2, -2.5, -381.2, 27.5, -388.8, 45, -375, 45, -358.8, 60, -370, 72.5, -381.2, 75, -388.8, 70, -395, 76.2, -391.2, 146.2, -323.8, 160, -281.2, 181.2, -252.5, 185, -217.5, 198.8, -196.2, 217.5, -180, 248.8, -150, 256.2, -123.8, 282.5, -110, 287.5, -83.8, 286.2, -28.8, 305, -7.5, 325, -11.2, 335, -7.5, 345, -11.2, 355, -7.5, 365, -11.2, 375, -7.5, 396.2, 10, 393.8, 7.5, 385, 11.2, 375, 7.5, 365, 11.2, 355, 7.5, 345, 11.2, 335, 7.5, 325, 22.5, 305, 75, 301.2, 120, 290, 143.8, 298.8, 171.2, 295, 193.8, 282.5, 216.2, 263.8, 225, 262.5, 232.5, 245, 242.5, 235, 256.2, 236.2, 265, 225, 265, 187.5, 270, 176.2, 263.8, 162.5, 275, 120, 297.5, 91.2, 322.5, 75, 331.2, 61.2, 357.5, 41.2, 380, 17.5, 380, -28.8, 360, -46.2, 352.5, -61.2, 326.2, -77.5, 311.2, -93.8, 302.5, -127.5, 315, -173.8, 313.8, -186.2, 288.8, -208.8, 252.5, -256.2, 263.8, -267.5, 250, -311.2, 223.8, -328.8, 206.2, -332.5)
+
+[node name="Cliffs" type="StaticBody2D" parent="." unique_id=2073360087]
+
+[node name="Cliff1" type="CollisionPolygon2D" parent="Cliffs" unique_id=324458476]
+polygon = PackedVector2Array(-305, 7.3, -302.6, 44.4, -291.4, 60.4, -276.4, 76.4, -293.9, 87.6, -310.2, 96.3, -285.3, 106.1, -242.9, 105.8, -226.8, 121.8, -198.5, 164.9, -165.2, 185.8, -132, 212.9, -95.1, 228.9, -70.5, 250.1, -38.5, 262.5, -16.3, 263.8, -17, 281.2, -42.1, 279.6, -78.2, 265.6, -103.3, 244.3, -140.9, 228, -175.6, 199.9, -211.2, 177, -241, 132, -249.9, 120.8, -290.8, 121.1, -326.2, 103.3, -304.5, 76.9, -293.7, 76.3, -305.7, 69.9, -319.6, 48.4, -322.5, 8.4)
+
+[node name="Cliff2" type="CollisionPolygon2D" parent="Cliffs" unique_id=1482530171]
+polygon = PackedVector2Array(17, 266.3, 31.8, 268.8, 84.9, 262.7, 130.6, 244.3, 138, 239.3, 147.6, 253.9, 138.1, 260.1, 89.6, 279.6, 33.2, 286.2, 15.2, 283.6)
+
+[node name="Cliff3" type="CollisionPolygon2D" parent="Cliffs" unique_id=2122938397]
+polygon = PackedVector2Array(166.4, 225.8, 173.5, 167.5, 191.9, 139.1, 207.9, 105.8, 229, 85, 250.1, 69, 251.3, 19.7, 268.7, 20.3, 266.8, 74.4, 241.6, 96.6, 222.6, 115.2, 207, 148, 189.4, 174, 182.4, 230.5)
+
+[node name="TreeTrunks" type="StaticBody2D" parent="." unique_id=213035863]
+
+[node name="Trunk1" type="CollisionShape2D" parent="TreeTrunks" unique_id=488707773]
+position = Vector2(101.3, -210)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk2" type="CollisionShape2D" parent="TreeTrunks" unique_id=1298605259]
+position = Vector2(161.2, -198.8)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk3" type="CollisionShape2D" parent="TreeTrunks" unique_id=487648333]
+position = Vector2(-129.1, -185)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk4" type="CollisionShape2D" parent="TreeTrunks" unique_id=1339320603]
+position = Vector2(-68.8, -172.5)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk5" type="CollisionShape2D" parent="TreeTrunks" unique_id=1054796942]
+position = Vector2(-2.4, -153.8)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk6" type="CollisionShape2D" parent="TreeTrunks" unique_id=1067351917]
+position = Vector2(56.7, -151.2)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk7" type="CollisionShape2D" parent="TreeTrunks" unique_id=1570863742]
+position = Vector2(211.6, -145)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk8" type="CollisionShape2D" parent="TreeTrunks" unique_id=217128310]
+position = Vector2(-206.2, -131.2)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk9" type="CollisionShape2D" parent="TreeTrunks" unique_id=510111146]
+position = Vector2(142.2, -113.8)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk10" type="CollisionShape2D" parent="TreeTrunks" unique_id=715393533]
+position = Vector2(125, -113.8)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk11" type="CollisionShape2D" parent="TreeTrunks" unique_id=606216944]
+position = Vector2(-103.8, -103.8)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk12" type="CollisionShape2D" parent="TreeTrunks" unique_id=816557944]
+position = Vector2(-32.5, -96.2)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk13" type="CollisionShape2D" parent="TreeTrunks" unique_id=1169618543]
+position = Vector2(-48, -96.2)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk14" type="CollisionShape2D" parent="TreeTrunks" unique_id=952746001]
+position = Vector2(-237.6, -60)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk15" type="CollisionShape2D" parent="TreeTrunks" unique_id=1365808560]
+position = Vector2(215.1, -41.2)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk16" type="CollisionShape2D" parent="TreeTrunks" unique_id=1335949571]
+position = Vector2(-273.8, 11.2)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk17" type="CollisionShape2D" parent="TreeTrunks" unique_id=1698026525]
+position = Vector2(183.7, 30)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk18" type="CollisionShape2D" parent="TreeTrunks" unique_id=416297520]
+position = Vector2(183.8, 117.5)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk19" type="CollisionShape2D" parent="TreeTrunks" unique_id=430039362]
+position = Vector2(-187.2, 133.8)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk20" type="CollisionShape2D" parent="TreeTrunks" unique_id=911614104]
+position = Vector2(125.1, 157.5)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk21" type="CollisionShape2D" parent="TreeTrunks" unique_id=628043024]
+position = Vector2(-85.1, 192.5)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk22" type="CollisionShape2D" parent="TreeTrunks" unique_id=1190562880]
+position = Vector2(-106.6, 192.5)
+shape = SubResource("TrunkShape")
+
+[node name="Trunk23" type="CollisionShape2D" parent="TreeTrunks" unique_id=719564629]
+position = Vector2(83.5, 237.5)
+shape = SubResource("TrunkShape")
+
+[node name="TreasureSpots" type="Node2D" parent="." unique_id=676342210]
+
+[node name="Spot1" type="Marker2D" parent="TreasureSpots" unique_id=2036710159]
+position = Vector2(62.5, 186.2)
+
+[node name="Spot2" type="Marker2D" parent="TreasureSpots" unique_id=131923187]
+position = Vector2(-223.8, -271.2)
+
+[node name="Spot3" type="Marker2D" parent="TreasureSpots" unique_id=438276698]
+position = Vector2(246.2, -267.5)
+
+[node name="Spot4" type="Marker2D" parent="TreasureSpots" unique_id=1884296155]
+position = Vector2(-372.5, 133.8)
+
+[node name="Spot5" type="Marker2D" parent="TreasureSpots" unique_id=1813321088]
+position = Vector2(340, 35)
+
+[node name="Spot6" type="Marker2D" parent="TreasureSpots" unique_id=853628869]
+position = Vector2(10, -98.8)
+
+[node name="Spot7" type="Marker2D" parent="TreasureSpots" unique_id=13515833]
+position = Vector2(-145, 77.5)
+
+[node name="Spot8" type="Marker2D" parent="TreasureSpots" unique_id=1259643861]
+position = Vector2(-3.8, -328.8)
+
+[node name="Spot9" type="Marker2D" parent="TreasureSpots" unique_id=174101695]
+position = Vector2(-315, -75)
+
+[node name="Spot10" type="Marker2D" parent="TreasureSpots" unique_id=1608714774]
+position = Vector2(-113.8, 268.8)
+
+[node name="Spot11" type="Marker2D" parent="TreasureSpots" unique_id=800826368]
+position = Vector2(250, 205)
+
+[node name="Spot12" type="Marker2D" parent="TreasureSpots" unique_id=1881416044]
+position = Vector2(197.5, -86.2)
+
+[node name="Spot13" type="Marker2D" parent="TreasureSpots" unique_id=226611765]
+position = Vector2(-155, -120)
+
+[node name="Spot14" type="Marker2D" parent="TreasureSpots" unique_id=1618797923]
+position = Vector2(168.8, 68.8)
+
+[node name="Spot15" type="Marker2D" parent="TreasureSpots" unique_id=1260374239]
+position = Vector2(2.5, 50)
+
+[node name="Spot16" type="Marker2D" parent="TreasureSpots" unique_id=186221389]
+position = Vector2(103.8, -225)
+
+[node name="DigMarks" type="Node2D" parent="." unique_id=457579454]
+z_index = -5
+
+[node name="Rowboat" type="Area2D" parent="." unique_id=59442281]
+position = Vector2(30, 392)
+script = ExtResource("5")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Rowboat" unique_id=1735585118]
+shape = SubResource("RowboatShape")
+
+[node name="World" type="Node2D" parent="." unique_id=717219257]
+y_sort_enabled = true
+
+[node name="Player" parent="World" unique_id=588923006 instance=ExtResource("4")]
+position = Vector2(1, 320)
+
+[node name="Camera2D" type="Camera2D" parent="World/Player" unique_id=278426420]
+limit_left = -640
+limit_top = -520
+limit_right = 640
+limit_bottom = 520
+position_smoothing_enabled = true
+
+[node name="IslandHUD" parent="." unique_id=308136608 instance=ExtResource("6")]
