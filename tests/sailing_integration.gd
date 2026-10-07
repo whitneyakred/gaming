@@ -34,6 +34,8 @@ func _run() -> void:
 	change_scene_to_file("res://scenes/main.tscn")
 	await scene_changed
 	var ship := current_scene.get_node("Ship") as Ship
+	# This suite tests sailing with controlled wind; random shifts have their own test.
+	ship.changing_wind_enabled = false
 	var player := ship.player
 	var sail := ship.get_node("Sail") as SailStation
 	var helm := ship.get_node("Helm") as HelmStation
