@@ -5,7 +5,7 @@
 **Area:** `UC-ISLE`
 
 > **Realizes:** `UC-ISLE-arrive-at-island`, `UC-ISLE-complete-challenge`, `UC-ISLE-collect-island-items`. `UC-ISLE-salvage-shipwreck` is **not yet designed** (see Overview). No `FR-ISLE-*` exists yet; specification section 5.2 is still the template.
-> **Depends on:** `BR-rowboat-capacity` (cited by the use case but **not yet defined** in [business-rules.md](../requirements/business-rules.md)); `UC-SYS-item-drop`, `UC-SYS-player-inventory`; `KD-deployment-shape`, `KD-local-first`, `KD-station-components`, `KD-world-chunks`.
+> **Depends on:** `BR-rowboat-capacity`, `BR-inventory-slots`, `BR-capsize-reset`, `BR-pass-out-recovery`, `BR-host-controls-session`; `UC-SYS-item-drop`, `UC-SYS-player-inventory`; `KD-deployment-shape`, `KD-local-first`, `KD-station-components`, `KD-world-chunks`.
 > **See:** [use cases, Island Interaction](../requirements/use-cases.md#area-island-interaction-isle), [software requirements specification](../requirements/software-requirements-specification.md), [architecture-of-record](architectural-design.md), [sailing integration notes](../sailing-integration.md)
 > **Designed against:** `2bb509c` (main, "Merge pull request #22 from whitneyakred/island-2-game")
 
@@ -117,7 +117,7 @@ classDiagram
 
 - [`scripts/ship.gd`](../../scripts/ship.gd) (changed): docking, stern interaction, and both rowboat cutscenes stay as they are. The cross-scene statics (`returning_from_island`, `visited_island_name`, `completed_islands`) move into `VoyageState`.
 - [`scripts/islands/world_island.gd`](../../scripts/islands/world_island.gd) (reused): placement, `scene`, and dock point. The node name is the island id.
-- `scripts/voyage_state.gd` (new, autoload `VoyageState`): in-memory state for one voyage that must outlive a scene change. Holds the crew inventories by `player_id`, completed challenges, resource amounts left, collected pickups, and the scene handoff (which island, rowed or swam). Never written to disk.
+- `scripts/voyage_state.gd` (new, autoload `VoyageState`): in-memory state for one voyage that must outlive a scene change. Holds the crew inventories by `player_id`, completed challenges, resource amounts left, collected pickups, the scene handoff (which island, and whether the crew is returning), and the last visited island, which `BR-capsize-reset` needs and which the handoff never clears. Never written to disk.
 - [`scripts/islands/island_game.gd`](../../scripts/islands/island_game.gd) (changed): the shared challenge flow. Adds the "already complete" check (complete-challenge 1a), grants the reward and marks completion in one `VoyageState` call, and lets the crew member leave before finishing (see Key decisions). Losing still reloads the island (retry, complete-challenge 3a). The island id comes from `VoyageState.visited_island`, never from a value exported on the island scene. When it is empty (the scene was run on its own with F6), it falls back to the scene's file path. An island with no challenge keeps the base class defaults (`time_limit_seconds = 0`, objective always complete), so it shows no timer and lets the crew member leave at any time.
 - [`scripts/islands/collect_island.gd`](../../scripts/islands/collect_island.gd) (changed): the total is every placed pickup in its group in the scene file. Placed pickups already collected earlier this voyage (in a failed run or before leaving early) count as collected when the run starts, so a retry continues the progress. Pickups dropped by a `ResourceNode` are not put in the group and never count.
 -  [`scripts/islands/treasure_island.gd`](../../scripts/islands/treasure_island.gd), [`scripts/islands/island_hud.gd`](../../scripts/islands/island_hud.gd) (reused): the two challenge types and the HUD.
@@ -162,7 +162,7 @@ sequenceDiagram
 Extensions:
 
 - **1b (rowboat away)** is **deferred to co-op.** With one player, the rowboat is always wherever the player is.
-- **3a (capsize while ashore)** is **deferred** until `UC-WAVE-capsize-ship` exists. The ship cannot move or capsize while the island scene is loaded.
+- **3a (capsize while ashore)** is **deferred** until `UC-WAVE-capsize-ship` exists. The ship cannot move or capsize while the island scene is loaded. When capsizing is built, `BR-capsize-reset` returns everyone to the last visited island and empties every inventory; both live in `VoyageState`, so that design has one place to reset.
 - **5b (ship moved out of range)** cannot happen in single-player. The ship stays anchored with its stations disabled until the player is back aboard (`stations_enabled = false` in `Ship._stop_sailing`).
 
 ### UC-ISLE-complete-challenge: completing an island challenge
@@ -318,7 +318,7 @@ _[Which existing services, components, and conventions this area uses rather tha
 - **`IslandGame` hooks** (`_setup_game`, `_get_objective_text`, `_is_objective_complete`, `_on_time_up`) and **`IslandHUD`**: reused. New challenge types keep extending `IslandGame`.
 - **Player station lock** (`try_use_station` / `leave_station`): `Ship` already uses it to freeze the player during the cutscene. That stays, and it follows the contract in [deck.md](deck.md).
 - **ItemDatabase / Items** for item definitions, and **`PlayerInventory.add_item`** for "is there room". Its stack and slot rules are `UC-SYS-player-inventory`'s, not this area's.
-- Conventions: 8.2.1 Error handling (reject without partial change), 8.2.2 Time (the island countdown uses simulation time in `_process`, so pause will freeze it), 8.2.3 API conventions, 8.2.4 Code conventions (exported tuning such as `time_limit_seconds`, `starting_amount`), 8.2.5 Validation (`VoyageState` and `IslandGame` decide, the HUD only shows), 8.2.8 Persistence and concurrency (in memory, one owner per mutation), 8.2.10 Testing.
+- Conventions: 8.2.1 Error handling (reject without partial change), 8.2.2 Time (the island countdown uses simulation time in `_process`, so pause will freeze it, as `BR-host-controls-session` requires), 8.2.3 API conventions, 8.2.4 Code conventions (exported tuning such as `time_limit_seconds`, `starting_amount`), 8.2.5 Validation (`VoyageState` and `IslandGame` decide, the HUD only shows), 8.2.8 Persistence and concurrency (in memory, one owner per mutation), 8.2.10 Testing.
 
 ## Tests
 
@@ -368,11 +368,12 @@ _[What this design could not settle and who can, and what could go wrong that yo
 
 - **Docking is not in any use case.** Sailing into the yellow circle to anchor, the island arrow, and the "nearest island" status line all exist in code. This design uses docking as the meaning of PRE-1 ("within range"). It is either a missing step in `UC-ISLE-arrive-at-island` or a missing `NAV` use case. Owner: the team. Fix the specification.
 - **The use case's open questions are answered by the code but not yet in the use case:** the rowboat moves on its own (a cutscene), and the ship must be anchored (sail stowed) to launch it. Owner: the team. Update `UC-ISLE-arrive-at-island` and resolve them.
-- **`BR-rowboat-capacity` is not defined**, and capacity is TBD. With one player it changes nothing. It matters in co-op. Owner: the team.
+- **Rowboat capacity is TBD** in `BR-rowboat-capacity`. With one player it changes nothing. It matters in co-op. Owner: the team.
+- **Inventory limits in code don't match `BR-inventory-slots` yet.** The rule says six quick slots plus expanded slots, with at most 30 per stack. Today `PlayerInventory` has 4 slots and coconuts stack to 20. When the inventory is full, collect 4a depends on those numbers, but changing them belongs to `UC-SYS-player-inventory`. Owner: whoever designs `SYS`.
 - **Leave-early (proposed above)** changes the islands' feel. Owner: the team.
 - **The time limit and pirate track are not in `UC-ISLE-complete-challenge`.** They are the team's challenge-type design, which the use case leaves open ("What are the challenge types?"). Record the two types (collect-all, hot/cold dig) and their time limits in the use case so they are not mistaken for scope creep.
 - **Rewards are TBD.** `reward_item_ids` is empty until decided. When a reward doesn't fit, this design blocks completion ("Make room for the reward") rather than granting part of it. That's safe only together with leave-early, so the player can go make room. Owner: the team.
-- **Passing out does not exist yet.** PRE-2 is trivially true until `UC-SURV-pass-out` exists. The stern E check is where it will be enforced.
+- **Passing out does not exist yet.** PRE-2 is trivially true until `UC-SURV-pass-out` exists. A passed-out crew member can't act (`BR-pass-out-recovery`), and the stern E check is where that will be enforced for the rowboat.
 - **Cooking stock moves into `VoyageState`** (decided above), though cooking has no use case. Owner: whoever owns cooking.
 - **Items left on the ground are lost when you leave the island.** The resource amount has already dropped (decided above), and ground items belong to `UC-SYS-item-drop`, which has no design yet. Owner: whoever designs `SYS`.
 - **The inventory home is shared with `SYS`.** `VoyageState.get_inventory` is placed here because ISLE's POST-1 needs it first. The `SYS` design should adopt it or move it, not build a second one.
@@ -392,9 +393,7 @@ _**The specific failure to watch for: scope that nobody asked for.** An agent dr
 
 ### How this document was worked
 
-**Delegated to the agent (Claude):** reading the use cases, architecture section 8 and the code at `2bb509c`; drafting every diagram, contract row, test row, and rejected alternative; checking that each identifier this document cites exists where it should. That check found that `BR-rowboat-capacity` is undefined and that docking has no use case. The agent also ran the questions test below in a fresh session.
-
-**Not done for this draft:** step 1 (sketch by hand first) and step 3 (compare). Before opening the PR, someone should sketch the main flow of `UC-ISLE-arrive-at-island` from the use case alone and compare it with the diagram here.
+**Delegated to the agent (Claude):** reading the use cases, architecture section 8 and the code at `2bb509c`; drafting every diagram, contract row, test row, and rejected alternative; checking that each identifier this document cites exists where it should. That check found that docking has no use case. The agent also ran the questions test below in a fresh session.
 
 **Kept human (needs the team):**
 
@@ -428,7 +427,7 @@ _For each item on its list, either fix this document or keep the guess and write
 
 ### Result
 
-Run on 2026-10-14 by a fresh read-only agent session. It was given only `UC-ISLE-*` from use-cases.md, a note that the `BR-*` rules are undefined, architecture-of-record section 8, and this document. The agent read a copy made before `rowboat_location` was removed, so that item is answered as removed. Every item that could break a requirement has been fixed in this document, except **three that are waiting on others**:
+Run on 2026-10-14 by a fresh read-only agent session. It was given only `UC-ISLE-*` from use-cases.md, the business rules they cite, architecture-of-record section 8, and this document. The agent read a copy made before `rowboat_location` was removed, so that item is answered as removed. Every item that could break a requirement has been fixed in this document, except **three that are waiting on others**:
 
 - Leave-early
 - Rewards
@@ -478,10 +477,8 @@ Paste the block below into the PR description under How it was verified.
 - **How a pickup finds the inventory.** Could break: no. **Fixed anyway:** `VoyageState.get_inventory(body.player_id)` for `crew` bodies.
 - **Re-check after making room while standing on an item.** Could break: no.
 - **Who removes collected placed pickups.** Could break: no. **Fixed anyway:** the pickup itself, in `_ready`.
-- **`wood` stack size.** Could break: no. `UC-SYS-player-inventory` owns stacking.
+- **`wood` stack size.** Could break: no. `BR-inventory-slots` caps every stack at 30, and `UC-SYS-player-inventory` owns stacking.
 - **Starting inventory.** Could break: possibly. **Fixed:** the fishing-rod grant happens once per voyage.
 - **Items on the ground lost when leaving.** Could break: yes, over time. **Open (`SYS`):** a documented, accepted risk.
-
-**Use case follow-up:** `UC-ISLE-arrive-at-island` still describes swimming: the Trigger, the Description, extensions 1a, 1b2/1b3 and 5a, and the "swim speed" row. Now that the team has removed swimming, update use-cases.md to match.
 
 </details>
