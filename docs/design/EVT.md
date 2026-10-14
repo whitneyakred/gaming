@@ -35,11 +35,7 @@ _**Write it in this order.** Each step is one person's or one pair's work, and t
 
 ## Overview
 
-_[One paragraph: what this area does, which components of your [architecture-of-record](architectural-design.md) it lives in, and what it reads from or calls in other areas. Link the container diagram rather than redrawing it. If this design changes the architecture-of-record, say so here and list the change under "Changes to the architecture-of-record" below._
-
-_Example, from the Cafeteria Ordering System:_
-
-_Ordering takes a patron's meal order from menu selection to a confirmed, payroll-charged order. It is the `ORD` area of the API ([containers](architectural-design.md#51-containers), [use case areas](architectural-design.md#52-use-case-areas-and-components)), reads the day's menu from `menu`, and asks the Payroll System to authorize the deduction before an order is stored (`DE-payroll-integration`).]_
+_[One paragraph: what this area does, which components of your [architecture-of-record](architectural-design.md) it lives in, and what it reads from or calls in other areas. Link the container diagram rather than redrawing it. If this design changes the architecture-of-record, say so here and list the change under "Changes to the architecture-of-record" below.]_
 
 Events & Encounters coordinates tile-triggered events, merchant exchanges, and temporary storm effects inside the local Godot Game Application ([containers](../architectural-design.md#51-containers)). It receives tile-entry information from World and Ocean/boat tracking, obtains merchant items from the item-pool owner and Item Catalog, and calls inventory, ship, wave, and navigation owners rather than duplicating their state. Architecture section 5.2 currently places encounters in TRADE and weather responsibilities in NAV/World and Ocean; the newer use-case draft defines EVT as its own area. The reconciliation is listed below. All EVT classes, methods, signals, and paths in this draft are proposed; no EVT code or repository checkout was supplied. This is a design for future implementation, not evidence that those interfaces already exist.
 
@@ -136,42 +132,7 @@ Proposed paths use the architecture's existing `scenes/` and `scripts/` roots; E
 
 ## Sequence
 
-_[One sequence diagram per use case for its main success scenario, plus one for each extension that does not just return an error. **Label each interaction with the use case step it implements**, so a reviewer can check that every step is realized and nothing extra was invented. Use `alt` blocks for extensions that branch off the main flow. Give each use case its own `###` heading; that heading is the anchor your traceability matrix cites._
-
-_Example:]_
-
-### _UC-ORD-place-order: placing an order_
-
-```mermaid
-sequenceDiagram
-    actor P as Patron
-    participant WEB as Web front end
-    participant OC as OrderController
-    participant OS as OrderService
-    participant MS as MenuService
-    participant PC as PayrollClient
-    P->>WEB: Choose items and a delivery slot (steps 3 to 5)
-    WEB->>OC: POST /api/orders
-    OC->>OS: placeOrder(patronId from the session, items, slot)
-    alt after the 10:00 cut-off (3a)
-        OS-->>OC: refused, CUTOFF_PASSED
-    else
-        OS->>MS: findAvailableItems(today)
-        alt an item sold out (4a)
-            OS-->>OC: refused, ITEM_UNAVAILABLE, with the item
-        end
-        OS->>PC: authorizeDeduction(patronId, total) (step 7)
-        alt patron not registered for deduction (7a)
-            PC-->>OS: declined
-            OS-->>OC: refused, PAYROLL_NOT_REGISTERED
-        end
-        OS->>OS: store the order (step 8)
-        OS-->>OC: order number, delivery slot
-    end
-    OC-->>WEB: 201, or the error for the extension
-    WEB-->>P: Confirmation (step 9), or what to fix
-```
-
+_[One sequence diagram per use case for its main success scenario, plus one for each extension that does not just return an error. **Label each interaction with the use case step it implements**, so a reviewer can check that every step is realized and nothing extra was invented. Use `alt` blocks for extensions that branch off the main flow. Give each use case its own `###` heading; that heading is the anchor your traceability matrix cites.]_
 All messages below are proposed in-process calls/signals. Step numbers refer to the supplied use cases; remote synchronization is a future adapter responsibility.
 
 ### UC-EVT-generate-event: Generate a random ocean event
@@ -288,14 +249,7 @@ Storm cleanup runs once on expiry or capsize; an old timeout must not reapply ef
 
 ## API contract
 
-_[One row per endpoint, scheduled job, or message this area adds or changes, appended per use case. **This section is never dropped**: before the code exists it is the only thing the person (or agent session) building the front end and the one building the back end both read. Name the caller and who may call it, the request fields, the success response, and the error each extension returns. Leave field types and exact JSON to the agent unless a wrong guess would break something, such as a format another system depends on. Use the error shape your architecture-of-record's section 8.2 fixes; do not invent one here._
-
-_Example:]_
-
-| Endpoint or job | Caller (who may) | Request | Success | Errors, by extension |
-|---|---|---|---|---|
-| _`POST /api/orders`_ | _A signed-in patron, for herself only; the patron comes from the session, never the body_ | _Menu item ids and quantities, delivery slot id_ | _`201`: order number, total, delivery slot_ | _3a: `409 CUTOFF_PASSED`. 4a: `409 ITEM_UNAVAILABLE` naming the item. 7a: `402 PAYROLL_NOT_REGISTERED`. Not signed in: `401`._ |
-| _`GET /api/orders/{orderId}`_ | _The patron who placed it, or cafeteria staff_ | _None_ | _`200`: items, total, slot, status_ | _Another patron's order: `404`, so the response does not reveal that the order exists (`QS-cross-employee-order-denied`)._ |
+_[One row per endpoint, scheduled job, or message this area adds or changes, appended per use case. **This section is never dropped**: before the code exists it is the only thing the person (or agent session) building the front end and the one building the back end both read. Name the caller and who may call it, the request fields, the success response, and the error each extension returns. Leave field types and exact JSON to the agent unless a wrong guess would break something, such as a format another system depends on. Use the error shape your architecture-of-record's section 8.2 fixes; do not invent one here.]_
 
 These are proposed typed Godot methods/signals, following architecture section 8.2.3, not HTTP endpoints or chosen RPCs. Error handling follows section 8.2.1: an explainable result with no partial mutation. It does **not** prescribe an error schema; the result labels below are proposed semantic outcomes, not existing codes. Session authority means the local simulation today and the Host instance when multiplayer is implemented; clients submit intent and never roll events or mutate shared balances independently.
 
@@ -335,13 +289,7 @@ These are proposed design fixes for review, not claims that dependencies exist o
 
 _[Only the decisions a reader could not recover from the code: an invariant, who may do this and how it is enforced, a trade-off you chose, a reason you reused something rather than writing it. **Each one names what you chose, what you rejected, and why.** If you cannot name an alternative you considered, it probably was not a decision; leave it out._
 
-_A decision that affects the whole system rather than this area is an architecture decision. It belongs in your architecture-of-record as a `KD-*` entry, not here._
-
-_Example:]_
-
-**_When the payroll deduction is authorized._** _Before the order is stored, in the same request. Rejected: storing the order first and charging later in a batch, because a declined deduction would then cancel an order the kitchen has already started (`ROB-order-persisted` promises the patron that a confirmed order stands)._
-
-**_How the cut-off is checked._** _On the server, against the injected clock, in the cafeteria's time zone (architecture-of-record 8.2, time). Rejected: hiding the order button after 10:00 in the browser, because the browser's clock is the patron's and the check would be advisory._
+_A decision that affects the whole system rather than this area is an architecture decision. It belongs in your architecture-of-record as a `KD-*` entry, not here.]_
 
 All choices here are **draft proposals for Team 13 review**, unless identified as required by a supplied use case.
 
@@ -392,17 +340,7 @@ _[Which existing services, components, and conventions this area uses rather tha
 
 ## Tests
 
-_[One row per flow: the main success scenario and **every** extension of every use case this document realizes, appended per use case. Name the level (unit or integration) and what the test asserts. No code. This list is the definition of done that the reviewer approves; the agent writes these tests when it builds, and a reviewer can see at a glance whether an extension has no test._
-
-_Example:]_
-
-| Use case, flow | Level | Asserts |
-|---|---|---|
-| _UC-ORD-place-order main_ | _integration_ | _A registered patron's order before 10:00 is stored, charged once, and returned with an order number_ |
-| _UC-ORD-place-order 3a_ | _unit_ | _At 10:00:01 by the injected clock the order is refused with `CUTOFF_PASSED` and nothing is stored or charged_ |
-| _UC-ORD-place-order 4a_ | _unit_ | _A sold-out item refuses the whole order and names the item_ |
-| _UC-ORD-place-order 7a_ | _integration_ | _A declined deduction stores no order_ |
-| _Authorization_ | _integration_ | _A patron requesting another patron's order gets `404`_ |
+_[One row per flow: the main success scenario and **every** extension of every use case this document realizes, appended per use case. Name the level (unit or integration) and what the test asserts. No code. This list is the definition of done that the reviewer approves; the agent writes these tests when it builds, and a reviewer can see at a glance whether an extension has no test.]_
 
 Planned definition of done; no implementation or automated test results are claimed. Unit tests exercise deterministic injected outcomes/time; integration tests assemble the planned Godot components. Multiplayer assertions wait for the selected adapter.
 
