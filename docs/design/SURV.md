@@ -1,6 +1,6 @@
 # Survival Design
 
-**Project:**  Holy Ship!
+**Project:** Holy Ship!
 **Team:** Team 13  
 **Area:** `SURV` — Hunger, Thirst & Illness  
 **Status:** Draft for team review; unresolved policies and the proposed sensory effects below prevent implementation approval.
@@ -9,6 +9,7 @@
 > **Depends on:** `BR-stat-max`, `BR-barrel-fill-rate`, `BR-stat-depletion-rate`, `BR-pass-out-recovery`, `BR-illness-fatigue-floor`, `BR-host-controls-session`, `BR-capsize-reset`; the inventory, station, fatigue, and session interfaces identified below.
 > **See:** [supplied use cases](<C:/Users/Gusy/Downloads/use-cases-draft.md>), [supplied architecture](<C:/Users/Gusy/Downloads/architectural-design.md>), [replacement business rules v0.2](<C:/Users/Gusy/Downloads/business-rules (2).md>), [repository specification](../requirements/software-requirements-specification.md).
 > **Designed against:** local checkout `bf4428af2f05e238dfca15df0983fde987b4de72`; not independently verified as the current `main` revision. Architecture source: version 0.2, October 2, 2026. Use-case source: version 0.2. Business rules source: version 0.2, October 14, 2026.
+
 
 ## Overview
 
@@ -331,24 +332,6 @@ Required reconciliations are listed here; the supplied architecture file has not
 3. Update the stale claims that only steering is fully specified and that only six areas exist; the supplied use-case draft defines more areas and full SURV/FTG flows.
 4. Keep kitchen/cooking ownership outside this document: cooking has no supplied SURV use case. Reconcile the architecture's kitchen mention without adding a cooking feature here.
 
-## Open questions & risks
-
-The team, acting as client, owns gameplay decisions; the respective area owners own interface details. These issues must also be mirrored into the requirements issue tracker when the source set is reconciled. No existing issue identifier is invented here.
-
-| Question or risk | Owner / consequence |
-|---|---|
-| Exact stat maxima, depletion/restore rates, bottle/barrel capacity, barrel fill rate, pass-out duration, illness duration/rate/floor? | Team; tuning and numeric acceptance tests blocked. Approximate illness floor is not fixed to exactly 50%. |
-| Eat/drink at full stat: refuse or consume without benefit? | Team; inventory outcomes cannot be finalized. |
-| Raw food while already ill: restart or extend? | Team; illness lifecycle blocked. |
-| Does illness drain resume after resting raises fatigue above the floor, or stop permanently once the floor is first reached? | Team; rule says extra drain only above floor while timer active, but use-case step 5 may imply a latched stop. Do not choose silently. |
-| How do rest recovery and illness drain combine, including same-tick floor/zero boundaries? | SURV/FTG owners and team; one fatigue calculation must define ordering. |
-| Capsize removes bottles with inventory: how are replacement bottles obtained, and does barrel water reset? | Team/SYS/WAVE; avoid making hydration impossible after reset. |
-| What initial hunger/thirst values apply on new voyage/join? | Team/session owner; do not assume full stats from a recovery rule. |
-| What precisely triggers the proposed slowdown/wobble: low fatigue, low hunger/thirst, food illness, or rough seas? | Team; October 14 direction establishes the idea, not a complete trigger model. Rough-sea-induced illness is not currently specified. |
-| What slowdown multiplier, wobble intensity, threshold, and recovery behavior apply? | Team; revise `UC-FTG-warn-exhaustion` before implementing gameplay penalties. A reduced/disabled wobble setting is recommended for review, not an existing requirement. |
-| Current repository and supplied architecture represent different snapshots. | Document owner; reconcile baseline and source paths before merge. Existing code must be rechecked at implementation time. |
-| Host disconnect versus non-host reconnect. | Session owner; host loss ends voyage, so preserve cooldown only while authority/session remains active. |
-
 ## Working this document with your agent
 
 Use this design as a draft, not implementation approval. The agent may refine diagrams, check real file reuse, enumerate contract fields and tests, and check identifier existence. The team retains gameplay choices, trade-offs, and independent review. Do not add cures, recipes, inventory expansion, networking, or other features through plausible implementation guesses. New interactions must cite a use-case step or be clearly tracked as a proposed requirements change.
@@ -367,6 +350,29 @@ Draft self-check only; a fresh, independent review session is still required by 
 | Capsize bottle/barrel policy | Yes | Resolve with SYS/WAVE before implementation. |
 | Sensory-effect triggers and gameplay slowdown | Yes | Owner proposal recorded; revise contradictory exhaustion use case before implementation. |
 | Final internal method names and signal payload representation | No, if ownership and results above are preserved | Implementer may choose typed GDScript details consistent with architecture 8.2.3–8.2.4. |
+| HUD layout and replaceable placeholder art | No, provided required values/feedback remain readable | Implementer may choose; verify visually. |
+| Future replication and reconnect protocol | Yes for cooperative behavior | Deferred to networking design; not needed for local implementation. |
+
+Paste the independent review's questions and resolutions into the eventual PR description in a collapsed `Questions test` block, as the supplied template requests. This draft is not ready for implementation while requirement-affecting questions remain unresolved.
+
+## Open questions & risks
+
+The team, acting as client, owns gameplay decisions; the respective area owners own interface details. These issues must also be mirrored into the requirements issue tracker when the source set is reconciled. No existing issue identifier is invented here.
+
+| Question or risk | Owner / consequence |
+|---|---|
+| Exact stat maxima, depletion/restore rates, bottle/barrel capacity, barrel fill rate, pass-out duration, illness duration/rate/floor? | Team; tuning and numeric acceptance tests blocked. Approximate illness floor is not fixed to exactly 50%. |
+| Eat/drink at full stat: refuse or consume without benefit? | Team; inventory outcomes cannot be finalized. |
+| Raw food while already ill: restart or extend? | Team; illness lifecycle blocked. |
+| Does illness drain resume after resting raises fatigue above the floor, or stop permanently once the floor is first reached? | Team; rule says extra drain only above floor while timer active, but use-case step 5 may imply a latched stop. Do not choose silently. |
+| How do rest recovery and illness drain combine, including same-tick floor/zero boundaries? | SURV/FTG owners and team; one fatigue calculation must define ordering. |
+| Capsize removes bottles with inventory: how are replacement bottles obtained, and does barrel water reset? | Team/SYS/WAVE; avoid making hydration impossible after reset. |
+| What initial hunger/thirst values apply on new voyage/join? | Team/session owner; do not assume full stats from a recovery rule. |
+| What precisely triggers the proposed slowdown/wobble: low fatigue, low hunger/thirst, food illness, or rough seas? | Team; October 14 direction establishes the idea, not a complete trigger model. Rough-sea-induced illness is not currently specified. |
+| What slowdown multiplier, wobble intensity, threshold, and recovery behavior apply? | Team; revise `UC-FTG-warn-exhaustion` before implementing gameplay penalties. A reduced/disabled wobble setting is recommended for review, not an existing requirement. |
+| Current repository and supplied architecture represent different snapshots. | Document owner; reconcile baseline and source paths before merge. Existing code must be rechecked at implementation time. |
+| Host disconnect versus non-host reconnect. | Session owner; host loss ends voyage, so preserve cooldown only while authority/session remains active. |
+
 | HUD layout and replaceable placeholder art | No, provided required values/feedback remain readable | Implementer may choose; verify visually. |
 | Future replication and reconnect protocol | Yes for cooperative behavior | Deferred to networking design; not needed for local implementation. |
 
