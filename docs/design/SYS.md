@@ -1,188 +1,268 @@
-# _[Area name]_ Design
+# System Behaviors (SYS) Design
 
-**Project:** _[Your project name]_
-**Team:** _[Team NN]_
-**Area:** _[`UC-<AREA>`, for example `ORD`]_
+**Project:** Man the Ship
+**Team:** Whitney Akred, Leiton Peterson, Ivan Lopez, Liliana Matte, Gustavo Castillo, Shana Billiot
+**Area:** `SYS`
 
-> **Realizes:** _[every `UC-<AREA>-<slug>` and `FR-<AREA>-<slug>` this document designs, appended as each is designed]_
-> **Depends on:** _[the business rules, constraints, and cross-cutting `FR-*` it builds on, by identifier]_
-> **See:** _[links to the use cases, the specification, and your [architecture-of-record](architectural-design.md)]_
-> **Designed against:** _[the commit of `main` you read the code at, for example `a1b2c3d`]_
-
----
-
-_**How to use this template.** Copy it to `docs/design/<area>.md`, named for the lowercase area code (`ord.md` for `UC-ORD-*`). Instructions appear in italic square brackets; leave them in place until the document is stable, because the agent reads them on every later pass. The full worked example is Project Pulse's [`not.md`](https://github.com/Washingtonwei/project-pulse/blob/main/docs/design/not.md); read it for the shape, not for the answers._
-
-_**What this document is.** The **design-of-record** for one use case area: how the code will realize its use cases, written **before** the code and approved before anyone builds from it. It is the last document your agent reads before it writes code, so anything it leaves out, the agent invents. Your [architecture-of-record](architectural-design.md) is the map of the whole system and stops at each component's responsibility; this document goes one level down, inside one area, against real code._
-
-_**What it is not.** A copy of your use cases. It **cites** `UC-*`, `FR-*`, and `BR-*` by identifier and never restates what the system shall do; it says only how. It is also not a transcript of the code. Once code exists, link to the files rather than describing every class, column, or getter._
-
-_**One document per area, not per use case.** Your area gains use cases over the term. The overview, the class diagram, and the data model are **revised in place** when it does. The sequence diagrams, the API contract rows, and the test rows are **appended**, one set per use case. Never add a `## UC-…` section that repeats the whole skeleton._
-
-_**How much to write.** Pin down what a wrong guess would break: a requirement, a business rule, a quality attribute, or the contract between two parts of your team. Leave the rest for the agent to derive while it builds: variable names, field types, exact JSON, column lengths. When you are unsure, ask which side of that line a detail falls on, not whether it is interesting._
-
-_**Write it in this order.** Each step is one person's or one pair's work, and the order is the point:_
-
-1. _**Sketch it yourselves first.** Before you open the agent, draw the main success scenario's sequence diagram and write the API contract rows by hand, from the use case and your architecture-of-record. Twenty minutes, on paper or in this file._
-2. _**Have the agent draft it.** Give the agent this template, the use case, the business rules it cites, your architecture-of-record's section 8 (Crosscutting Concepts), and the relevant existing code, and ask for a draft of this document. Use plan mode, so it proposes before it writes._
-3. _**Compare the two.** Where the agent's draft differs from your sketch, decide which is right and why. What it found that you missed goes in; what you knew that it could not have known is the context your specification is missing, so fix the specification too._
-4. _**Run the questions test** (the last section) and fix what it finds._
-5. _**Open a pull request.** A teammate who did not write it reviews and approves it. Nobody starts an implementation branch from this design until it is merged._
+> **Realizes:** `UC-SYS-item-pool`, `UC-SYS-player-inventory`, `UC-SYS-track-boat`, `UC-SYS-shared-inventory`, and `UC-SYS-item-drop`.
+> **Depends on:** `BR-inventory-slots`, `BR-single-station-occupant`; `BR-capsize-reset`, `BR-event-roll-once-per-tile`, and `BR-merchant-pricing` consume SYS state across areas.
+> **See:** [use cases](../requirements/use-cases.md#area-system-behaviors-sys), [business rules](../requirements/business-rules.md#27-inventory-map-and-island-travel), and the [architecture of record](architectural-design.md).
+> **Designed against:** `a0a358a` on `design-of-record`.
 
 ---
 
 ## Overview
 
-_[One paragraph: what this area does, which components of your [architecture-of-record](architectural-design.md) it lives in, and what it reads from or calls in other areas. Link the container diagram rather than redrawing it. If this design changes the architecture-of-record, say so here and list the change under "Changes to the architecture-of-record" below._
+SYS supplies local gameplay state shared by item, map, and interaction features: item definitions, owned stacks, chest transfers, placed items, and the ship's map tile. It calls the Item Catalog for definitions, observes Ship State for position, and notifies map, event, progress, island, and station systems through typed methods or signals. SYS does not own item effects, merchant prices, event selection, capsize decisions, or UI layout.
 
-_Example, from the Cafeteria Ordering System:_
-
-_Ordering takes a patron's meal order from menu selection to a confirmed, payroll-charged order. It is the `ORD` area of the API ([containers](architectural-design.md#51-containers), [use case areas](architectural-design.md#52-use-case-areas-and-components)), reads the day's menu from `menu`, and asks the Payroll System to authorize the deduction before an order is stored (`DE-payroll-integration`).]_
+The repository already has an item-definition catalog and a small per-player inventory. The remaining SYS components are proposed. Current code is a migration baseline, not evidence that all five use cases are implemented.
 
 ## Components & classes
-
-_[One class diagram for the whole area, and one line per class or file saying what it does and whether it is **new** or **reused**. Show only what a reader needs to see how the parts relate: classes, their key methods, their dependencies. Fields and getters belong to the code._
-
-_**If your repository has no code for this area yet**, which is the normal case for your proving slice, list the files you expect the agent to create, with the paths your architecture-of-record's conventions give them, and mark them all new. The agent then builds into the structure you chose rather than one it improvised._
-
-_Example:_]
 
 ```mermaid
 classDiagram
     direction LR
-    class OrderController {
+    class ItemData {
+        <<reused>>
+        id: StringName
+        max_stack: int
+    }
+    class ItemDatabase {
+        <<reused autoload>>
+        register_item(item)
+        get_item(item_id)
+    }
+    class PlayerInventory {
+        <<migrate>>
+        try_add(item_id, amount)
+        try_remove(item_id, amount)
+        clear()
+    }
+    class ItemPool {
         <<new>>
-        +placeOrder(PlaceOrderRequest) Response
+        draw(count, categories)
     }
-    class OrderService {
+    class ChestInventory {
         <<new>>
-        +placeOrder(patronId, items, deliverySlot) Order
+        claim(crew)
+        transfer(crew, item_id, amount, direction)
+        release(crew)
     }
-    class PayrollClient {
+    class WorldItem {
         <<new>>
-        +authorizeDeduction(patronId, amount) Authorization
+        try_pick_up(inventory)
     }
-    class MenuService {
-        <<reused, menu>>
-        +findAvailableItems(date) List~MenuItem~
+    class BoatTracker {
+        <<new>>
+        update_position(position)
+        reset(position)
+        tile_entered(tile)
     }
-    OrderController --> OrderService
-    OrderService --> MenuService
-    OrderService --> PayrollClient
+    class ShipMotion {
+        <<reused>>
+        global_position
+    }
+    ItemDatabase --> ItemData
+    PlayerInventory --> ItemDatabase
+    ItemPool --> ItemDatabase
+    ChestInventory --> PlayerInventory
+    ChestInventory --> ItemPool
+    WorldItem --> PlayerInventory
+    BoatTracker --> ShipMotion
 ```
 
-- _`ordering/OrderController` (new): the HTTP entry point; validates the request shape and nothing else._
-- _`ordering/OrderService` (new): checks the cut-off, availability, and payroll authorization, then stores the order._
-- _`ordering/PayrollClient` (new): the only class that talks to the Payroll System._
-- _`menu/MenuService` (reused): called through its service, never its repository._
+- `scripts/item-system/item_data.gd` (reused): one stable item definition. Extend it with category, positive draw weight, and nonnegative sell value before building the item pool.
+- `scripts/item-system/item_database.gd` and `items.gd` (reused): the startup catalog and sole source of item definitions.
+- `scripts/inventory-system/player_inventory.gd` (migrate): replace its four-distinct-item capacity with the six quick slots, TBD expanded slots, and 30-item stack limit required by `BR-inventory-slots`; keep explicit mutation methods as the only write interface.
+- `ItemPool` (new): filters registered definitions and returns a weighted selection without granting ownership.
+- `ChestInventory` (new): owns one chest's stacks, capacity, claimant, and first-open state; coordinates transfers atomically.
+- `WorldItem` (new reusable scene/component): holds a stack at deck-relative or island-world coordinates until inventory accepts it.
+- `BoatTracker` (new): derives a tile from Ship State's world position and emits tile-entry notifications.
 
 ## Sequence
 
-_[One sequence diagram per use case for its main success scenario, plus one for each extension that does not just return an error. **Label each interaction with the use case step it implements**, so a reviewer can check that every step is realized and nothing extra was invented. Use `alt` blocks for extensions that branch off the main flow. Give each use case its own `###` heading; that heading is the anchor your traceability matrix cites._
-
-_Example:]_
-
-### _UC-ORD-place-order: placing an order_
+### UC-SYS-item-pool: drawing items
 
 ```mermaid
 sequenceDiagram
-    actor P as Patron
-    participant WEB as Web front end
-    participant OC as OrderController
-    participant OS as OrderService
-    participant MS as MenuService
-    participant PC as PayrollClient
-    P->>WEB: Choose items and a delivery slot (steps 3 to 5)
-    WEB->>OC: POST /api/orders
-    OC->>OS: placeOrder(patronId from the session, items, slot)
-    alt after the 10:00 cut-off (3a)
-        OS-->>OC: refused, CUTOFF_PASSED
-    else
-        OS->>MS: findAvailableItems(today)
-        alt an item sold out (4a)
-            OS-->>OC: refused, ITEM_UNAVAILABLE, with the item
-        end
-        OS->>PC: authorizeDeduction(patronId, total) (step 7)
-        alt patron not registered for deduction (7a)
-            PC-->>OS: declined
-            OS-->>OC: refused, PAYROLL_NOT_REGISTERED
-        end
-        OS->>OS: store the order (step 8)
-        OS-->>OC: order number, delivery slot
+    participant C as Calling system
+    participant P as ItemPool
+    participant DB as ItemDatabase
+    C->>P: draw(count, allowed categories) (step 1)
+    P->>DB: read registered definitions (step 2)
+    alt matching definitions exist
+        P->>P: weighted selection (step 3)
+        P-->>C: selected definition IDs (step 4)
+    else no categories match (2a)
+        P->>P: log actionable error (2a1)
+        P-->>C: empty selection (2a1)
     end
-    OC-->>WEB: 201, or the error for the extension
-    WEB-->>P: Confirmation (step 9), or what to fix
 ```
 
-## API contract
+### UC-SYS-player-inventory: managing an inventory
 
-_[One row per endpoint, scheduled job, or message this area adds or changes, appended per use case. **This section is never dropped**: before the code exists it is the only thing the person (or agent session) building the front end and the one building the back end both read. Name the caller and who may call it, the request fields, the success response, and the error each extension returns. Leave field types and exact JSON to the agent unless a wrong guess would break something, such as a format another system depends on. Use the error shape your architecture-of-record's section 8.2 fixes; do not invent one here._
+```mermaid
+sequenceDiagram
+    actor C as Crew member
+    participant I as PlayerInventory
+    participant UI as Inventory view
+    C->>I: attempt item add (step 1)
+    alt matching stack has room (2a)
+        I->>I: increment matching stack (2a1)
+    else empty quick or expanded slot exists (step 2)
+        I->>I: create stack in next eligible slot
+    else no eligible slot (2b)
+        I-->>C: refused; source item unchanged (2b1)
+    end
+    C->>UI: open inventory (step 3)
+    UI->>I: read quick and expanded slots (step 4)
+    C->>I: move stack or amount (step 5)
+    C->>UI: close inventory (step 6)
+```
 
-_Example:]_
+### UC-SYS-track-boat: tracking a map tile
 
-| Endpoint or job | Caller (who may) | Request | Success | Errors, by extension |
-|---|---|---|---|---|
-| _`POST /api/orders`_ | _A signed-in patron, for herself only; the patron comes from the session, never the body_ | _Menu item ids and quantities, delivery slot id_ | _`201`: order number, total, delivery slot_ | _3a: `409 CUTOFF_PASSED`. 4a: `409 ITEM_UNAVAILABLE` naming the item. 7a: `402 PAYROLL_NOT_REGISTERED`. Not signed in: `401`._ |
-| _`GET /api/orders/{orderId}`_ | _The patron who placed it, or cafeteria staff_ | _None_ | _`200`: items, total, slot, status_ | _Another patron's order: `404`, so the response does not reveal that the order exists (`QS-cross-employee-order-denied`)._ |
+```mermaid
+sequenceDiagram
+    participant S as ShipMotion
+    participant T as BoatTracker
+    participant M as Map
+    participant E as Event system
+    participant P as Progress system
+    S->>T: current world position (steps 1-2)
+    alt tile changed
+        T->>T: record current tile (step 3)
+        T->>M: tile entered (step 4)
+        T->>E: tile entered (step 4)
+        T->>P: tile entered (step 4)
+    else same tile (3a)
+        T->>M: position updated only (3a1)
+    end
+    opt capsize or restart reset (1a)
+        T->>T: record reset-position tile (1a1)
+        T->>M: tile entered
+        T->>E: tile entered
+        T->>P: tile entered
+    end
+```
+
+### UC-SYS-shared-inventory: using a chest
+
+```mermaid
+sequenceDiagram
+    actor C as Crew member
+    participant S as Station Interaction
+    participant H as ChestInventory
+    participant I as PlayerInventory
+    participant P as ItemPool
+    C->>S: request chest interaction (step 1)
+    S->>H: claim chest for crew member (step 2)
+    alt already claimed (2a)
+        H-->>C: refused, chest in use (2a1)
+    else first shipwreck open (2b)
+        H->>P: draw loot (2b1)
+        P-->>H: selected items
+        H->>H: initialize contents once
+    end
+    C->>H: transfer item/amount (step 3)
+    H->>I: validate destination capacity
+    alt both source and destination valid
+        H->>H: update source and destination together (step 4)
+    else destination full (3a or 3b)
+        H-->>C: refused; both stores unchanged
+    end
+    C->>H: close chest (step 5)
+    H->>S: release claim (step 6)
+```
+
+### UC-SYS-item-drop: dropping and picking up items
+
+```mermaid
+sequenceDiagram
+    actor C as Crew member
+    participant I as PlayerInventory
+    participant W as WorldItem
+    C->>I: drop selected item (step 1)
+    alt valid placement policy
+        I->>I: remove item (step 2)
+        I->>W: create stack at deck/island position (step 2)
+        C->>W: enter pickup area (step 4)
+        W->>I: attempt add (step 5)
+        alt accepted
+            W->>W: remove world stack (step 5)
+        else inventory full (5a)
+            W-->>C: remain in world (5a1)
+        end
+    else overboard (2a)
+        Note over I,W: Policy remains TBD.
+    end
+```
+
+## Local API contract
+
+| Operation | Caller | Success | Refusal / no-change result |
+|---|---|---|---|
+| `ItemPool.draw(count, categories)` | Shipwreck, merchant, or voyage setup | Selected valid item IDs | Empty list plus actionable log when no category matches |
+| `PlayerInventory.try_add/remove/move(...)` | Pickup, chest transfer, consumption, repair, UI | Updated slot state and a change signal | `false`; source state unchanged |
+| `ChestInventory.claim/transfer/release(...)` | Station Interaction and chest UI | Claimed/released chest or atomically moved stack | Occupied/full/invalid result; neither side partially changes |
+| `WorldItem.drop/try_pick_up(...)` | Player action and pickup overlap | Stack moves between inventory and world exactly once | Full inventory leaves item in place; overboard is TBD |
+| `BoatTracker.update_position/reset(...)` | Ship State | Position update; tile-entry signal after changed/reset tile | Same tile updates map position only |
 
 ## Key decisions
 
-_[Only the decisions a reader could not recover from the code: an invariant, who may do this and how it is enforced, a trade-off you chose, a reason you reused something rather than writing it. **Each one names what you chose, what you rejected, and why.** If you cannot name an alternative you considered, it probably was not a decision; leave it out._
+**Local ownership before networking.** SYS state is mutated locally in this milestone. The use cases/rules contain Host/client language, but project instructions require single-player-first work and prohibit networking architecture. Host arbitration, client synchronization, and simultaneous-pickup ordering are deferred.
 
-_A decision that affects the whole system rather than this area is an architecture decision. It belongs in your architecture-of-record as a `KD-*` entry, not here._
+**Definitions are not owned items.** `ItemData` and `ItemDatabase` describe item kinds; inventories, chests, and world items own quantities. Constructing item definitions in feature code is rejected because duplicate definitions would make ID, stack, and future category/value behavior inconsistent.
 
-_Example:]_
+**Transfers are atomic.** A rejected destination leaves the source unchanged. Remove-then-attempt-add is rejected because inventory-full failures could lose or duplicate an item.
 
-**_When the payroll deduction is authorized._** _Before the order is stored, in the same request. Rejected: storing the order first and charging later in a batch, because a declined deduction would then cancel an order the kitchen has already started (`ROB-order-persisted` promises the patron that a confirmed order stands)._
+**Tile notifications represent entry, not movement samples.** `BoatTracker` emits an entry only after its calculated tile changes or on reset. Event selection remains outside SYS; that system enforces `BR-event-roll-once-per-tile`.
 
-**_How the cut-off is checked._** _On the server, against the injected clock, in the cafeteria's time zone (architecture-of-record 8.2, time). Rejected: hiding the order button after 10:00 in the browser, because the browser's clock is the patron's and the check would be advisory._
+**Deck drops are ship-relative.** Deck items use local deck coordinates and move with Ship State; island items use island/world coordinates. Global-only placement is rejected because deck items would be left behind when the ship moves.
 
 ## Data model
 
-_[The **change** this area makes to the data: new tables or entities, new columns, the migration that adds them. Draw an ER diagram when there is more than one new table. Do not redraw the domain model; your [specification](../requirements/software-requirements-specification.md) owns it, so link it and show only the change. If the area changes nothing, say "No change" and give the reason in one line; that is a design decision too.]_
+| State | Owner | Change required |
+|---|---|---|
+| Item definition | Item Catalog | Add category, positive weight, and nonnegative sell value beside stable ID and stack metadata. Values remain TBD where requirements leave them TBD. |
+| Player inventory | PlayerInventory | Six quick slots, TBD expanded slots, and stacks of at most 30, per `BR-inventory-slots`. |
+| Chest | ChestInventory | Type, stack slots/capacity, contents, claimant, and one-time loot-initialized state. Deck capacity/upgrades remain TBD. |
+| World item | WorldItem | Item ID, amount, placement context, and position. |
+| Boat map state | BoatTracker | World position, current tile ID, and tile size. Tile size remains TBD. |
+
+There is no persistent save model. `BR-capsize-reset` calls player/deck-chest clear operations; SYS does not decide when a capsize occurs.
 
 ## Reuse & cross-cutting
 
-_[Which existing services, components, and conventions this area uses rather than rebuilding: authentication, the error handler, email, the clock, another area's service. Cite your architecture-of-record's section 8.2 for each convention by name rather than restating it.]_
+- Resolve stored IDs through `ItemDatabase`; callers handle unknown IDs without mutating state.
+- Reuse Station Interaction for chest range and exclusive claims; `ChestInventory` does not decide range.
+- Reuse Ship State as the authoritative boat-position source; `BoatTracker` does not move the ship.
+- Map, events, and progress consume tile-entry signals. Events retain the per-voyage record for `BR-event-roll-once-per-tile`.
+- Merchant and repair systems request SYS transfers/definitions rather than editing inventory arrays or chest contents directly.
 
 ## Tests
 
-_[One row per flow: the main success scenario and **every** extension of every use case this document realizes, appended per use case. Name the level (unit or integration) and what the test asserts. No code. This list is the definition of done that the reviewer approves; the agent writes these tests when it builds, and a reviewer can see at a glance whether an extension has no test._
-
-_Example:]_
-
 | Use case, flow | Level | Asserts |
 |---|---|---|
-| _UC-ORD-place-order main_ | _integration_ | _A registered patron's order before 10:00 is stored, charged once, and returned with an order number_ |
-| _UC-ORD-place-order 3a_ | _unit_ | _At 10:00:01 by the injected clock the order is refused with `CUTOFF_PASSED` and nothing is stored or charged_ |
-| _UC-ORD-place-order 4a_ | _unit_ | _A sold-out item refuses the whole order and names the item_ |
-| _UC-ORD-place-order 7a_ | _integration_ | _A declined deduction stores no order_ |
-| _Authorization_ | _integration_ | _A patron requesting another patron's order gets `404`_ |
+| `UC-SYS-item-pool` main | Unit | Category filtering and weighted selection return only registered matching definitions. |
+| `UC-SYS-item-pool` 2a | Unit | No matching category returns an empty list and logs a diagnostic. |
+| `UC-SYS-player-inventory` main / 2a | Unit | An item fills an eligible matching stack or next quick/expanded slot and emits one change. |
+| `UC-SYS-player-inventory` 2b | Unit | A full inventory refuses an item without changing its source. |
+| `UC-SYS-track-boat` main / 3a | Unit | New tile emits one notification set; same-tile movement does not emit another entry. |
+| `UC-SYS-track-boat` 1a | Integration | Reset records and publishes the reset-position tile. |
+| `UC-SYS-shared-inventory` main / 2a | Integration | One eligible crew member claims/releases a chest; an occupied chest is refused. |
+| `UC-SYS-shared-inventory` 2b / 3a / 3b | Integration | First-open loot initializes once; full destination rejects transfer with both stores unchanged. |
+| `UC-SYS-item-drop` main / 5a | Integration | Dropped stack changes owner once; full pickup inventory leaves it in the world. |
+| `UC-SYS-item-drop` 2a | Pending decision | Implement only after the overboard-drop policy is approved. |
+| `BR-capsize-reset` integration point | Integration | Capsize can clear each player inventory and the deck chest through SYS operations. |
 
-## Changes to the architecture-of-record
+## Changes to the architecture of record
 
-_[Designing an area against real code is when the architecture's guesses meet reality. If this design needs a component the map does not have, moves a responsibility, or adds a dependency, **change [the architecture-of-record](architectural-design.md) in the same pull request** and list each change here in one line. If nothing changed, write "None". A design that silently disagrees with the architecture leaves two maps, and the agent will follow whichever it reads last.]_
+Add SYS to the area/component map as a provisional area owning runtime item quantities, chest/world-item state, and tile tracking. Keep Item Catalog as the cross-cutting owner of definitions only. Update the existing `BR-single-helmsman` note: the current business-rules document marks it as superseded by `BR-single-station-occupant`.
 
 ## Open questions & risks
 
-_[What this design could not settle and who can, and what could go wrong that you are accepting. A question for the client also goes in [`OPEN-ISSUES.md`](../requirements/OPEN-ISSUES.md).]_
-
----
-
-## Working this document with your agent
-
-_[Delegate: drafting the diagrams from your sketch and the use case; listing the existing files a class should extend; filling the contract rows' request and response fields; proposing the test row for each extension; drafting the rejected alternative for a decision you have already made; checking that every identifier this document cites exists in the document that owns it._
-
-_Keep human: which side of the "would a wrong guess break something" line each detail falls on; every key decision; and the approval, which is a teammate's review of the pull request, not the drafter's own reading._
-
-_**The specific failure to watch for: scope that nobody asked for.** An agent drafting a design adds what designs it has read usually have: an admin override, a retry queue, a status field, a notification "while we are here". Each looks reasonable and none is in your use case, and once it is in the design the agent will build it, test it, and you will maintain it. Read the sequence labels: every interaction should name the use case step it implements. An interaction with no step is either a missing requirement, which goes to your specification and your client, or scope creep, which comes out.]_
-
----
-
-## The questions test (before you open the pull request)
-
-_[Start a **fresh** agent session in plan mode, so it carries nothing from the session that drafted this document. Give it only the use case, the business rules it cites, your architecture-of-record's section 8, and this document, and ask:_
-
-> _List every point you would still have to guess to implement `<UC-ID>`. For each, say what you would guess and whether a wrong guess could violate a requirement. Do not write code._
-
-_For each item on its list, either fix this document or keep the guess and write one line saying why a wrong guess breaks no requirement. Paste the list, with your answer to each item, into the pull request description under How it was verified, inside a collapsed `<details><summary>Questions test</summary> … </details>` block so the description stays short. The design is ready when nothing on the list could break a requirement.]_
+- Expanded-slot count, deck-chest base capacity, chest upgrade amount, and map tile size are TBD; implementation must not choose values silently.
+- The overboard-drop outcome is TBD; its branch cannot be implemented or tested until approved.
+- Current inventory code lacks slot placement and the 30-item rule, so dependent UI/chest/drop features wait for its migration.
+- Co-op/Host wording conflicts with the project's single-player-first constraint. Reconcile requirements before adding synchronization behavior.
