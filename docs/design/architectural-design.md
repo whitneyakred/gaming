@@ -6,13 +6,13 @@
 
 **Client:** Student-led project; the development team serves as the client
 
-**Version:** 0.2
+**Version:** 0.3
 
-**Architecture baseline:** Architectural documentation branch, October 2, 2026
+**Architecture baseline:** `main` at `2bb509c`, October 14, 2026, plus the area designs [deck.md](deck.md) and [isle.md](isle.md)
 
 This document describes the system's boundaries, responsibilities, and architectural decisions. It distinguishes the **implemented prototype** from the **planned architecture** and covers all six use case areas without committing all of them to the next milestone.
 
-The implementation contains one stationary ship, one controllable character, deck collision, a fixed camera, and an in-memory item definition catalog. Sailing, interactive stations, survival, procedural travel, islands, trading, saving, and networking are not implemented. The catalog was added after the movement-only description in [Minimal MVP](../minimal-mvp.md).
+The implementation contains a sailing ship (helm and sail stations driven by wind), one controllable character who walks the moving deck, cooking and fishing stations, an in-memory item catalog and a per-player inventory, two islands on the map, docking, a rowboat trip, and two timed island games (collect coconuts, dig for treasure) that load as their own scenes. Survival, procedural travel, trading, saving, and networking are not implemented. The Movement & Stations (`DECK`) and Island Interaction (`ISLE`) areas have designs-of-record in [deck.md](deck.md) and [isle.md](isle.md). Where this document and a design-of-record describe something not yet built, it is marked as designed, not implemented.
 
 ### Sources and interpretation
 
@@ -37,6 +37,7 @@ Identifiers from other documents retain their original names. Only `UC-NAV-steer
 |---|---|---|---|
 | 0.1 | Not recorded in original draft | Original contributors | Architecture template and section 5.1 diagram |
 | 0.2 | 2026-10-02 | AI-assisted draft for Team 13 review | Complete architectural sections from repository evidence, preserve the original diagram, and distinguish implementation from plans and unresolved requirements |
+| 0.3 | 2026-10-14 | AI-assisted update for Team 13 review | Apply the changes required by the `DECK` and `ISLE` designs-of-record: Station Interaction and the new Voyage State component (5.2), the implementation map (5.3), the island trip runtime view (6), restart behavior (7.3), station authorization (8.1), reason codes (8.2.1), the island placement note on `KD-world-chunks` (9.2), and station quality scenarios (10.2) |
 
 ## 1. Introduction and Goals
 
@@ -151,17 +152,18 @@ The area list comes from use cases section 3; no traceability.md exists in this 
 
 | Use case area | Component | Responsibility | Depends on | Status |
 |---|---|---|---|---|
-| `NAV` | Navigation and Sailing | Owns heading, propulsion, wind effects, and navigation actions in the steering case and backlog. | Ship State, Station Interaction, World and Ocean, Crew Control | Provisional; no sailing code |
+| `NAV` | Navigation and Sailing | Owns heading, propulsion, wind effects, and navigation actions in the steering case and backlog. | Ship State, Station Interaction, World and Ocean, Crew Control | Implemented: helm and sail stations, wind-driven speed (`ShipStation`, `ShipMotion`) |
 | `SHIP` | Ship Systems and Maintenance | Owns hull condition, repairs, rescue, and floating-chest handling when specified. | Ship State, Station Interaction, Crew Control, Item Catalog, World and Ocean | Provisional; ship supplies only art/collision |
 | `SURV` | Crew Survival | Owns hunger, thirst, stamina, recovery, and kitchen actions per crew member. | Crew Control, Station Interaction, Item Catalog | Provisional; not implemented |
-| `ISLE` | Island Exploration | Owns landing/exploration, treasure interactions, and visited-island state. | World and Ocean, Crew Control, Item Catalog | Provisional; not implemented |
+| `ISLE` | Island Exploration | Owns landing/exploration, treasure interactions, and visited-island state. | Ship State (docking, rowboat trip), Voyage State, World and Ocean, Crew Control, Item Catalog | Implemented: docking, rowboat trip, two timed island games. Designed in [isle.md](isle.md), not yet built: island progress and gathering through Voyage State. |
 | `TRADE` | Trading and NPC Encounters | Owns proposed encounters and exchanges, including currency if approved. | World and Ocean, Crew Control, Item Catalog | Provisional; not fully specified |
 | `LOBBY` | Session Setup | Owns session creation, membership, customization, and readiness for cooperative play. | Crew Control; Local Network through a future adapter | Provisional; launch enters the scene directly |
-| Cross-cutting | Crew Control | Owns movement and routes crew intent to the relevant gameplay owner. | Godot input/physics; Station Interaction when implemented | Provisional overall; deck movement exists |
-| Cross-cutting | Ship State | Owns shared vessel transform/state so stations do not keep conflicting copies. | Godot scene tree and physics | Provisional; stationary ship exists |
-| Cross-cutting | Station Interaction | Owns range checks, exclusive occupancy, and release of station control. | Crew identity/position supplied by callers | Provisional; no interactive stations |
+| Cross-cutting (`DECK`) | Crew Control | Owns movement, the overboard state, and routes crew intent (the interact key) to the relevant gameplay owner. | Godot input/physics; Station Interaction (forced release); Voyage State (the player's inventory) | Deck movement on the moving ship exists. Overboard state and single interact-key routing designed in [deck.md](deck.md), not yet built. |
+| Cross-cutting | Ship State | Owns shared vessel transform/state so stations do not keep conflicting copies. | Godot scene tree and physics | Implemented: moving ship, docking, anchoring (`ShipMotion`, `Ship`) |
+| Cross-cutting (`DECK`) | Station Interaction | Owns range checks, exclusive occupancy, and release of station control. Realized by a `Station` base class and a `StationInteractor` on the player. | Crew identity/position supplied by callers | Partly implemented: helm and sail through `ShipStation`, cooking through the player's station lock. One `Station` contract for every station designed in [deck.md](deck.md), not yet built. |
 | Cross-cutting | World and Ocean | Owns active chunks, deterministic placement, and spatial information. | Godot scene tree and bundled resources | Provisional; blue background only |
 | Cross-cutting | Item Catalog | Owns reusable item definitions and lookup by stable identifier. | Bundled Game Resources | Provisional as gameplay integration; registration exists |
+| Cross-cutting | Voyage State | Owns in-memory voyage state that must survive a scene change: crew inventories, island progress, resource amounts, collected pickups, ship-side state such as cooking stock, the ship-to-island handoff, and the last visited island (`BR-capsize-reset`). Never written to disk. | Item Catalog | Designed in [isle.md](isle.md), not yet built. Today `Ship` holds the handoff in static variables. |
 
 Dependencies describe intended boundaries, not implemented call chains. Stations manage occupancy and forward intent; the relevant area changes its own state. Mutable inventories must be separate from shared definitions. Backlog areas do not require separate services.
 
@@ -177,7 +179,20 @@ Godot tools, Placeholder Assets, and GitHub support all areas through section 5.
 | [player.tscn](../../scenes/player.tscn), [player.gd](../../scripts/player.gd) | Character sprite/collider, exported speed, and physics-frame movement. |
 | [item_data.gd](../../scripts/item-system/item_data.gd) | ItemData Resource with exported descriptive fields. |
 | [item_database.gd](../../scripts/item-system/item_database.gd) | Typed in-memory catalog, lookup, and ID assertions. |
-| [items.gd](../../scripts/item-system/items.gd) | Registers Cod, Rope, and Fishing Rod; does not grant player inventory. |
+| [items.gd](../../scripts/item-system/items.gd) | Registers Cod, Rope, Fishing Rod, and Coconut. |
+| [player_inventory.gd](../../scripts/inventory-system/player_inventory.gd), [inventory_usage.gd](../../scripts/inventory-system/inventory_usage.gd) | Per-player inventory Resource (item types and quantities) and a helper for adding to it. |
+| [ship_motion.gd](../../scripts/sailing/ship_motion.gd) | Ship movement from sail level, sail angle, wind, and wheel angle. Never reads input. |
+| [ship.gd](../../scripts/ship.gd) | Extends `ShipMotion`: islands on the map, docking, anchoring, the rowboat trip in both directions, and the cross-scene handoff (static variables today). |
+| [ship_station.gd](../../scripts/sailing/ship_station.gd), [helm_station.gd](../../scripts/sailing/helm_station.gd), [sail_station.gd](../../scripts/sailing/sail_station.gd) | Station base for ship controls (claim, auto-release by distance) and the helm and sail stations. |
+| [Cook.gd](../../Cook.gd), [galley_cooking.gd](../../scripts/galley_cooking.gd) | Cooking station and its minigame. Uses the player's station lock. |
+| [fishing_station.gd](../../scripts/stations/fishing_station.gd) | Hold-to-fish station. Does not use the station lock today. |
+| [ocean.gd](../../scripts/ocean.gd), [sailing_demo.gd](../../scripts/sailing/sailing_demo.gd) | Recycled ocean pattern, camera follow, wind arrow, and helm indicator. |
+| [world_island.gd](../../scripts/islands/world_island.gd) | An island on the sailing map: name, island scene, and dock point. |
+| [island_game.gd](../../scripts/islands/island_game.gd), [collect_island.gd](../../scripts/islands/collect_island.gd), [treasure_island.gd](../../scripts/islands/treasure_island.gd), [island_hud.gd](../../scripts/islands/island_hud.gd) | Shared island challenge flow (timer, win, lose, rowboat exit), the two challenge types, and their HUD. |
+| [rowboat.gd](../../scripts/rowboat.gd), [coconut.gd](../../scripts/coconut.gd) | The island's rowboat exit and the walk-over item pickup. |
+| [tests/sailing_integration.gd](../../tests/sailing_integration.gd) | Headless integration test of stations, sailing, docking, and the island round trip. |
+
+**Designed, not yet built** (paths from [deck.md](deck.md) and [isle.md](isle.md)): `scripts/stations/station.gd`, `scripts/stations/station_interactor.gd`, `scripts/stations/overboard_zone.gd`, `scripts/islands/resource_node.gd`, and `scripts/voyage_state.gd`, which is registered as the `VoyageState` autoload next to `ItemDatabase` and `Items` in project.godot.
 
 ## 6. Runtime View
 
@@ -212,6 +227,31 @@ The catalog initializes independently; the player script never queries it. No ex
 
 Once steering exists, its runtime view must show acquisition/denial, heading/speed changes, release, and applicable use case extensions. Synchronization must be documented against an actual transport and authority model.
 
+### 6.1 The island trip
+
+Going ashore swaps the whole scene: the ship scene is unloaded while the crew member is on the island and rebuilt from its scene file on return. Anything that must survive the trip is handed over through Voyage State (designed in [isle.md](isle.md); today `Ship` uses static variables for the handoff only).
+
+```mermaid
+sequenceDiagram
+    actor Crew as Crew Member
+    participant Ship as Ship scene
+    participant VS as Voyage State
+    participant Island as Island scene
+    Crew->>Ship: Sail into an island's docking circle
+    Ship->>Ship: Anchor at the dock, stop sailing, disable ship stations
+    Crew->>Ship: Press E at the stern
+    Ship->>Ship: Rowboat cutscene to the dock
+    Ship->>VS: Record the visited island
+    Ship->>Island: Change scene to the island
+    Island->>VS: Is this island's challenge already complete
+    Island->>Island: Run the timed challenge
+    Crew->>Island: Walk into the island's rowboat
+    Island->>VS: Mark complete and grant rewards together, set returning
+    Island->>Ship: Change scene back to the ship
+    Ship->>VS: Read and clear the handoff
+    Ship->>Ship: Rebuild anchored at that dock, rowboat cutscene back, restore crew control
+```
+
 ## 7. Deployment View
 
 ### 7.1 Container placement
@@ -237,6 +277,8 @@ To run source, open project.godot in Godot and select **Run Project (F5)**. The 
 
 Scenes, scripts, artwork, configuration, and built-in definitions survive restart as application content. Character position/runtime state are recreated; definitions are re-registered in memory. There is no saved voyage, inventory, profile, or transaction to restore. The generated .godot cache is development data, not player progress.
 
+Voyage State (inventories, island progress, resource amounts) is real gameplay state, but it lives only in memory: it survives scene changes within a run and is lost when the game restarts. That is consistent with voyages never being saved. A future save design would start from Voyage State.
+
 ## 8. Crosscutting Concepts
 
 ### 8.1 Security
@@ -245,7 +287,7 @@ Scenes, scripts, artwork, configuration, and built-in definitions survive restar
 
 **Authentication.** The prototype has no accounts, credentials, or sign-in. Crew Member and Host are gameplay actors rather than identity-provider roles. Before networking, define how a peer joins and how a connection maps to crew identity; an account service is not implied by the current scope.
 
-**Authorization.** Future Station Interaction owns occupancy checks from `UC-NAV-steer-ship`; local presentation must not grant authority to take another crew member's station. Session Setup owns Host-only operations when implemented. The referenced `BR-single-helmsman` is absent from business-rules.md, so the steering use case supplies the current behavioral source.
+**Authorization.** Future Station Interaction owns occupancy checks from `UC-NAV-steer-ship`; local presentation must not grant authority to take another crew member's station. Session Setup owns Host-only operations when implemented. Station occupancy follows `BR-single-station-occupant` and `BR-station-slots`, which replace `BR-single-helmsman`. The station is the only place a claim is decided; a prompt never grants control ([deck.md](deck.md)).
 
 **Sensitive data.** The gameplay code neither collects nor persists personal data or account information. Team names in documents are not runtime player records. Specification section 7.4 has no project retention policy; define one if player identifiers, telemetry, or profiles are introduced. No runtime secrets are required today; future publishing credentials belong in the release environment's secret storage. Project-specific `SEC-*` requirements are still missing, not replaced by template web-application examples.
 
@@ -256,6 +298,8 @@ These rules combine existing conventions with labeled proposals for unbuilt syst
 #### 8.2.1 Error handling
 
 Proposed rule: reject invalid actions at the state-owning component and return a result the UI can explain without partially applying an action. Occupied-wheel denial in the steering use case motivates this rule. Currently item_database.gd asserts on invalid built-in IDs and returns null for unknown lookups; this is not a complete runtime recovery strategy.
+
+Shape of a rejection: a `StringName` reason code, where `&""` means success and any other value names the reason (for example `&"occupied"`, `&"unavailable"`, `&"busy"`). The caller turns the code into a message. The owner checks everything before changing anything, so a rejected action changes nothing. First used by `Station.request_control` in [deck.md](deck.md).
 
 #### 8.2.2 Time and time zones
 
@@ -348,6 +392,7 @@ The ranking is provisional and based on project evidence, not a quantified clien
 - **Decision:** Generate/reuse nearby chunks from stable world coordinates and deterministic generation inputs, keeping an active neighborhood instantiated.
 - **Alternative not adopted:** One enormous mesh or keeping all visited chunks allocated ties resource use to distance traveled.
 - **Trade-off:** Seams, revisits, coordinate precision, and modified locations require further design. Deterministic layout alone does not preserve collected loot or changed island state.
+- **Current deviation:** Islands are not chunk-generated. They are fixed `WorldIsland` nodes at map coordinates in ship.tscn, and each island's content is its own scene loaded only while the crew is ashore ([isle.md](isle.md)). This is a deliberate interim shortcut, recorded as `TD-fixed-islands`. Changed island state is kept in Voyage State, not in the layout.
 
 ## 10. Quality Requirements
 
@@ -362,8 +407,8 @@ These scenarios define observable checks without inventing frame-rate, timing, a
 | ID | Source and stimulus | Environment | Response | Measure and source | Verification method / status |
 |---|---|---|---|---|---|
 | `QS-deck-boundary` | Player holds movement toward a deck edge. | Current prototype | Collision constrains motion. | No crossing the perimeter; Minimal MVP and ship.tscn. | Manual: Run Project (F5), move against edges/corners with WASD/arrows; visual check required. |
-| `QS-station-ownership` | Another crew member claims an occupied helm. | Future local test with two crew identities | Preserve owner and deny new claim with feedback. | Extension 2a of `UC-NAV-steer-ship`. | Proposed component/integration check; not implemented. |
-| `QS-station-release` | Helmsman releases or leaves permitted range. | Future local steering | Wheel becomes unclaimed. | Main flow and extension 6a of steering use case; range unspecified. | Proposed lifecycle check; disconnect branch waits for networking. |
+| `QS-station-ownership` | Another crew member claims an occupied helm. | Future local test with two crew identities | Preserve owner and deny new claim with feedback. | Extension 2a of `UC-NAV-steer-ship`; `UC-DECK-use-station` 4a and `UC-DECK-claim-station` 2a. | Check defined in the [deck.md](deck.md) Tests table; the cooking/sail case is already asserted in tests/sailing_integration.gd. |
+| `QS-station-release` | Helmsman releases or leaves permitted range. | Future local steering | Wheel becomes unclaimed. | Main flow and extension 6a of steering use case; `UC-DECK-claim-station` 4a. Range is an exported setting, not a requirement. | Check defined in the [deck.md](deck.md) Tests table; disconnect branch waits for networking. |
 | `QS-station-isolation` | Developer adds a station responsibility. | Future station architecture | Existing movement and stations remain intact. | Separation required by AGENTS.md; inspect dependencies and regressions. | Proposed review/regression check; not implemented. |
 | `QS-world-recycling` | Ship crosses chunks and revisits coordinates. | Future procedural world | Recycle distant chunks and reproduce unchanged layout. | Bounded active set and deterministic layout per AGENTS.md; numeric budget absent. | Proposed seeded travel check with node/memory observations. |
 | `QS-compatible-export` | Player launches an exported build. | Selected PC and future Web targets | Scene, movement, and collision work. | Prototype behavior and Compatibility/Web direction in AGENTS.md. | Proposed export smoke check; presets/support matrix absent. |
@@ -381,6 +426,7 @@ These scenarios define observable checks without inventing frame-rate, timing, a
 | `RISK-export-gap` | Risk | Editor-only testing could miss incompatible resources, input, or performance on exports. | Establish targets and test actual artifacts. | Vision and scope section 4.4; AGENTS.md |
 | `TD-item-validation` | Debt | Registration relies on debug assertions and does not reject invalid stack limits; unknown IDs return null. | Add release-safe validation and missing-item handling when gameplay consumes the catalog. | item_database.gd; item_data.gd |
 | `TD-placeholder-ocean` | Debt | Clear-color water has no world, hazards, or travel behavior. | Replace the shortcut with chunked content during navigation work. | project.godot; `KD-world-chunks` |
+| `TD-fixed-islands` | Debt | Islands are hand-placed nodes in ship.tscn rather than chunk-generated, so the map cannot grow with travel. | Move island placement into chunk generation during navigation work; keep island content as separate scenes. | ship.tscn; `KD-world-chunks`; isle.md |
 | `TD-manual-verification` | Debt | No committed tests or pipeline means regressions can escape informal checks. | Add focused checks as slices arrive and automate validation when targets are chosen. | Repository tree; section 7.2 |
 
 Saving, survival, and networking are unimplemented features, not automatically technical debt; their absence fits the narrow milestone.
@@ -393,7 +439,7 @@ These findings mark evidence limits and decisions needed before affected release
 |---|---|---|
 | Specification contains generic examples rather than project constraints, interfaces, security requirements, and quality targets. | Formal requirement traceability cannot yet be completed honestly. | Complete specification sections 2, 7, 8, and 9 from team decisions; `OI-testing` covers playtests. |
 | Most listed use cases are unnamed and unspecified. | A component home does not imply approved delivery scope. | `OI-1`, `OI-2`; specify selected cases before implementation. |
-| Steering cites undefined `BR-single-helmsman`; collision and tuning are open. | Rule traceability and numeric acceptance checks are incomplete. | Resolve steering Open Issues and file its rule in the proper requirements home. |
+| Station use cases cite `BR-single-station-occupant` and `BR-station-slots` (replacing `BR-single-helmsman`); collision and tuning are open. | Rule traceability and numeric acceptance checks are incomplete. | Resolve steering Open Issues and file its rule in the proper requirements home. |
 | Older glossary/vision text leaves crew count undecided, while AGENTS.md/use cases specify eventual four-player support. | This document uses four-player readiness, without claiming shipped multiplayer. | Reconcile older documents under `OI-scale` and `OI-coop`. |
 | Original diagram names LAN and GitHub downloads; no transport, export preset, or publishing workflow exists. | Joining, protocols, disconnects, targets, and distribution remain undecided. | `OI-coop`; vision and scope section 4.4. |
 | Diagram labels assets as itch.io packs; current PNGs have no provenance/license record in the checkout. | Redistribution permissions and attribution cannot be verified. | Record origins/permissions before publishing an export. |
