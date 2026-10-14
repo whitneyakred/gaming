@@ -35,18 +35,52 @@ _**Write it in this order.** Each step is one person's or one pair's work, and t
 
 ## Overview
 
-Events & Encounters coordinates tile-triggered events, merchant exchanges, and temporary storm effects inside the local Godot Game Application ([containers](../architectural-design.md#51-containers)). It receives tile-entry information from World and Ocean/boat tracking, obtains merchant items from the item-pool owner and Item Catalog, and calls inventory, ship, wave, and navigation owners rather than duplicating their state. Architecture section 5.2 currently places encounters in TRADE and weather responsibilities in NAV/World and Ocean; the newer use-case draft defines EVT as its own area. The reconciliation is listed below. All EVT classes, methods, signals, and paths in this draft are proposed; no EVT code or repository checkout was supplied. This is a design for future implementation, not evidence that those interfaces already exist.
-
-The supplied use cases v0.2 (September 30, 2026) govern behavior; the supplied business rules v0.2 define the cited rules. The October 2 architecture supplies implementation conventions, but its statements that only steering is fully specified and pause/authority rules are unspecified are superseded by the supplied use cases. No FR identifiers were supplied, so none are invented.
-
-
 _[One paragraph: what this area does, which components of your [architecture-of-record](architectural-design.md) it lives in, and what it reads from or calls in other areas. Link the container diagram rather than redrawing it. If this design changes the architecture-of-record, say so here and list the change under "Changes to the architecture-of-record" below._
 
 _Example, from the Cafeteria Ordering System:_
 
 _Ordering takes a patron's meal order from menu selection to a confirmed, payroll-charged order. It is the `ORD` area of the API ([containers](architectural-design.md#51-containers), [use case areas](architectural-design.md#52-use-case-areas-and-components)), reads the day's menu from `menu`, and asks the Payroll System to authorize the deduction before an order is stored (`DE-payroll-integration`).]_
 
+Events & Encounters coordinates tile-triggered events, merchant exchanges, and temporary storm effects inside the local Godot Game Application ([containers](../architectural-design.md#51-containers)). It receives tile-entry information from World and Ocean/boat tracking, obtains merchant items from the item-pool owner and Item Catalog, and calls inventory, ship, wave, and navigation owners rather than duplicating their state. Architecture section 5.2 currently places encounters in TRADE and weather responsibilities in NAV/World and Ocean; the newer use-case draft defines EVT as its own area. The reconciliation is listed below. All EVT classes, methods, signals, and paths in this draft are proposed; no EVT code or repository checkout was supplied. This is a design for future implementation, not evidence that those interfaces already exist.
+
+The supplied use cases v0.2 (September 30, 2026) govern behavior; the supplied business rules v0.2 define the cited rules. The October 2 architecture supplies implementation conventions, but its statements that only steering is fully specified and pause/authority rules are unspecified are superseded by the supplied use cases. No FR identifiers were supplied, so none are invented.
+
 ## Components & classes
+
+_[One class diagram for the whole area, and one line per class or file saying what it does and whether it is **new** or **reused**. Show only what a reader needs to see how the parts relate: classes, their key methods, their dependencies. Fields and getters belong to the code._
+
+_**If your repository has no code for this area yet**, which is the normal case for your proving slice, list the files you expect the agent to create, with the paths your architecture-of-record's conventions give them, and mark them all new. The agent then builds into the structure you chose rather than one it improvised._
+
+_Example:_]
+
+```mermaid
+classDiagram
+    direction LR
+    class OrderController {
+        <<new>>
+        +placeOrder(PlaceOrderRequest) Response
+    }
+    class OrderService {
+        <<new>>
+        +placeOrder(patronId, items, deliverySlot) Order
+    }
+    class PayrollClient {
+        <<new>>
+        +authorizeDeduction(patronId, amount) Authorization
+    }
+    class MenuService {
+        <<reused, menu>>
+        +findAvailableItems(date) List~MenuItem~
+    }
+    OrderController --> OrderService
+    OrderService --> MenuService
+    OrderService --> PayrollClient
+```
+
+- _`ordering/OrderController` (new): the HTTP entry point; validates the request shape and nothing else._
+- _`ordering/OrderService` (new): checks the cut-off, availability, and payroll authorization, then stores the order._
+- _`ordering/PayrollClient` (new): the only class that talks to the Payroll System._
+- _`menu/MenuService` (reused): called through its service, never its repository._
 
 ```mermaid
 classDiagram
@@ -100,43 +134,43 @@ Proposed paths use the architecture's existing `scenes/` and `scripts/` roots; E
 - World/boat tracking, session authority, inventory/item-pool, navigation, wave, repair, and capsize interfaces are **planned dependencies**, not reused existing implementations. Their filenames/contracts must be agreed with their owners.
 - `scripts/item-system/item_database.gd` and `item_data.gd` are **reuse candidates documented by architecture section 5.3**, not inspected code. The catalog supplies definitions only; weighted draws, prices, inventory, and shared gold need future owners/extensions. Existing player/ship scenes remain integration targets, not implemented event components.
 
+## Sequence
 
-_[One class diagram for the whole area, and one line per class or file saying what it does and whether it is **new** or **reused**. Show only what a reader needs to see how the parts relate: classes, their key methods, their dependencies. Fields and getters belong to the code._
+_[One sequence diagram per use case for its main success scenario, plus one for each extension that does not just return an error. **Label each interaction with the use case step it implements**, so a reviewer can check that every step is realized and nothing extra was invented. Use `alt` blocks for extensions that branch off the main flow. Give each use case its own `###` heading; that heading is the anchor your traceability matrix cites._
 
-_**If your repository has no code for this area yet**, which is the normal case for your proving slice, list the files you expect the agent to create, with the paths your architecture-of-record's conventions give them, and mark them all new. The agent then builds into the structure you chose rather than one it improvised._
+_Example:]_
 
-_Example:_]
+### _UC-ORD-place-order: placing an order_
 
 ```mermaid
-classDiagram
-    direction LR
-    class OrderController {
-        <<new>>
-        +placeOrder(PlaceOrderRequest) Response
-    }
-    class OrderService {
-        <<new>>
-        +placeOrder(patronId, items, deliverySlot) Order
-    }
-    class PayrollClient {
-        <<new>>
-        +authorizeDeduction(patronId, amount) Authorization
-    }
-    class MenuService {
-        <<reused, menu>>
-        +findAvailableItems(date) List~MenuItem~
-    }
-    OrderController --> OrderService
-    OrderService --> MenuService
-    OrderService --> PayrollClient
+sequenceDiagram
+    actor P as Patron
+    participant WEB as Web front end
+    participant OC as OrderController
+    participant OS as OrderService
+    participant MS as MenuService
+    participant PC as PayrollClient
+    P->>WEB: Choose items and a delivery slot (steps 3 to 5)
+    WEB->>OC: POST /api/orders
+    OC->>OS: placeOrder(patronId from the session, items, slot)
+    alt after the 10:00 cut-off (3a)
+        OS-->>OC: refused, CUTOFF_PASSED
+    else
+        OS->>MS: findAvailableItems(today)
+        alt an item sold out (4a)
+            OS-->>OC: refused, ITEM_UNAVAILABLE, with the item
+        end
+        OS->>PC: authorizeDeduction(patronId, total) (step 7)
+        alt patron not registered for deduction (7a)
+            PC-->>OS: declined
+            OS-->>OC: refused, PAYROLL_NOT_REGISTERED
+        end
+        OS->>OS: store the order (step 8)
+        OS-->>OC: order number, delivery slot
+    end
+    OC-->>WEB: 201, or the error for the extension
+    WEB-->>P: Confirmation (step 9), or what to fix
 ```
-
-- _`ordering/OrderController` (new): the HTTP entry point; validates the request shape and nothing else._
-- _`ordering/OrderService` (new): checks the cut-off, availability, and payroll authorization, then stores the order._
-- _`ordering/PayrollClient` (new): the only class that talks to the Payroll System._
-- _`menu/MenuService` (reused): called through its service, never its repository._
-
-## Sequence
 
 All messages below are proposed in-process calls/signals. Step numbers refer to the supplied use cases; remote synchronization is a future adapter responsibility.
 
@@ -252,44 +286,16 @@ sequenceDiagram
 
 Storm cleanup runs once on expiry or capsize; an old timeout must not reapply effects after capsize. The capsize owner handles inventory loss, relocation, repairs, and sail reset. Pausing freezes the storm timer through `UC-PROG-pause-game`.
 
+## API contract
 
-_[One sequence diagram per use case for its main success scenario, plus one for each extension that does not just return an error. **Label each interaction with the use case step it implements**, so a reviewer can check that every step is realized and nothing extra was invented. Use `alt` blocks for extensions that branch off the main flow. Give each use case its own `###` heading; that heading is the anchor your traceability matrix cites._
+_[One row per endpoint, scheduled job, or message this area adds or changes, appended per use case. **This section is never dropped**: before the code exists it is the only thing the person (or agent session) building the front end and the one building the back end both read. Name the caller and who may call it, the request fields, the success response, and the error each extension returns. Leave field types and exact JSON to the agent unless a wrong guess would break something, such as a format another system depends on. Use the error shape your architecture-of-record's section 8.2 fixes; do not invent one here._
 
 _Example:]_
 
-### _UC-ORD-place-order: placing an order_
-
-```mermaid
-sequenceDiagram
-    actor P as Patron
-    participant WEB as Web front end
-    participant OC as OrderController
-    participant OS as OrderService
-    participant MS as MenuService
-    participant PC as PayrollClient
-    P->>WEB: Choose items and a delivery slot (steps 3 to 5)
-    WEB->>OC: POST /api/orders
-    OC->>OS: placeOrder(patronId from the session, items, slot)
-    alt after the 10:00 cut-off (3a)
-        OS-->>OC: refused, CUTOFF_PASSED
-    else
-        OS->>MS: findAvailableItems(today)
-        alt an item sold out (4a)
-            OS-->>OC: refused, ITEM_UNAVAILABLE, with the item
-        end
-        OS->>PC: authorizeDeduction(patronId, total) (step 7)
-        alt patron not registered for deduction (7a)
-            PC-->>OS: declined
-            OS-->>OC: refused, PAYROLL_NOT_REGISTERED
-        end
-        OS->>OS: store the order (step 8)
-        OS-->>OC: order number, delivery slot
-    end
-    OC-->>WEB: 201, or the error for the extension
-    WEB-->>P: Confirmation (step 9), or what to fix
-```
-
-## API contract
+| Endpoint or job | Caller (who may) | Request | Success | Errors, by extension |
+|---|---|---|---|---|
+| _`POST /api/orders`_ | _A signed-in patron, for herself only; the patron comes from the session, never the body_ | _Menu item ids and quantities, delivery slot id_ | _`201`: order number, total, delivery slot_ | _3a: `409 CUTOFF_PASSED`. 4a: `409 ITEM_UNAVAILABLE` naming the item. 7a: `402 PAYROLL_NOT_REGISTERED`. Not signed in: `401`._ |
+| _`GET /api/orders/{orderId}`_ | _The patron who placed it, or cafeteria staff_ | _None_ | _`200`: items, total, slot, status_ | _Another patron's order: `404`, so the response does not reveal that the order exists (`QS-cross-employee-order-denied`)._ |
 
 These are proposed typed Godot methods/signals, following architecture section 8.2.3, not HTTP endpoints or chosen RPCs. Error handling follows section 8.2.1: an explainable result with no partial mutation. It does **not** prescribe an error schema; the result labels below are proposed semantic outcomes, not existing codes. Session authority means the local simulation today and the Host instance when multiplayer is implemented; clients submit intent and never roll events or mutate shared balances independently.
 
@@ -307,17 +313,17 @@ These are proposed typed Godot methods/signals, following architecture section 8
 
 Inventory and shared-gold owners must expose a coordinated check-and-commit boundary. The implementation must not debit gold before discovering that delivery cannot complete. This is in-memory atomicity, not a database transaction or promise of saved progress.
 
+## Key decisions
 
-_[One row per endpoint, scheduled job, or message this area adds or changes, appended per use case. **This section is never dropped**: before the code exists it is the only thing the person (or agent session) building the front end and the one building the back end both read. Name the caller and who may call it, the request fields, the success response, and the error each extension returns. Leave field types and exact JSON to the agent unless a wrong guess would break something, such as a format another system depends on. Use the error shape your architecture-of-record's section 8.2 fixes; do not invent one here._
+_[Only the decisions a reader could not recover from the code: an invariant, who may do this and how it is enforced, a trade-off you chose, a reason you reused something rather than writing it. **Each one names what you chose, what you rejected, and why.** If you cannot name an alternative you considered, it probably was not a decision; leave it out._
+
+_A decision that affects the whole system rather than this area is an architecture decision. It belongs in your architecture-of-record as a `KD-*` entry, not here._
 
 _Example:]_
 
-| Endpoint or job | Caller (who may) | Request | Success | Errors, by extension |
-|---|---|---|---|---|
-| _`POST /api/orders`_ | _A signed-in patron, for herself only; the patron comes from the session, never the body_ | _Menu item ids and quantities, delivery slot id_ | _`201`: order number, total, delivery slot_ | _3a: `409 CUTOFF_PASSED`. 4a: `409 ITEM_UNAVAILABLE` naming the item. 7a: `402 PAYROLL_NOT_REGISTERED`. Not signed in: `401`._ |
-| _`GET /api/orders/{orderId}`_ | _The patron who placed it, or cafeteria staff_ | _None_ | _`200`: items, total, slot, status_ | _Another patron's order: `404`, so the response does not reveal that the order exists (`QS-cross-employee-order-denied`)._ |
+**_When the payroll deduction is authorized._** _Before the order is stored, in the same request. Rejected: storing the order first and charging later in a batch, because a declined deduction would then cancel an order the kitchen has already started (`ROB-order-persisted` promises the patron that a confirmed order stands)._
 
-## Key decisions
+**_How the cut-off is checked._** _On the server, against the injected clock, in the cafeteria's time zone (architecture-of-record 8.2, time). Rejected: hiding the order button after 10:00 in the browser, because the browser's clock is the patron's and the check would be advisory._
 
 All choices here are **draft proposals for Team 13 review**, unless identified as required by a supplied use case.
 
@@ -333,18 +339,9 @@ All choices here are **draft proposals for Team 13 review**, unless identified a
 
 **Keep state within a voyage.** Choose in-memory runtime records, distinct from immutable bundled definitions (architecture 8.2.8). Rejected: adding saves or a database, because no saving requirement/design is supplied. Use-case durability means retained during this voyage; process restart is outside that promise.
 
-
-_[Only the decisions a reader could not recover from the code: an invariant, who may do this and how it is enforced, a trade-off you chose, a reason you reused something rather than writing it. **Each one names what you chose, what you rejected, and why.** If you cannot name an alternative you considered, it probably was not a decision; leave it out._
-
-_A decision that affects the whole system rather than this area is an architecture decision. It belongs in your architecture-of-record as a `KD-*` entry, not here._
-
-_Example:]_
-
-**_When the payroll deduction is authorized._** _Before the order is stored, in the same request. Rejected: storing the order first and charging later in a batch, because a declined deduction would then cancel an order the kitchen has already started (`ROB-order-persisted` promises the patron that a confirmed order stands)._
-
-**_How the cut-off is checked._** _On the server, against the injected clock, in the cafeteria's time zone (architecture-of-record 8.2, time). Rejected: hiding the order button after 10:00 in the browser, because the browser's clock is the patron's and the check would be advisory._
-
 ## Data model
+
+_[The **change** this area makes to the data: new tables or entities, new columns, the migration that adds them. Draw an ER diagram when there is more than one new table. Do not redraw the domain model; your [specification](../requirements/software-requirements-specification.md) owns it, so link it and show only the change. If the area changes nothing, say "No change" and give the reason in one line; that is a design decision too.]_
 
 New **in-memory** entities and bundled Resources only; no database tables or migration. The supplied specification/domain model was not provided, so this section defines only EVT's proposed additions and references external owners rather than recreating their models.
 
@@ -357,10 +354,9 @@ New **in-memory** entities and bundled Resources only; no database tables or mig
 
 `BR-inventory-slots` governs delivery checks; EVT does not add another inventory or redefine stack limits. The roll ledger's growth during long travel must be profiled separately from the bounded active chunk set (`RISK-world-growth`). No numeric memory target or retention eviction is invented; evicting rolled entries would violate the once-per-voyage rule.
 
-
-_[The **change** this area makes to the data: new tables or entities, new columns, the migration that adds them. Draw an ER diagram when there is more than one new table. Do not redraw the domain model; your [specification](../requirements/software-requirements-specification.md) owns it, so link it and show only the change. If the area changes nothing, say "No change" and give the reason in one line; that is a design decision too.]_
-
 ## Reuse & cross-cutting
+
+_[Which existing services, components, and conventions this area uses rather than rebuilding: authentication, the error handler, email, the clock, another area's service. Cite your architecture-of-record's section 8.2 for each convention by name rather than restating it.]_
 
 | Convention/dependency | Application in EVT |
 |---|---|
@@ -376,10 +372,19 @@ _[The **change** this area makes to the data: new tables or entities, new column
 | UC-SYS-track-boat, UC-SYS-player-inventory, UC-SYS-shared-inventory | Reuse tile tracking and inventory ownership boundaries; chest upgrades remain unresolved. |
 | UC-WAVE-generate-waves, UC-WAVE-balance-ship, UC-WAVE-capsize-ship; UC-SHIP-take-damage, UC-SHIP-repair-damage; UC-NAV-raise-lower-sail | Wave, ship, repair, and navigation owners implement their effects; EVT coordinates storm start/end only. |
 
-
-_[Which existing services, components, and conventions this area uses rather than rebuilding: authentication, the error handler, email, the clock, another area's service. Cite your architecture-of-record's section 8.2 for each convention by name rather than restating it.]_
-
 ## Tests
+
+_[One row per flow: the main success scenario and **every** extension of every use case this document realizes, appended per use case. Name the level (unit or integration) and what the test asserts. No code. This list is the definition of done that the reviewer approves; the agent writes these tests when it builds, and a reviewer can see at a glance whether an extension has no test._
+
+_Example:]_
+
+| Use case, flow | Level | Asserts |
+|---|---|---|
+| _UC-ORD-place-order main_ | _integration_ | _A registered patron's order before 10:00 is stored, charged once, and returned with an order number_ |
+| _UC-ORD-place-order 3a_ | _unit_ | _At 10:00:01 by the injected clock the order is refused with `CUTOFF_PASSED` and nothing is stored or charged_ |
+| _UC-ORD-place-order 4a_ | _unit_ | _A sold-out item refuses the whole order and names the item_ |
+| _UC-ORD-place-order 7a_ | _integration_ | _A declined deduction stores no order_ |
+| _Authorization_ | _integration_ | _A patron requesting another patron's order gets `404`_ |
 
 Planned definition of done; no implementation or automated test results are claimed. Unit tests exercise deterministic injected outcomes/time; integration tests assemble the planned Godot components. Multiplayer assertions wait for the selected adapter.
 
@@ -406,20 +411,9 @@ Planned definition of done; no implementation or automated test results are clai
 | Voyage lifecycle | Integration | New voyage resets ledger/state; capsize retains rolled flags; quit discards unsaved state under session-owner rules. |
 | Future synchronization | Integration, deferred | Clients observe committed events/trades; unauthorized peers cannot mutate them. Late join/retry assertions await networking contract. |
 
-
-_[One row per flow: the main success scenario and **every** extension of every use case this document realizes, appended per use case. Name the level (unit or integration) and what the test asserts. No code. This list is the definition of done that the reviewer approves; the agent writes these tests when it builds, and a reviewer can see at a glance whether an extension has no test._
-
-_Example:]_
-
-| Use case, flow | Level | Asserts |
-|---|---|---|
-| _UC-ORD-place-order main_ | _integration_ | _A registered patron's order before 10:00 is stored, charged once, and returned with an order number_ |
-| _UC-ORD-place-order 3a_ | _unit_ | _At 10:00:01 by the injected clock the order is refused with `CUTOFF_PASSED` and nothing is stored or charged_ |
-| _UC-ORD-place-order 4a_ | _unit_ | _A sold-out item refuses the whole order and names the item_ |
-| _UC-ORD-place-order 7a_ | _integration_ | _A declined deduction stores no order_ |
-| _Authorization_ | _integration_ | _A patron requesting another patron's order gets `404`_ |
-
 ## Changes to the architecture-of-record
+
+_[Designing an area against real code is when the architecture's guesses meet reality. If this design needs a component the map does not have, moves a responsibility, or adds a dependency, **change [the architecture-of-record](architectural-design.md) in the same pull request** and list each change here in one line. If nothing changed, write "None". A design that silently disagrees with the architecture leaves two maps, and the agent will follow whichever it reads last.]_
 
 **Required companion edits, proposed only; architectural-design.md is not modified by this deliverable.** Apply/review these in the same design pull request before treating EVT as the approved design-of-record.
 
@@ -430,10 +424,11 @@ _Example:]_
 
 No new deployment container, HTTP service, database, or runtime external service is proposed.
 
-
-_[Designing an area against real code is when the architecture's guesses meet reality. If this design needs a component the map does not have, moves a responsibility, or adds a dependency, **change [the architecture-of-record](architectural-design.md) in the same pull request** and list each change here in one line. If nothing changed, write "None". A design that silently disagrees with the architecture leaves two maps, and the agent will follow whichever it reads last.]_
-
 ## Open questions & risks
+
+_[What this design could not settle and who can, and what could go wrong that you are accepting. A question for the client also goes in [`OPEN-ISSUES.md`](../requirements/OPEN-ISSUES.md).]_
+
+---
 
 Team 13 is the client and decision owner. Log client-facing unresolved items in `docs/requirements/OPEN-ISSUES.md` when integrating this file; that document was not supplied or edited. Entries below have no fabricated issue IDs.
 
@@ -453,14 +448,7 @@ Team 13 is the client and decision owner. Log client-facing unresolved items in 
 
 This draft is reviewable but **not implementation-ready for unresolved branches**. No team sketch, independent questions-test session, teammate approval, merge, code inspection, or runtime verification is claimed.
 
-
-_[What this design could not settle and who can, and what could go wrong that you are accepting. A question for the client also goes in [`OPEN-ISSUES.md`](../requirements/OPEN-ISSUES.md).]_
-
----
-
 ## Working this document with your agent
-
-The EVT-specific material above is the proposed draft. Template guidance and ordering examples below each section are retained for later passes and are not Holy Ship requirements or interfaces. Team 13 still owns final decisions and review.
 
 _[Delegate: drafting the diagrams from your sketch and the use case; listing the existing files a class should extend; filling the contract rows' request and response fields; proposing the test row for each extension; drafting the rejected alternative for a decision you have already made; checking that every identifier this document cites exists in the document that owns it._
 
@@ -470,12 +458,15 @@ _**The specific failure to watch for: scope that nobody asked for.** An agent dr
 
 ---
 
-## The questions test (before you open the pull request)
+The EVT-specific material above is the proposed draft. Template guidance and ordering examples below each section are retained for later passes and are not Holy Ship requirements or interfaces. Team 13 still owns final decisions and review.
 
-Draft traceability check: all three supplied EVT use cases have sequence headings, contract rows, and main/extension test rows (generation 1a, 2a, 3a, 3b; merchant 3a, 4a, 5a, 5b, 6a; storm 2a, 3a, 4a). All BR and KD identifiers in EVT-specific content are present in the supplied references. A fresh independent questions test has not been run; use the unresolved list above as input, not a claim of readiness.
+## The questions test (before you open the pull request)
 
 _[Start a **fresh** agent session in plan mode, so it carries nothing from the session that drafted this document. Give it only the use case, the business rules it cites, your architecture-of-record's section 8, and this document, and ask:_
 
 > _List every point you would still have to guess to implement `<UC-ID>`. For each, say what you would guess and whether a wrong guess could violate a requirement. Do not write code._
 
 _For each item on its list, either fix this document or keep the guess and write one line saying why a wrong guess breaks no requirement. Paste the list, with your answer to each item, into the pull request description under How it was verified, inside a collapsed `<details><summary>Questions test</summary> … </details>` block so the description stays short. The design is ready when nothing on the list could break a requirement.]_
+
+Draft traceability check: all three supplied EVT use cases have sequence headings, contract rows, and main/extension test rows (generation 1a, 2a, 3a, 3b; merchant 3a, 4a, 5a, 5b, 6a; storm 2a, 3a, 4a). All BR and KD identifiers in EVT-specific content are present in the supplied references. A fresh independent questions test has not been run; use the unresolved list above as input, not a claim of readiness.
+
