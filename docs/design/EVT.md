@@ -9,7 +9,7 @@
 > **Realizes:** `UC-EVT-generate-event`, `UC-EVT-trade-with-merchant`, `UC-EVT-weather-storm`. No supplied `FR-EVT-*` identifiers.
 > **Depends on:** `BR-event-roll-once-per-tile`, `BR-merchant-pricing`, `BR-capsize-conditions`, `BR-damage-interval`; supporting `BR-inventory-slots`, `BR-waves-rough-weather-only`, `BR-capsize-reset`, `BR-host-controls-session`, `BR-host-ends-session`; architecture `KD-deployment-shape`, `KD-local-first`, `KD-station-components`, `KD-world-chunks`.
 > **See:** [use cases](../requirements/use-cases.md), [business rules](../requirements/business-rules.md), [specification](../requirements/software-requirements-specification.md), [architecture-of-record](../architectural-design.md#8-crosscutting-concepts). These are intended repository links for `docs/design/evt.md`; supplied attachment names differ, and the specification was not supplied.
-> **Designed against:** Supplied architectural-design(1).md v0.2, October 2, 2026; use-cases-draft(1).docx v0.2; business-rules (2).md v0.2, October 14, 2026. No code checkout or main commit supplied; no implementation commit is claimed.
+> **Designed against:** Supplied architectural-design(2).md v0.2, October 2, 2026; use-cases-draft(3).docx v0.2; business-rules (2)(1).md v0.2, October 14, 2026. No code checkout or main commit supplied; no implementation commit is claimed.
 
 ---
 
@@ -35,7 +35,11 @@ _**Write it in this order.** Each step is one person's or one pair's work, and t
 
 ## Overview
 
-_[One paragraph: what this area does, which components of your [architecture-of-record](architectural-design.md) it lives in, and what it reads from or calls in other areas. Link the container diagram rather than redrawing it. If this design changes the architecture-of-record, say so here and list the change under "Changes to the architecture-of-record" below.]_
+_[One paragraph: what this area does, which components of your [architecture-of-record](architectural-design.md) it lives in, and what it reads from or calls in other areas. Link the container diagram rather than redrawing it. If this design changes the architecture-of-record, say so here and list the change under "Changes to the architecture-of-record" below._
+
+_Example, from the Cafeteria Ordering System:_
+
+_Ordering takes a patron's meal order from menu selection to a confirmed, payroll-charged order. It is the `ORD` area of the API ([containers](architectural-design.md#51-containers), [use case areas](architectural-design.md#52-use-case-areas-and-components)), reads the day's menu from `menu`, and asks the Payroll System to authorize the deduction before an order is stored (`DE-payroll-integration`).]_
 
 Events & Encounters coordinates tile-triggered events, merchant exchanges, and temporary storm effects inside the local Godot Game Application ([containers](../architectural-design.md#51-containers)). It receives tile-entry information from World and Ocean/boat tracking, obtains merchant items from the item-pool owner and Item Catalog, and calls inventory, ship, wave, and navigation owners rather than duplicating their state. Architecture section 5.2 currently places encounters in TRADE and weather responsibilities in NAV/World and Ocean; the newer use-case draft defines EVT as its own area. The reconciliation is listed below. All EVT classes, methods, signals, and paths in this draft are proposed; no EVT code or repository checkout was supplied. This is a design for future implementation, not evidence that those interfaces already exist.
 
@@ -45,7 +49,9 @@ The supplied use cases v0.2 (September 30, 2026) govern behavior; the supplied b
 
 _[One class diagram for the whole area, and one line per class or file saying what it does and whether it is **new** or **reused**. Show only what a reader needs to see how the parts relate: classes, their key methods, their dependencies. Fields and getters belong to the code._
 
-_**If your repository has no code for this area yet**, which is the normal case for your proving slice, list the files you expect the agent to create, with the paths your architecture-of-record's conventions give them, and mark them all new. The agent then builds into the structure you chose rather than one it improvised._]
+_**If your repository has no code for this area yet**, which is the normal case for your proving slice, list the files you expect the agent to create, with the paths your architecture-of-record's conventions give them, and mark them all new. The agent then builds into the structure you chose rather than one it improvised._
+
+_Example:_]
 
 ```mermaid
 classDiagram
@@ -130,7 +136,9 @@ Proposed paths use the architecture's existing `scenes/` and `scripts/` roots; E
 
 ## Sequence
 
-_[One sequence diagram per use case for its main success scenario, plus one for each extension that does not just return an error. **Label each interaction with the use case step it implements**, so a reviewer can check that every step is realized and nothing extra was invented. Use `alt` blocks for extensions that branch off the main flow. Give each use case its own `###` heading; that heading is the anchor your traceability matrix cites.]_
+_[One sequence diagram per use case for its main success scenario, plus one for each extension that does not just return an error. **Label each interaction with the use case step it implements**, so a reviewer can check that every step is realized and nothing extra was invented. Use `alt` blocks for extensions that branch off the main flow. Give each use case its own `###` heading; that heading is the anchor your traceability matrix cites._
+
+_Example:]_
 
 ### _UC-ORD-place-order: placing an order_
 
@@ -280,7 +288,9 @@ Storm cleanup runs once on expiry or capsize; an old timeout must not reapply ef
 
 ## API contract
 
-_[One row per endpoint, scheduled job, or message this area adds or changes, appended per use case. **This section is never dropped**: before the code exists it is the only thing the person (or agent session) building the front end and the one building the back end both read. Name the caller and who may call it, the request fields, the success response, and the error each extension returns. Leave field types and exact JSON to the agent unless a wrong guess would break something, such as a format another system depends on. Use the error shape your architecture-of-record's section 8.2 fixes; do not invent one here.]_
+_[One row per endpoint, scheduled job, or message this area adds or changes, appended per use case. **This section is never dropped**: before the code exists it is the only thing the person (or agent session) building the front end and the one building the back end both read. Name the caller and who may call it, the request fields, the success response, and the error each extension returns. Leave field types and exact JSON to the agent unless a wrong guess would break something, such as a format another system depends on. Use the error shape your architecture-of-record's section 8.2 fixes; do not invent one here._
+
+_Example:]_
 
 | Endpoint or job | Caller (who may) | Request | Success | Errors, by extension |
 |---|---|---|---|---|
@@ -303,11 +313,31 @@ These are proposed typed Godot methods/signals, following architecture section 8
 
 Inventory and shared-gold owners must expose a coordinated check-and-commit boundary. The implementation must not debit gold before discovering that delivery cannot complete. This is in-memory atomicity, not a database transaction or promise of saved progress.
 
+### Questions-test contract clarifications
+
+These are proposed design fixes for review, not claims that dependencies exist or that Team 13 has approved new gameplay rules. Cross-area blockers are listed in the Result below.
+
+- Every request, event callback, and timer belongs to a voyage identity. Reject callbacks from an ended/replaced voyage. Paused simulation performs no trade or event mutation. Tile-entry notifications received while paused are retained once by voyage/tile and revalidated after resume; missing definitions block processing rather than silently consuming the entry. Exact tile-entry reporting remains a tracking-owner contract.
+- Use one coordinator and ledger per voyage. Stable tile IDs must come from the world owner and survive chunk recycling; scene instance IDs are forbidden. Retain compact rolled outcomes for the whole voyage, including after capsize. No history eviction is permitted; performance limits remain an architecture risk.
+- Prepare event dependencies before activation. A failed activation must undo partial gameplay effects and publish no success. Once randomness has selected an outcome, preserve that outcome for the same tile: duplicate callbacks and activation retries must never draw again. A failed activation is pending, not a successful rolled outcome. Retry timing and terminal failure disposition remain open; an unresolved failure must not be reported as completed generation.
+- An encounter Resource supplies explicitly configured stock count, allowed categories, quantities, purchase prices, and sell values. Draw stock through UC-SYS-item-pool using its weights. Empty pool results produce an empty menu with a logged diagnostic; no substitute item or charge. Price values are nonnegative integers. Actual stock, refresh, sale eligibility, and pricing settings remain team decisions.
+- Each displayed/confirmed offer identifies merchant, item or upgrade, quantity, total gold amount, and offer version. Quantity is explicit in the UI and transaction, never inferred from an entire stack. If the offer changes, reject the old offer without mutation and require a new selection/confirmation. Do not charge a newer price under an older displayed offer.
+- The proposed exchange boundary accepts caller-bound crew identity, voyage, merchant, offer, quantity, and confirmation reference. It serially revalidates active/unpaused voyage, conscious state, range, ownership, current quote, gold, inventory fit, and configured stock availability. Purchase debit, delivery, and finite-stock decrement commit together; sale removal and gold credit commit together. An upgrade needs its separate application contract. External owners must agree and implement this boundary before integration.
+- Inventory alone decides placement and capacity: fill matching stacks up to 30 before quick/expanded empty slots. EVT never invents expanded capacity. Allow inventory access to make room, then revalidate the offer on retry. Closing a menu never undoes a completed exchange.
+- Range monitoring and commit validation use the same authority-side range definition. At commit, current state wins: out of range, passed out, disconnected, or removed by capsize means refusal without mutation. Close invalidated menus. If an exchange committed before invalidation, it remains completed; later capsize inventory loss follows BR-capsize-reset rather than trade rollback.
+- Bind storm callbacks to both voyage and storm identity. Validate duration, effect dependencies, and configuration before start; undo any partial activation on failure and report failure to generation. Each active modifier belongs to its source. Cleanup removes only that source's effects and never repairs existing leaks.
+- At expiry stop mechanical storm wave forces immediately, remove the storm damage modifier, and cancel its timer; presentation alone may fade afterward. If another rough-weather source exists, source ownership and overlapping-storm behavior must be agreed before integration; do not clear another source's effects or pretend the storm postcondition is satisfied while incompatible effects remain.
+- Resolve a capsize threshold already reached in the current simulation update before ordinary expiry cleanup. End the storm once and delegate reset once. A repair or expiry must not erase an already-triggered capsize. Ignore all stale storm callbacks afterward. Scheduler ordering that creates simultaneous damage remains a SHIP/WAVE integration contract.
+- For configurable storm penalties, acceptance requires normal interval > safe storm interval > unsafe storm interval, and both unsafe conditions together must be at least as hazardous as either alone. Safe-angle stability recovery must follow UC-WAVE-balance-ship; no-steering behavior and raised-sail combinations need the WAVE owner's agreed formula. Numbers, angle conventions, transition timing, and formulas are not invented by EVT.
+- Exact result types and visual assets may vary, but interfaces must expose the documented outcomes, current offer/quantity/amount, and needed-gold or capacity feedback. No HTTP error schema, account system, save system, rarity tier, or additional storm wind/visibility feature is introduced.
+
 ## Key decisions
 
 _[Only the decisions a reader could not recover from the code: an invariant, who may do this and how it is enforced, a trade-off you chose, a reason you reused something rather than writing it. **Each one names what you chose, what you rejected, and why.** If you cannot name an alternative you considered, it probably was not a decision; leave it out._
 
-_A decision that affects the whole system rather than this area is an architecture decision. It belongs in your architecture-of-record as a `KD-*` entry, not here.]_
+_A decision that affects the whole system rather than this area is an architecture decision. It belongs in your architecture-of-record as a `KD-*` entry, not here._
+
+_Example:]_
 
 **_When the payroll deduction is authorized._** _Before the order is stored, in the same request. Rejected: storing the order first and charging later in a batch, because a declined deduction would then cancel an order the kitchen has already started (`ROB-order-persisted` promises the patron that a confirmed order stands)._
 
@@ -399,6 +429,14 @@ Planned definition of done; no implementation or automated test results are clai
 | Voyage lifecycle | Integration | New voyage resets ledger/state; capsize retains rolled flags; quit discards unsaved state under session-owner rules. |
 | Future synchronization | Integration, deferred | Clients observe committed events/trades; unauthorized peers cannot mutate them. Late join/retry assertions await networking contract. |
 
+| Stale voyage / paused trade | Unit | Old-voyage callbacks and paused exchange requests cannot mutate current state; deferred tile entries are deduplicated and revalidated on resume. |
+| Failed activation / partial storm startup | Integration | No partial effects or success publication; retry uses the same selected outcome and never rerolls. Terminal recovery remains blocked pending agreement. |
+| Stale quote / explicit quantity | Integration | Changed quotes require new consent; exactly the displayed quantity and amount are exchanged atomically. |
+| Empty merchant stock | Integration | Empty item-pool output shows no offers, logs a diagnostic, and causes no exchange. |
+| Invalidation versus commit | Integration | Range exit, pass-out, disconnect, or capsize invalidates an uncommitted trade; completed trades are not rolled back. |
+| Storm expiry / capsize ordering | Integration | Reached capsize thresholds delegate once; expired/stale timers cannot cause later effects; fading visuals apply no wave forces. |
+| Dependency contract acceptance | Integration, blocked | World, SYS, SHIP/WAVE/NAV, and session owners supply agreed interfaces and fixtures for the open contracts; no guessed interface is counted as verified. |
+
 ## Changes to the architecture-of-record
 
 _[Designing an area against real code is when the architecture's guesses meet reality. If this design needs a component the map does not have, moves a responsibility, or adds a dependency, **change [the architecture-of-record](architectural-design.md) in the same pull request** and list each change here in one line. If nothing changed, write "None". A design that silently disagrees with the architecture leaves two maps, and the agent will follow whichever it reads last.]_
@@ -422,19 +460,19 @@ Team 13 is the client and decision owner. Log client-facing unresolved items in 
 
 | Question/risk | Owner and needed resolution | Implementation impact |
 |---|---|---|
-| Tile event lists, chance, selection weighting; may regions differ? | EVT + world owners / Team 13; generation Open Issues | Define validated Resources and selection algorithm before event generation. Seeded selection is a proposal consistent with KD-world-chunks, not a settled event-weight rule. |
-| Empty/invalid event list or failed spawn | EVT + world owners; agree no-event vs invalid configuration and retry/ledger behavior | Supplied preconditions do not define recovery. Do not silently consume or reroll a failed tile until policy is agreed. |
+| Tile event lists, chance, selection weighting; may regions differ? | EVT + world owners / Team 13; generation Open Issues | Define validated Resources and selection algorithm before event generation. Event random-stream coupling and weights remain open; preserve deterministic world layout under KD-world-chunks. |
+| Empty/invalid event list or failed spawn | EVT + world owners; agree no-event vs invalid configuration and retry/ledger behavior | Reject malformed configuration; preserve the selected outcome and undo partial activation. Terminal failure/retry disposition and empty-list semantics remain open; never reroll or silently consume a failed tile. |
 | Overlapping storm selections | EVT + wave/ship owners; agree replace, extend, or another policy | Once per tile does not imply one global event. Do not invent stacking/cooldown or suppress events without approval. |
 | Storm duration, diagonal tolerance, penalty formulas and damage scheduler transition | EVT + WAVE/SHIP/NAV owners | Specify normal/storm/unsafe rates, combined penalties, and handling of an already-running leak interval. These values must preserve BR-damage-interval and BR-capsize-conditions. |
 | Storm wind and visibility/lookout effects | Team 13 + NAV owner; storm Open Issues | No additional wind/visibility effect is assumed in this draft; resolve before adding one. |
-| Merchant range/boat placement, offer prices, stock quantities/depletion/refresh, sale offer validity | EVT + SYS/world owners / Team 13 | Needed for acceptance tests and stale-offer validation; no exclusive merchant lock or stock policy is invented. |
+| Merchant range/boat placement, offer prices, stock quantities/depletion/refresh, sale eligibility | EVT + SYS/world owners / Team 13 | Needed for acceptance tests and stale-offer validation; no exclusive merchant lock or stock policy is invented. |
 | What upgrades do and how they apply | Team 13 + SHIP/SYS owners; merchant Open Issues | Blocks merchant 5a and upgrade definition of done; chest capacity is an example, not an approved implementation. |
 | Personal inventory and shared gold commit interface | SYS + EVT owners | Agree one serial authoritative check-and-commit operation before coding trades. No inventory implementation was provided. |
 | Networking/session identity, replication, duplicate requests, reconnect/late joining | PROG/session owner + Team 13 | Local-first design remains viable; do not claim synchronized multiplayer until adapter and contracts exist. |
 | Ledger memory growth over indefinite travel | World + EVT owners; RISK-world-growth | Profile voyage-scale metadata; recycled scenes must not erase rolled history. Numeric budgets remain unspecified. |
 | No source checkout or main commit supplied | Team 13 implementer | Confirm actual integration paths, ItemDatabase API, and current main commit before implementation; architecture references are evidence of the recorded baseline only. |
 
-This draft is reviewable but **not implementation-ready for unresolved branches**. No team sketch, independent questions-test session, teammate approval, merge, code inspection, or runtime verification is claimed.
+This draft is reviewable but **not implementation-ready for unresolved branches**. No team sketch, teammate approval, merge, code inspection, or runtime verification is claimed. The questions-test review and its limitations are recorded below.
 
 ## Working this document with your agent
 
@@ -456,5 +494,87 @@ _[Start a **fresh** agent session in plan mode, so it carries nothing from the s
 
 _For each item on its list, either fix this document or keep the guess and write one line saying why a wrong guess breaks no requirement. Paste the list, with your answer to each item, into the pull request description under How it was verified, inside a collapsed `<details><summary>Questions test</summary> … </details>` block so the description stays short. The design is ready when nothing on the list could break a requirement.]_
 
-Draft traceability check: all three supplied EVT use cases have sequence headings, contract rows, and main/extension test rows (generation 1a, 2a, 3a, 3b; merchant 3a, 4a, 5a, 5b, 6a; storm 2a, 3a, 4a). All BR and KD identifiers in EVT-specific content are present in the supplied references. A fresh independent questions test has not been run; use the unresolved list above as input, not a claim of readiness.
+Draft traceability check: all three supplied EVT use cases have sequence headings, contract rows, and main/extension test rows (generation 1a, 2a, 3a, 3b; merchant 3a, 4a, 5a, 5b, 6a; storm 2a, 3a, 4a). All BR and KD identifiers in EVT-specific content are present in the supplied references. The review below answers the preceding questions-test list; it does not establish implementation readiness or runtime correctness.
 
+
+### Result
+
+Questions-test review performed on 2026-10-14 against the supplied EVT.md, all three UC-EVT use cases, business rules, and architectural-design as the architecture-of-record. This answers the list from the preceding read-only review. That review also inspected supporting use cases and architecture sections outside section 8; it is not claimed to be the exact isolated plan-mode session described by the template.
+
+Requirement-preserving contract fixes and planned tests have been added. They remain design proposals for teammate review. The design is **not ready** while the following owner decisions are unresolved:
+
+- **Architecture / implementer:** reconcile EVT ownership with the architecture-of-record and verify real integration interfaces.
+- **PROG / session:** transport, caller identity, replication, late joining, retries, and lifecycle ordering.
+- **World / EVT:** tile-entry semantics, event definitions/weights/randomness, empty-list policy, terminal activation recovery, and merchant placement/lifetime.
+- **SYS / EVT:** configured merchant stock/pricing/sale policies, inventory capacity, shared gold, and exchange interfaces.
+- **SHIP / SYS / Team 13:** upgrade definitions and application.
+- **WAVE / SHIP / NAV:** overlapping weather, angle and stability formulas, leak intervals/transitions, sail transitions, and simultaneous-update ordering.
+- **Team 13 / NAV:** storm wind and visibility scope.
+- **World / architecture:** voyage-scale ledger performance acceptance without history eviction.
+
+Paste the following block under **How it was verified** in the PR description. No repository or PR was supplied, so this document contains the ready-to-paste description block rather than a claim that a PR was updated.
+
+<details><summary>Questions test</summary>
+
+**Shared gaps**
+
+- **EVT ownership conflicts with TRADE and NAV/World.** Could break: yes. **Open (architecture owner):** retain the proposed EVT coordination/state-owner split, but reconcile section 5.2 before implementation; the companion changes are still proposals.
+- **Actual integration interfaces and component lifetimes.** Could break: yes. **Fixed (proposed):** one voyage-scoped coordinator and identity-bound callbacks. **Open (implementer / area owners):** verify the real source and agree concrete dependency interfaces; paths are not verified code.
+- **Multiplayer transport and crew identity.** Could break: yes. **Open (PROG):** keep Host authority and caller-bound identity as required constraints; no transport or identity implementation is guessed into existence.
+- **Replication, late joining, retries, and desynchronization.** Could break: yes. **Open (PROG):** clients must receive committed current state and duplicate requests must not repeat exchanges; snapshot, retry, and deduplication contracts need design.
+- **Pause and lifecycle ordering.** Could break: yes. **Fixed (proposed):** paused gameplay cannot mutate; voyage identities invalidate old requests/timers, and tile notifications are retained once and revalidated. Test added. **Open (PROG):** agree session handoff ordering and adapter implementation.
+- **Result representation and signal payloads.** Could break: no for the exact representation. **Keep:** typed explanatory results; changing the representation breaks no requirement if all consumers agree and mandated outcome/feedback fields remain available.
+- **UI layout, internal names, and replaceable assets.** Could break: no. **Keep:** simple Godot presentation; layout and names are not specified, and required interactions and feedback remain constraints.
+
+**UC-EVT-generate-event**
+
+- **Each tile's event list and probability.** Could break: unresolved acceptance, not automatically harmless. **Open (Team 13 / World):** use explicit Resources, but do not invent lists or probabilities; these are specification decisions.
+- **Selection weights and regional differences.** Could break: unresolved. **Open (Team 13 / EVT):** uniform selection was a candidate, not an approved policy; decide weights and regional variation before claiming acceptance.
+- **Randomness and reproducibility.** Could break: possibly, through world-layout coupling. **Open (World / EVT):** a separate seeded event stream is a candidate; agree its relationship to deterministic layout and test that EVT never changes the world's reproducibility.
+- **Stable tile identity and entry semantics.** Could break: yes. **Fixed (proposed):** world-owned IDs survive recycling; scene instance IDs are forbidden. **Open (tracking owner):** exact coordinates, boundary crossings, skipped tiles, and initial-tile notification. Existing revisit test applies.
+- **Entry while paused or before configuration exists.** Could break: yes. **Fixed (proposed):** retain a deduplicated entry, then revalidate on resume/configuration readiness; no immediate mutation or silent loss. Test added. Invalid configuration remains a blocking diagnostic.
+- **Empty or invalid event lists.** Could break: unresolved. **Fixed (proposed):** malformed definitions do not activate or consume a tile. **Open (World / EVT):** decide whether an empty defined list is an intentional no-event tile or an invalid definition.
+- **Failed preparation or spawning.** Could break: yes. **Fixed (proposed):** undo partial activation, publish no success, preserve any selected outcome, and never reroll on retry. Test added. **Open (World / EVT):** retry timing and terminal failure disposition; a pending tile is not declared successfully rolled.
+- **Storm selected while another is active.** Could break: yes. **Open (EVT / WAVE / SHIP):** replacement is not retained as a safe guess because it could shorten the earlier storm. Agree overlap behavior without suppressing selected events or duplicating damage schedulers.
+- **Merchant boat placement.** Could break: yes. **Fixed (proposed constraint):** alongside the ship, collision-free and reachable from deck within the same trading-range definition. **Open (World / EVT):** coordinates, range, placement validation, and fallback. Placement test remains blocked.
+- **Merchant boat movement, lifetime, and recycling.** Could break: unresolved. **Open (World / EVT):** drifting independent encounters are only a candidate; decide despawn and retention behavior without interrupting valid trades or recreating rolled events.
+- **Roll-ledger memory policy.** Could break: yes if history is evicted. **Fixed:** retain compact voyage history independently of chunks, including after capsize; no eviction. Existing tests apply. **Open (World / architecture):** performance budget and profiling acceptance for indefinite travel.
+
+**UC-EVT-trade-with-merchant**
+
+- **Interaction range and distance measurement.** Could break: yes. **Fixed (proposed constraint):** authority monitoring and commit use the same definition and permit documented deck-to-boat trading. **Open (EVT / World):** threshold and coordinate/distance convention.
+- **Stock generation.** Could break: unresolved. **Fixed (proposed):** request explicitly configured count/categories from the weighted item pool. **Open (Team 13 / SYS):** count, categories, duplicate draws, and quantities; do not invent rarity tiers.
+- **Empty item-pool results.** Could break: no specified recovery requirement. **Keep / fixed anyway:** show empty stock, log the pool diagnostic, and allow closing; no valid-item or exchange requirement is broken because no item is offered or charged. Test added.
+- **Prices, sell values, and merchant differences.** Could break: unresolved values; yes for displayed-price mismatch. **Fixed (proposed):** nonnegative integer configuration and quote-bound amounts. **Open (Team 13):** numerical values, merchant variation, and price relationships.
+- **Purchase and sale quantities.** Could break: yes if consent and exchanged amount disagree. **Fixed (proposed):** every offer explicitly states item quantity and total gold; exchange exactly that quantity. Never infer a whole-stack sale. Test added. **Open (Team 13):** offered quantity choices.
+- **Sellable items and merchant purchasing limits.** Could break: unresolved. **Open (Team 13 / SYS):** accepting every supply/rare find without a gold limit remains a candidate; agree exclusions and buying limits while preserving required buying and selling.
+- **Stock depletion and refresh.** Could break: unresolved. **Open (Team 13 / SYS):** finite shared stock without refresh was a candidate, not an approved rule; decide stock/refresh policy before stale-stock acceptance tests.
+- **Quote validity and stale offers.** Could break: yes. **Fixed (proposed):** identify merchant, item, quantity, total amount, and version; changed offers require renewed selection/confirmation and cause no mutation. Test added.
+- **Concurrent buyers and last-item contention.** Could break: yes. **Fixed (proposed):** serially validate and commit gold, capacity, and configured stock; finite-stock decrement is atomic with delivery/payment. **Open (SYS):** concrete interface and stock policy. Contention tests apply once supplied.
+- **Gold/inventory transaction interface.** Could break: yes. **Fixed (proposed contract):** one serial check-and-commit operation, with no yielding or partial exchange. **Open (SYS):** agree and implement the cross-owner interface; contract text is not evidence of implementation.
+- **Inventory capacity integration.** Could break: yes. **Fixed:** delegate matching-stack-first placement and the 30-item limit to inventory. **Open (SYS):** expanded capacity and actual fit/delivery interface; EVT will not guess them. Existing capacity test applies.
+- **Gold initialization and ownership interface.** Could break: unresolved. **Open (SYS / PROG):** shared voyage balance remains the only balance; its owner/API and starting value must be supplied rather than initialized independently by EVT.
+- **Ship upgrades.** Could break: unresolved and blocks extension 5a. **Open (Team 13 / SHIP / SYS):** chest capacity is an example, not a chosen upgrade. Specify effects, prices, limits, eligibility, and atomic application. The branch remains blocked.
+- **Range exit, pass-out, capsize, or disconnect during confirmation.** Could break: yes. **Fixed (proposed):** revalidate current state at commit, close invalid menus, and preserve completed exchanges; later capsize applies its own inventory reset. Test added. **Open (session / SYS):** delivery of authoritative invalidation state.
+- **Making room while the menu is open.** Could break: no for UI arrangement. **Keep / fixed anyway:** allow inventory access and revalidate on retry; either integrated or separate inventory presentation satisfies extension 5b if the player can make room and retry.
+
+**UC-EVT-weather-storm**
+
+- **Storm duration.** Could break: no for the exact positive number; yes for pause semantics. **Keep:** a positive configurable fixed duration, whose numerical tuning has no specified acceptance threshold. **Fixed:** elapsed unpaused simulation time only; existing pause test applies.
+- **Safe diagonal angle.** Could break: yes. **Open (WAVE / NAV):** approximately 45 degrees is guidance, not a finished formula. Agree direction convention, accepted mirrored headings, and tolerance.
+- **Stability recovery and loss.** Could break: yes. **Fixed (constraint):** honor safe-heading recovery and greater unsafe risk. **Open (WAVE):** reconcile safe angle with absent steering and specify rates, maximum stability, and recovery formula; EVT must not invent a second stability model.
+- **Combined unsafe-heading and raised-sail penalties.** Could break: yes. **Fixed (constraint):** both penalties together cannot be safer than either alone. **Open (WAVE / SHIP):** addition/multiplication/capping formula and concrete test values.
+- **Normal, storm, and unsafe damage intervals.** Could break: yes. **Fixed (constraint):** normal > safe storm > unsafe storm, with combined unsafe conditions no safer. **Open (SHIP):** actual intervals and formula; BR-damage-interval remains mandatory.
+- **Changing a running leak timer.** Could break: yes. **Open (SHIP):** proportional-progress preservation was a candidate; agree transition semantics and test repeated sail/heading changes cannot indefinitely postpone required leaks or create unintended bursts.
+- **Wave direction, intensity, push, and change frequency.** Could break: yes. **Fixed:** delegate to WAVE and remove forces outside rough weather. **Open (WAVE):** wave configuration and push formula; no EVT-owned duplicate simulation.
+- **Sail transitions.** Could break: unresolved. **Open (NAV / WAVE / SHIP):** keeping the penalty until lowering completes is a candidate; agree which effective sail state owners report during the transition.
+- **Storm-specific wind changes.** Could break: unresolved scope. **Open (Team 13 / NAV):** leave wind unchanged as the current proposal, but resolve the explicit use-case issue before declaring this decision harmless or final.
+- **Visibility and lookout effects.** Could break: unresolved scope. **Open (Team 13 / NAV):** no extra reduction is currently proposed; the explicit open issue still needs a decision.
+- **Mechanical end versus visual fade.** Could break: yes. **Fixed (proposed):** mechanical wave effects stop immediately; only presentation fades. Fade duration can vary without violating requirements. Test added.
+- **Other rough-weather sources.** Could break: yes. **Fixed (proposed):** effects have source identities; cleanup never removes another source's state. **Open (EVT / WAVE):** overlapping-source semantics and the wave-stop postcondition; do not assume storms are the only source without agreement.
+- **Expiry, leak creation, and capsize in one update.** Could break: yes. **Fixed (proposed):** an already-reached threshold triggers capsize once before ordinary expiry; stale callbacks are ignored. Test added. **Open (SHIP / WAVE):** agree simultaneous-update scheduling so threshold detection and damage commits follow that contract.
+- **Partial initialization failure.** Could break: yes. **Fixed (proposed):** validate before start, undo partial effects, and report failure to generation without publishing success. Test added. **Open (EVT / owners):** concrete preparation/cleanup interfaces and terminal generation recovery.
+
+**Readiness:** not yet satisfied. An open item is a blocker, not a harmless retained guess. Merge the architecture reconciliation, obtain the missing owner decisions/interfaces, update the blocked tests, and repeat the questions test before calling this implementation-ready. No code, runtime tests, teammate approval, or PR update is claimed.
+
+</details>
