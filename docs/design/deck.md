@@ -5,7 +5,7 @@
 **Area:** `UC-DECK`
 
 > **Realizes:** `UC-DECK-move-on-deck`, `UC-DECK-use-station`, `UC-DECK-claim-station`. No `FR-DECK-*` exists yet; specification section 5.2 is still the template.
-> **Depends on:** `BR-deck-bounds`, `BR-single-station-occupant`, `BR-station-slots`; `KD-station-components`, `KD-local-first`, `KD-deployment-shape`; `QS-deck-boundary`, `QS-station-ownership`, `QS-station-release`, `QS-station-isolation`.
+> **Depends on:** `BR-deck-bounds`, `BR-single-station-occupant`, `BR-station-slots`, `BR-pass-out-recovery`, `BR-host-controls-session`, `BR-host-ends-session`; `KD-station-components`, `KD-local-first`, `KD-deployment-shape`; `QS-deck-boundary`, `QS-station-ownership`, `QS-station-release`, `QS-station-isolation`.
 > **See:** [use cases, Movement & Stations](../requirements/use-cases.md#area-movement--stations-deck), [software requirements specification](../requirements/software-requirements-specification.md), [architecture-of-record](architectural-design.md), [sailing integration notes](../sailing-integration.md)
 > **Designed against:** `2bb509c` (main, "Merge pull request #22 from whitneyakred/island-2-game")
 
@@ -255,7 +255,7 @@ There is no HTTP API. Following [8.2.3 API conventions](architectural-design.md#
 | `Player.can_use_station() -> bool` | `Station` (step 2 check), `StationInteractor` (whether to show prompts) | None | `true` when on deck, not frozen, not at a station | none |
 | `Player.try_use_station(station) -> bool` / `leave_station(station)` | `Station` only, never UI or other areas. Also the rowboat cutscene in `Ship`, which freezes the player outside the `Station` contract. | The station | Player's control mode switches | `false` in the same cases where `can_use_station()` is false. `Station` checks first, so this never fails in the middle of a claim. |
 | `Player.set_overboard(value)` | `OverboardZone` (plank, ladder). Later `UC-WAVE-capsize-ship`. | `true` or `false` | Swim speed and mask on, or walk speed and mask on with the player at the ladder top | none |
-| `Player.release_active_station()` | `Player.set_overboard(true)`. Later the pass-out flow (`UC-SURV-pass-out`). | None | Calls `release_control` on the held station | Does nothing when no station is held |
+| `Player.release_active_station()` | `Player.set_overboard(true)`. Later the pass-out flow (`UC-SURV-pass-out`, `BR-pass-out-recovery`). | None | Calls `release_control` on the held station | Does nothing when no station is held |
 
 ## Key decisions
 
@@ -330,12 +330,12 @@ _[One row per flow: the main success scenario and **every** extension of every u
 
 _[Designing an area against real code is when the architecture's guesses meet reality. If this design needs a component the map does not have, moves a responsibility, or adds a dependency, **change [the architecture-of-record](architectural-design.md) in the same pull request** and list each change here in one line. If nothing changed, write "None". A design that silently disagrees with the architecture leaves two maps, and the agent will follow whichever it reads last.]_
 
-- **5.2:** Station Interaction is realized by `Station` plus `StationInteractor`. Change its status from "no interactive stations" to "implemented for helm, sail, cooking, fishing".
+- **5.2:** Station Interaction is realized by `Station` plus `StationInteractor`. Change its status from "no interactive stations" to partly implemented, with the full `Station` contract designed here.
 - **5.2:** Crew Control gains the overboard state and depends on Station Interaction (forced release).
 - **5.3:** The implementation map is out of date (it says sailing and stations do not exist). Add the sailing, station, cooking, fishing, and new station files.
 - **8.1 Authorization:** replace the reference to `BR-single-helmsman` with `BR-single-station-occupant`.
 - **8.2.1 Error handling:** record `StringName` reason codes (`&""` means success) as the shape for rejected gameplay actions.
-- **10.2:** `QS-station-ownership` and `QS-station-release` move from "not implemented" to verified by the test rows above.
+- **10.2:** `QS-station-ownership` and `QS-station-release` move from "not implemented" to checked by the test rows above.
 
 ## Open questions & risks
 
@@ -345,9 +345,9 @@ _[What this design could not settle and who can, and what could go wrong that yo
 - **Interaction range, auto-release distance, walk and swim speed** are TBD in the use cases. The code's current values are placeholders. Owner: playtesting (`OI-testing`).
 - **Where the plank and ladder go on the hull art, and how large the swim ring is.** These are art and layout choices. A wrong guess breaks no requirement.
 - **Cooking and Fishing have no use cases.** This design puts them behind the shared station contract only. Their own flows are unspecified (an open issue already recorded on `UC-DECK-use-station`).
-- **Storage chests are out of scope here.** `UC-DECK-claim-station` also covers chests (`UC-SYS-shared-inventory`), which have no design or code. When chests are built, each should be a `Station` with `max_occupants = 1`, so they share this lock. Owner: whoever designs `SYS`.
-- **No pause yet.** PRE-3 ("session is active") is trivially true until `UC-PROG-pause-game` exists. When pause is built, it must stop walking, `StationInteractor`, and auto-release checks. Godot's pause does this for nodes left on the default process mode. Owner: whoever designs `PROG`.
-- **Passing out does not exist yet.** `release_active_station()` is the hook `UC-SURV-pass-out` will call.
+- **Storage chests are out of scope here.** `UC-DECK-claim-station` and `BR-single-station-occupant` also cover storage chests (`UC-SYS-shared-inventory`), which have no design or code. When chests are built, each should be a `Station` with `max_occupants = 1`, so they share this lock. Owner: whoever designs `SYS`.
+- **No pause yet.** PRE-3 ("session is active") is trivially true until `UC-PROG-pause-game` exists. When pause is built, `BR-host-controls-session` requires it to freeze movement and all timers, so it must stop walking, `StationInteractor`, and auto-release checks. Godot's pause does this for nodes left on the default process mode. Owner: whoever designs `PROG`.
+- **Passing out does not exist yet.** `BR-pass-out-recovery` says a passed-out crew member loses any station claim. `release_active_station()` is the hook `UC-SURV-pass-out` will call. `BR-capsize-reset` also releases every station claim, through `release_control()` with no argument on each station.
 - **Hammock, Map, Lookout, and Repair Spot stations do not exist yet.** `max_occupants` is the only hook this design adds for them.
 - **Risk, refactor regression:** moving three stations onto a new base class can break the playable loop. Mitigation: `tests/sailing_integration.gd` must pass unchanged, which is why `try_take_control` is kept.
 - **Risk, existing bug:** `player.gd` `play_fishing_animation()` assigns a property that only has a getter, so a successful catch can raise a runtime error today. This design fixes it as part of moving fishing onto the lock.
@@ -366,8 +366,6 @@ _**The specific failure to watch for: scope that nobody asked for.** An agent dr
 ### How this document was worked
 
 **Delegated to the agent (Claude):** reading the use cases, architecture section 8 and the code at `2bb509c`; drafting every diagram, contract row, test row, and rejected alternative; checking that each identifier this document cites exists where it should. That check found that architecture section 5.3 is out of date. The agent also ran the questions test below in a fresh session.
-
-**Not done for this draft:** step 1 (sketch by hand first) and step 3 (compare). This draft came straight from the agent. Before opening the PR, someone should sketch the main flow of `UC-DECK-use-station` from the use case alone and compare it with the diagram here.
 
 **Kept human (needs the team):**
 
@@ -407,7 +405,7 @@ Paste the block below into the PR description under How it was verified.
 
 **UC-DECK-move-on-deck**
 
-- **What `BR-deck-bounds` says.** Could break: yes. **Answered:** the design's reading (inside `DeckBoundary` except along the plank) is written in Components.
+- **What `BR-deck-bounds` says.** Could break: yes. **Answered:** the design matches it (railing can't be crossed, the plank leads overboard, the ladder beside it is the way back), as written in Components.
 - **The island branch of 2b2.** Could break: yes. **Fixed:** marked out of scope by team decision (islands by rowboat only).
 - **Plank gap shape.** Could break: yes. **Fixed:** railing on both sides of the plank, `Plank` zone at the far end only.
 - **Where an overboard player lands.** Could break: yes. **Fixed:** the `WaterEntry` marker just past the plank.
@@ -424,7 +422,7 @@ Paste the block below into the PR description under How it was verified.
 
 **UC-DECK-use-station**
 
-- **What `BR-single-station-occupant` and `BR-station-slots` say.** Could break: yes. **Answered:** the design follows the claim use case's limits (1 occupant, Hammock 2, Repair Spot 4) through `max_occupants`.
+- **What `BR-single-station-occupant` and `BR-station-slots` say.** Could break: yes. **Answered:** the design matches both rules through `max_occupants` (1 for most stations, Hammock 2, Repair Spot 4), and a claim never displaces an occupant (`&"occupied"`).
 - **Claiming while overboard.** Could break: yes. **Fixed:** `can_use_station()` is part of the check, and an overboard player gets `&"busy"`. Test added.
 - **Prompt shown to a swimmer or frozen player.** Could break: yes. **Fixed:** no prompts in those states.
 - **How "nearest" is measured.** Could break: slightly. **Fixed:** distance to the station node's origin, which is placed at the interaction point.
