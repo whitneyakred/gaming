@@ -83,7 +83,7 @@ _The Source column is the defense. Every rule traces to a document or a person, 
 | Date | Version | Description | Author |
 |---|---|---|---|
 | _[YYYY-MM-DD]_ | 0.1 | Initial rules from the client brief and first client meeting | _[Name]_ |
-| 2026-10-14 | 0.2 | Added all 23 current rule IDs referenced in Use Cases version 0.2, retained unresolved values, and updated scope | _[Name]_ |
+| 2026-10-14 | 0.2 | Updated all 23 current rule IDs referenced in Use Cases version 0.2, retained unresolved values, and updated scope | _[Name]_ |
 
 ---
 
@@ -170,17 +170,3 @@ The source for Section 2 is the attached `use-cases-draft(2).docx`, titled Use C
 `BR-single-helmsman` appears only in the replacement note in UC-DECK-claim-station and is superseded by `BR-single-station-occupant`. It is not a separate active rule; the replacement covers Steering and other stations, including the Repair Spot and Hammock exceptions.
 
 ---
-
-## 3. Earlier Team Decisions
-
-### 3.1 Development Sequence
-
-- **`BR-single-player-first`:** The single-player version of the survival game must be fully developed before co-op development begins. **Source:** team decision, 2026-09-10. This is an internal development decision, retained from version 0.1, rather than an external business rule; the current use cases describe the co-op gameplay scope.
-
-### 3.2 Team Decision Making
-
-- **`BR-team-input-before-implementation`:** New gameplay or design ideas should be communicated to and discussed with the entire team before implementation. **Source:** team decision, 2026-09-10. This is an internal team practice, retained from version 0.1, rather than an external business rule.
-
-### 3.3 External Rules and Pending Gameplay Decisions
-
-No external business rules, regulations, or policies were identified in the September 10 meeting notes. Those notes left NPC assistance, raft rescues, role attributes versus stations, and traditional versus fantasy roles under discussion; those ideas are not added as fixed rules here. The gameplay definitions in Section 2 come from the later use-case draft, and unresolved values require a team decision before becoming fixed implementation or test thresholds.
