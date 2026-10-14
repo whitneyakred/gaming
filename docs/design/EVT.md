@@ -35,11 +35,7 @@ _**Write it in this order.** Each step is one person's or one pair's work, and t
 
 ## Overview
 
-_[One paragraph: what this area does, which components of your [architecture-of-record](architectural-design.md) it lives in, and what it reads from or calls in other areas. Link the container diagram rather than redrawing it. If this design changes the architecture-of-record, say so here and list the change under "Changes to the architecture-of-record" below._
-
-_Example, from the Cafeteria Ordering System:_
-
-_Ordering takes a patron's meal order from menu selection to a confirmed, payroll-charged order. It is the `ORD` area of the API ([containers](architectural-design.md#51-containers), [use case areas](architectural-design.md#52-use-case-areas-and-components)), reads the day's menu from `menu`, and asks the Payroll System to authorize the deduction before an order is stored (`DE-payroll-integration`).]_
+_[One paragraph: what this area does, which components of your [architecture-of-record](architectural-design.md) it lives in, and what it reads from or calls in other areas. Link the container diagram rather than redrawing it. If this design changes the architecture-of-record, say so here and list the change under "Changes to the architecture-of-record" below.]_
 
 Events & Encounters coordinates tile-triggered events, merchant exchanges, and temporary storm effects inside the local Godot Game Application ([containers](../architectural-design.md#51-containers)). It receives tile-entry information from World and Ocean/boat tracking, obtains merchant items from the item-pool owner and Item Catalog, and calls inventory, ship, wave, and navigation owners rather than duplicating their state. Architecture section 5.2 currently places encounters in TRADE and weather responsibilities in NAV/World and Ocean; the newer use-case draft defines EVT as its own area. The reconciliation is listed below. All EVT classes, methods, signals, and paths in this draft are proposed; no EVT code or repository checkout was supplied. This is a design for future implementation, not evidence that those interfaces already exist.
 
@@ -49,9 +45,7 @@ The supplied use cases v0.2 (September 30, 2026) govern behavior; the supplied b
 
 _[One class diagram for the whole area, and one line per class or file saying what it does and whether it is **new** or **reused**. Show only what a reader needs to see how the parts relate: classes, their key methods, their dependencies. Fields and getters belong to the code._
 
-_**If your repository has no code for this area yet**, which is the normal case for your proving slice, list the files you expect the agent to create, with the paths your architecture-of-record's conventions give them, and mark them all new. The agent then builds into the structure you chose rather than one it improvised._
-
-_Example:_]
+_**If your repository has no code for this area yet**, which is the normal case for your proving slice, list the files you expect the agent to create, with the paths your architecture-of-record's conventions give them, and mark them all new. The agent then builds into the structure you chose rather than one it improvised._]
 
 ```mermaid
 classDiagram
@@ -136,9 +130,7 @@ Proposed paths use the architecture's existing `scenes/` and `scripts/` roots; E
 
 ## Sequence
 
-_[One sequence diagram per use case for its main success scenario, plus one for each extension that does not just return an error. **Label each interaction with the use case step it implements**, so a reviewer can check that every step is realized and nothing extra was invented. Use `alt` blocks for extensions that branch off the main flow. Give each use case its own `###` heading; that heading is the anchor your traceability matrix cites._
-
-_Example:]_
+_[One sequence diagram per use case for its main success scenario, plus one for each extension that does not just return an error. **Label each interaction with the use case step it implements**, so a reviewer can check that every step is realized and nothing extra was invented. Use `alt` blocks for extensions that branch off the main flow. Give each use case its own `###` heading; that heading is the anchor your traceability matrix cites.]_
 
 ### _UC-ORD-place-order: placing an order_
 
@@ -288,9 +280,7 @@ Storm cleanup runs once on expiry or capsize; an old timeout must not reapply ef
 
 ## API contract
 
-_[One row per endpoint, scheduled job, or message this area adds or changes, appended per use case. **This section is never dropped**: before the code exists it is the only thing the person (or agent session) building the front end and the one building the back end both read. Name the caller and who may call it, the request fields, the success response, and the error each extension returns. Leave field types and exact JSON to the agent unless a wrong guess would break something, such as a format another system depends on. Use the error shape your architecture-of-record's section 8.2 fixes; do not invent one here._
-
-_Example:]_
+_[One row per endpoint, scheduled job, or message this area adds or changes, appended per use case. **This section is never dropped**: before the code exists it is the only thing the person (or agent session) building the front end and the one building the back end both read. Name the caller and who may call it, the request fields, the success response, and the error each extension returns. Leave field types and exact JSON to the agent unless a wrong guess would break something, such as a format another system depends on. Use the error shape your architecture-of-record's section 8.2 fixes; do not invent one here.]_
 
 | Endpoint or job | Caller (who may) | Request | Success | Errors, by extension |
 |---|---|---|---|---|
@@ -317,9 +307,7 @@ Inventory and shared-gold owners must expose a coordinated check-and-commit boun
 
 _[Only the decisions a reader could not recover from the code: an invariant, who may do this and how it is enforced, a trade-off you chose, a reason you reused something rather than writing it. **Each one names what you chose, what you rejected, and why.** If you cannot name an alternative you considered, it probably was not a decision; leave it out._
 
-_A decision that affects the whole system rather than this area is an architecture decision. It belongs in your architecture-of-record as a `KD-*` entry, not here._
-
-_Example:]_
+_A decision that affects the whole system rather than this area is an architecture decision. It belongs in your architecture-of-record as a `KD-*` entry, not here.]_
 
 **_When the payroll deduction is authorized._** _Before the order is stored, in the same request. Rejected: storing the order first and charging later in a batch, because a declined deduction would then cancel an order the kitchen has already started (`ROB-order-persisted` promises the patron that a confirmed order stands)._
 
