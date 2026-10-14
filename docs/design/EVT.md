@@ -148,8 +148,8 @@ sequenceDiagram
     participant EVT as EventCoordinator
     participant Event as Storm or merchant
     participant Session as Session authority
-    World->>EVT: Enter tile (step 1; UC-SYS-track-boat)
-    EVT->>EVT: Check active session, tile definition, rolled ledger (PRE-1/2; 1a)
+    World->>EVT: Enter tile (step 1, UC-SYS-track-boat)
+    EVT->>EVT: Check active session, tile definition, rolled ledger (PRE-1/2, 1a)
     alt Tile already rolled (1a)
         EVT-->>World: No new roll (1a1-2)
     else First entry
@@ -159,11 +159,11 @@ sequenceDiagram
         else Event selected
             EVT->>EVT: Pick one event from tile list (step 3)
             alt Storm (3a)
-                EVT->>Event: Start storm (step 4; 3a1)
+                EVT->>Event: Start storm (step 4, 3a1)
             else Merchant boat (3b)
-                EVT->>Event: Spawn alongside ship (step 4; 3b1)
+                EVT->>Event: Spawn alongside ship (step 4, 3b1)
             end
-            EVT->>EVT: Commit rolled flag with activation (step 5; Failure behavior)
+            EVT->>EVT: Commit rolled flag with activation (step 5, Failure behavior)
             EVT->>Session: Publish committed event state (step 4)
         end
     end
@@ -185,11 +185,11 @@ sequenceDiagram
     alt Buy item (main)
         Crew->>UI: Select offer (step 3)
         UI->>Trade: Request purchase (steps 3-5)
-        Trade->>State: Check current gold and capacity (step 4; 5b)
+        Trade->>State: Check current gold and capacity (step 4, 5b)
         alt Insufficient gold (4a)
-            Trade-->>UI: Refused with needed gold; select again (4a1-2)
+            Trade-->>UI: Refused with needed gold, select again (4a1-2)
         else Inventory full (5b)
-            Trade-->>UI: Refused; make room and select again (5b1-2)
+            Trade-->>UI: Refused, make room and select again (5b1-2)
         else Item fits
             Trade->>State: Deduct gold and deliver item together (step 5)
             State-->>UI: Committed result (step 5)
@@ -204,10 +204,10 @@ sequenceDiagram
         State-->>UI: Committed result (3a4-5)
     else Buy ship upgrade (5a)
         Note over Trade,State: Deferred until upgrade contract is designed
-        Trade->>State: Deduct gold and apply upgrade together (5a1; Failure behavior)
+        Trade->>State: Deduct gold and apply upgrade together (5a1, Failure behavior)
     end
     alt Boat leaves range during trade (6a)
-        Trade-->>UI: Close menu; retain completed exchanges (6a1-2)
+        Trade-->>UI: Close menu, retain completed exchanges (6a1-2)
     else Crew closes menu
         Crew->>UI: Close trade menu (step 6)
     end
@@ -227,17 +227,17 @@ sequenceDiagram
     Storm->>Waves: Enable rough-weather waves (step 1)
     Storm->>Ship: Activate storm damage interval (step 1)
     Storm->>Time: Start storm duration (step 1)
-    Crew->>Ship: Steer diagonally (step 2; UC-WAVE-balance-ship)
+    Crew->>Ship: Steer diagonally (step 2, UC-WAVE-balance-ship)
     alt Not diagonal or nobody steering (2a)
         Ship->>Waves: Use increased stability loss (2a1)
         Ship->>Ship: Use shorter damage interval (2a1-2)
     end
-    Crew->>Ship: Lower sail (step 3; UC-NAV-raise-lower-sail)
+    Crew->>Ship: Lower sail (step 3, UC-NAV-raise-lower-sail)
     alt Sail remains raised (3a)
         Ship->>Waves: Use increased stability loss (3a1)
         Ship->>Ship: Use shorter damage interval (3a1-2)
     end
-    Crew->>Ship: Repair leaks (step 4; UC-SHIP-repair-damage)
+    Crew->>Ship: Repair leaks (step 4, UC-SHIP-repair-damage)
     alt Stability or integrity reaches zero (4a)
         Ship->>Storm: Capsize condition reached (4a)
         Storm->>Waves: End storm waves (4a1)
