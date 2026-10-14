@@ -1,6 +1,6 @@
 # Fatigue Design
 
-**Project:** Man the Ship (architectural document title: Holy Ship!)  
+**Project:** Holy Ship!
 **Team:** Team 13  
 **Area:** `FTG` — Fatigue  
 **Status:** Draft for team review. Tuning, rest policies, and the proposed slowdown/wobble require decisions before implementation.
@@ -10,7 +10,7 @@
 > **See:** [supplied use cases](<C:/Users/Gusy/Downloads/use-cases-draft.md>), [supplied architecture](<C:/Users/Gusy/Downloads/architectural-design.md>), [replacement business rules v0.2](<C:/Users/Gusy/Downloads/business-rules (2).md>), [Survival Design](SURV.md), [repository specification](../requirements/software-requirements-specification.md).
 > **Designed against:** local checkout `bf4428af2f05e238dfca15df0983fde987b4de72`, not independently verified as current `main`. Architecture version 0.2, October 2, 2026; supplied use cases version 0.2; replacement business rules version 0.2, October 14, 2026.
 
-Downloads links identify the actual drafting sources and must be replaced with version-controlled references before merge. Repository copies have not been assumed equivalent. The rules cite a newer DOCX that was not supplied; traceability here was checked against the supplied Markdown use cases. Template instructions and examples are guidance, not extra gameplay requirements.
+
 
 ## Overview
 
