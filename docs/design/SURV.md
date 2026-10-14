@@ -1,6 +1,6 @@
 # Survival Design
 
-**Project:** Man the Ship (architectural document title: Holy Ship!)  
+**Project:** (architectural document title: Holy Ship!)  
 **Team:** Team 13  
 **Area:** `SURV` — Hunger, Thirst & Illness  
 **Status:** Draft for team review; unresolved policies and the proposed sensory effects below prevent implementation approval.
@@ -9,8 +9,6 @@
 > **Depends on:** `BR-stat-max`, `BR-barrel-fill-rate`, `BR-stat-depletion-rate`, `BR-pass-out-recovery`, `BR-illness-fatigue-floor`, `BR-host-controls-session`, `BR-capsize-reset`; the inventory, station, fatigue, and session interfaces identified below.
 > **See:** [supplied use cases](<C:/Users/Gusy/Downloads/use-cases-draft.md>), [supplied architecture](<C:/Users/Gusy/Downloads/architectural-design.md>), [replacement business rules v0.2](<C:/Users/Gusy/Downloads/business-rules (2).md>), [repository specification](../requirements/software-requirements-specification.md).
 > **Designed against:** local checkout `bf4428af2f05e238dfca15df0983fde987b4de72`; not independently verified as the current `main` revision. Architecture source: version 0.2, October 2, 2026. Use-case source: version 0.2. Business rules source: version 0.2, October 14, 2026.
-
-The supplied Downloads documents are the drafting baseline, rather than an assumption that the repository copies match them. Their links are local drafting references; replace them with version-controlled references before review/merge. The business-rules file cites a newer DOCX that was not supplied; only the Markdown use cases were checked here. Template directions and examples are guidance, not additional gameplay requirements.
 
 ## Overview
 
