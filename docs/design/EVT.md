@@ -45,38 +45,7 @@ The supplied use cases v0.2 (September 30, 2026) govern behavior; the supplied b
 
 _[One class diagram for the whole area, and one line per class or file saying what it does and whether it is **new** or **reused**. Show only what a reader needs to see how the parts relate: classes, their key methods, their dependencies. Fields and getters belong to the code._
 
-_**If your repository has no code for this area yet**, which is the normal case for your proving slice, list the files you expect the agent to create, with the paths your architecture-of-record's conventions give them, and mark them all new. The agent then builds into the structure you chose rather than one it improvised._
-
-_Example:_]
-
-```mermaid
-classDiagram
-    direction LR
-    class OrderController {
-        <<new>>
-        +placeOrder(PlaceOrderRequest) Response
-    }
-    class OrderService {
-        <<new>>
-        +placeOrder(patronId, items, deliverySlot) Order
-    }
-    class PayrollClient {
-        <<new>>
-        +authorizeDeduction(patronId, amount) Authorization
-    }
-    class MenuService {
-        <<reused, menu>>
-        +findAvailableItems(date) List~MenuItem~
-    }
-    OrderController --> OrderService
-    OrderService --> MenuService
-    OrderService --> PayrollClient
-```
-
-- _`ordering/OrderController` (new): the HTTP entry point; validates the request shape and nothing else._
-- _`ordering/OrderService` (new): checks the cut-off, availability, and payroll authorization, then stores the order._
-- _`ordering/PayrollClient` (new): the only class that talks to the Payroll System._
-- _`menu/MenuService` (reused): called through its service, never its repository._
+_**If your repository has no code for this area yet**, which is the normal case for your proving slice, list the files you expect the agent to create, with the paths your architecture-of-record's conventions give them, and mark them all new. The agent then builds into the structure you chose rather than one it improvised._]
 
 ```mermaid
 classDiagram
