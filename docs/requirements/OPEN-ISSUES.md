@@ -42,6 +42,18 @@ _[Send the shortlist to your client the day before. A client who has seen the qu
 | OI-testing | How will the game be tested with players? | Getting this wrong could block the game's testing and evaluation process. | The team itself | 2026-09-13 |
 | OI-maintenance | What happens to the game/project after the course is completed? | Getting this wrong could block decisions about the project's long-term maintenance and ownership. | The team itself | 2026-09-13 |
 
+### SHIP design review questions
+
+Raised while drafting [Ship Damage & Repair](../design/ship.md). These refine the existing scope questions rather than recording approved gameplay changes.
+
+| ID | Question | Why it matters | Who can answer | Raised |
+|---|---|---|---|---|
+| OI-5 | What are the normal, safe-storm, and unsafe-storm damage intervals and combined penalties, and which WAVE predicate defines diagonal safety? Is preserving elapsed interval fraction on risk changes approved? | Determines leak scheduling and the storm contract without guessed rates. | SHIP, EVT, WAVE, and NAV owners with the team | 2026-10-14 |
+| OI-6 | Do collisions cause leaks? What registered wood ID, per-repair cost, and exact solo hold duration within the use case's approximate 3–5 seconds should be used? | Required to implement damage extension 1b and repair without arbitrary rules or substitute materials. | Team, SHIP, NAV, and SYS owners | 2026-10-14 |
+| OI-7 | Do SYS, DECK, and WAVE accept the proposed chest-consumption transaction, hold/release hooks, and capsize latch/reset ordering in ship.md? | Prevents partial charges, stuck station claims, and repairs undoing a triggered capsize. | SHIP, SYS, DECK, and WAVE owners | 2026-10-14 |
+| OI-8 | How should the SHIP requirements' Host/client synchronization and joint-repair extension be reconciled with the current single-player instructions? | This draft explicitly defers those flows; joint speed and partial departure behavior remain undecided if that scope returns. | Development team | 2026-10-14 |
+| OI-9 | Does damage continue while docked or while the ship scene is unloaded for an island trip? How is damage handed through Voyage State, and is bounded no-mutation retry acceptable when placement is exhausted? | Prevents free repairs on scene changes and unreachable capsize thresholds; validate that the deck supports 20 nonoverlapping repair footprints. | Team, SHIP, ISLE, WAVE, and DECK owners | 2026-10-14 |
+
 ## Resolved
 
 | ID | Question | Answer | Answered by | Date | Filed in |

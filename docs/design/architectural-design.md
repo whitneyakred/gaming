@@ -153,7 +153,7 @@ The area list comes from use cases section 3; no traceability.md exists in this 
 | Use case area | Component | Responsibility | Depends on | Status |
 |---|---|---|---|---|
 | `NAV` | Navigation and Sailing | Owns heading, propulsion, wind effects, and navigation actions in the steering case and backlog. | Ship State, Station Interaction, World and Ocean, Crew Control | Implemented: helm and sail stations, wind-driven speed (`ShipStation`, `ShipMotion`) |
-| `SHIP` | Ship Systems and Maintenance | Owns hull condition, repairs, rescue, and floating-chest handling when specified. | Ship State, Station Interaction, Crew Control, Item Catalog, World and Ocean | Provisional; ship supplies only art/collision |
+| `SHIP` | Ship Damage and Repair | Owns open leaks, derived ship integrity, the damage scheduler, and repair completion. | Ship State, Station Interaction (DECK), Crew Control, Item Catalog, planned shared deck-chest inventory (SYS), storm state (EVT), capsize/risk interfaces (WAVE), Voyage State | Not implemented; proposed local design in [ship.md](ship.md). External contracts and tuning still need agreement. |
 | `SURV` | Crew Survival | Owns hunger, thirst, stamina, recovery, and kitchen actions per crew member. | Crew Control, Station Interaction, Item Catalog | Provisional; not implemented |
 | `ISLE` | Island Exploration | Owns landing/exploration, treasure interactions, and visited-island state. | Ship State (docking, rowboat trip), Voyage State, World and Ocean, Crew Control, Item Catalog | Implemented: docking, rowboat trip, two timed island games. Designed in [isle.md](isle.md), not yet built: island progress and gathering through Voyage State. |
 | `TRADE` | Trading and NPC Encounters | Owns proposed encounters and exchanges, including currency if approved. | World and Ocean, Crew Control, Item Catalog | Provisional; not fully specified |
@@ -166,6 +166,8 @@ The area list comes from use cases section 3; no traceability.md exists in this 
 | Cross-cutting | Voyage State | Owns in-memory voyage state that must survive a scene change: crew inventories, island progress, resource amounts, collected pickups, ship-side state such as cooking stock, the ship-to-island handoff, and the last visited island (`BR-capsize-reset`). Never written to disk. | Item Catalog | Designed in [isle.md](isle.md), not yet built. Today `Ship` holds the handoff in static variables. |
 
 Dependencies describe intended boundaries, not implemented call chains. Stations manage occupancy and forward intent; the relevant area changes its own state. Mutable inventories must be separate from shared definitions. Backlog areas do not require separate services.
+
+For SHIP, integrity and leak records belong to Ship Damage and Repair; Ship State continues to own vessel motion, docking, and anchoring. The planned EVT storm owner supplies frequency modifiers, SYS supplies deck-chest consumption, and WAVE owns capsize/reset. These dependencies are proposed in [ship.md](ship.md), [EVT.md](EVT.md), and [WAVE.md](WAVE.md); [SYS.md](SYS.md) has not yet established a shared-inventory contract. Damage data crosses scene changes through the planned Voyage State boundary, not a new save service.
 
 Godot tools, Placeholder Assets, and GitHub support all areas through section 5.1's build/content workflow; they are not gameplay components. Local Network belongs to the deferred Session Setup/transport boundary.
 
