@@ -269,24 +269,6 @@ The supplied architecture is not edited by this draft. Required reconciliations 
 3. Update section 8.2.2 with `BR-host-controls-session` pause semantics and section 8.2.8 with the supplied unsaved-voyage/future host-authority rules, retaining `KD-local-first`.
 4. Reconcile stale statements that only steering is fully specified with the newer supplied FTG/SURV use cases. Slowdown and wobble remain proposed until their requirements are updated.
 
-## Open questions & risks
-
-The team acts as client and owns gameplay choices. Mirror requirement-affecting questions into the requirements issue tracker when the source documents are reconciled. No new issue IDs or approved rules are implied by this table.
-
-| Question or risk | Owner / impact |
-|---|---|
-| Exact maximum, initial fatigue, depletion rate, rest recovery rate, and exhaustion threshold? | Team/session owner. New voyage initialization must not be guessed from the pass-out recovery percentage. |
-| Does reaching full fatigue keep the crew member resting or release the slot automatically? | Team/DECK. Rest 2a and its test remain unresolved. |
-| Is warning active at exact threshold equality? | Team. Source uses both “below” and “above,” leaving equality unclear. |
-| How does illness loss combine with hammock recovery? | Team/SURV/FTG. Agree one calculation and boundary order rather than two competing writers. |
-| After reaching the illness floor, does extra drain resume if rest raises fatigue again? | Team/SURV. Reconcile the rule's above-floor condition with the use-case wording about stopping extra drain. |
-| Which condition causes slowdown and seasick screen wobble? | Team. Low fatigue, low hunger/thirst, raw-food illness, and rough seas are different possible triggers. Owner direction has not selected among them. |
-| What speed multiplier, effect strength, onset, and recovery behavior apply? | Team. Revise `UC-FTG-warn-exhaustion` and any affected SURV use cases before implementing penalties. |
-| Should wobble be reducible/disabled independently of gameplay slowdown? | Team. Recommended presentation option for review, not an existing requirement. |
-| How does proposed feedback combine with pass-out, resting, and other camera/movement effects? | Crew Control/UI owners. Disable stale effects on state change, voyage end, and view recreation once behavior is specified. |
-| Architecture and current repository represent different snapshots. | Document owner. Recheck implementation and source links at the implementation baseline. |
-| DECK/session dependencies remain planned. | Area owners. Agree claim/release and clock responsibilities before building the integrated slice. |
-
 ## Working this document with your agent
 
 The agent may refine diagrams, identify reusable files, check identifier/extension coverage, and draft tests. The team retains gameplay decisions and independent approval. Every new interaction must cite a use-case step or be explicitly recorded as a proposed requirements change. Do not add sprinting, cures, a skill tree, inventory expansion, networking, or difficulty modes through implementation guesses.
@@ -309,3 +291,21 @@ This is a drafting self-check, not the fresh independent review requested by the
 | Future transport and reconnect details | Yes for cooperative behavior | Defer to the networking design without adding transport now. |
 
 Before opening a PR, place the independent questions test and resolutions in a collapsed `Questions test` block in its description. This draft is not implementation-ready while requirement-affecting questions remain unresolved.
+
+## Open questions & risks
+
+The team acts as client and owns gameplay choices. Mirror requirement-affecting questions into the requirements issue tracker when the source documents are reconciled. No new issue IDs or approved rules are implied by this table.
+
+| Question or risk | Owner / impact |
+|---|---|
+| Exact maximum, initial fatigue, depletion rate, rest recovery rate, and exhaustion threshold? | Team/session owner. New voyage initialization must not be guessed from the pass-out recovery percentage. |
+| Does reaching full fatigue keep the crew member resting or release the slot automatically? | Team/DECK. Rest 2a and its test remain unresolved. |
+| Is warning active at exact threshold equality? | Team. Source uses both “below” and “above,” leaving equality unclear. |
+| How does illness loss combine with hammock recovery? | Team/SURV/FTG. Agree one calculation and boundary order rather than two competing writers. |
+| After reaching the illness floor, does extra drain resume if rest raises fatigue again? | Team/SURV. Reconcile the rule's above-floor condition with the use-case wording about stopping extra drain. |
+| Which condition causes slowdown and seasick screen wobble? | Team. Low fatigue, low hunger/thirst, raw-food illness, and rough seas are different possible triggers. Owner direction has not selected among them. |
+| What speed multiplier, effect strength, onset, and recovery behavior apply? | Team. Revise `UC-FTG-warn-exhaustion` and any affected SURV use cases before implementing penalties. |
+| Should wobble be reducible/disabled independently of gameplay slowdown? | Team. Recommended presentation option for review, not an existing requirement. |
+| How does proposed feedback combine with pass-out, resting, and other camera/movement effects? | Crew Control/UI owners. Disable stale effects on state change, voyage end, and view recreation once behavior is specified. |
+| Architecture and current repository represent different snapshots. | Document owner. Recheck implementation and source links at the implementation baseline. |
+| DECK/session dependencies remain planned. | Area owners. Agree claim/release and clock responsibilities before building the integrated slice. |
