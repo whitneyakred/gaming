@@ -45,38 +45,7 @@ Sources: supplied Use Cases v0.2 in use-cases-draft(4).docx, business-rules (2)(
 
 _[One class diagram for the whole area, and one line per class or file saying what it does and whether it is **new** or **reused**. Show only what a reader needs to see how the parts relate: classes, their key methods, their dependencies. Fields and getters belong to the code._
 
-_**If your repository has no code for this area yet**, which is the normal case for your proving slice, list the files you expect the agent to create, with the paths your architecture-of-record's conventions give them, and mark them all new. The agent then builds into the structure you chose rather than one it improvised._
-
-_Example:_]
-
-```mermaid
-classDiagram
-    direction LR
-    class OrderController {
-        <<new>>
-        +placeOrder(PlaceOrderRequest) Response
-    }
-    class OrderService {
-        <<new>>
-        +placeOrder(patronId, items, deliverySlot) Order
-    }
-    class PayrollClient {
-        <<new>>
-        +authorizeDeduction(patronId, amount) Authorization
-    }
-    class MenuService {
-        <<reused, menu>>
-        +findAvailableItems(date) List~MenuItem~
-    }
-    OrderController --> OrderService
-    OrderService --> MenuService
-    OrderService --> PayrollClient
-```
-
-- _`ordering/OrderController` (new): the HTTP entry point; validates the request shape and nothing else._
-- _`ordering/OrderService` (new): checks the cut-off, availability, and payroll authorization, then stores the order._
-- _`ordering/PayrollClient` (new): the only class that talks to the Payroll System._
-- _`menu/MenuService` (reused): called through its service, never its repository._
+_**If your repository has no code for this area yet**, which is the normal case for your proving slice, list the files you expect the agent to create, with the paths your architecture-of-record's conventions give them, and mark them all new. The agent then builds into the structure you chose rather than one it improvised._]
 
 Proposed Godot components follow the architecture's existing `scripts/` and `scenes/` roots. The `progress/` subfolders are proposed conventions, not verified existing directories.
 
@@ -138,42 +107,7 @@ classDiagram
 
 ## Sequence
 
-_[One sequence diagram per use case for its main success scenario, plus one for each extension that does not just return an error. **Label each interaction with the use case step it implements**, so a reviewer can check that every step is realized and nothing extra was invented. Use `alt` blocks for extensions that branch off the main flow. Give each use case its own `###` heading; that heading is the anchor your traceability matrix cites._
-
-_Example:]_
-
-### _UC-ORD-place-order: placing an order_
-
-```mermaid
-sequenceDiagram
-    actor P as Patron
-    participant WEB as Web front end
-    participant OC as OrderController
-    participant OS as OrderService
-    participant MS as MenuService
-    participant PC as PayrollClient
-    P->>WEB: Choose items and a delivery slot (steps 3 to 5)
-    WEB->>OC: POST /api/orders
-    OC->>OS: placeOrder(patronId from the session, items, slot)
-    alt after the 10:00 cut-off (3a)
-        OS-->>OC: refused, CUTOFF_PASSED
-    else
-        OS->>MS: findAvailableItems(today)
-        alt an item sold out (4a)
-            OS-->>OC: refused, ITEM_UNAVAILABLE, with the item
-        end
-        OS->>PC: authorizeDeduction(patronId, total) (step 7)
-        alt patron not registered for deduction (7a)
-            PC-->>OS: declined
-            OS-->>OC: refused, PAYROLL_NOT_REGISTERED
-        end
-        OS->>OS: store the order (step 8)
-        OS-->>OC: order number, delivery slot
-    end
-    OC-->>WEB: 201, or the error for the extension
-    WEB-->>P: Confirmation (step 9), or what to fix
-```
-
+_[One sequence diagram per use case for its main success scenario, plus one for each extension that does not just return an error. **Label each interaction with the use case step it implements**, so a reviewer can check that every step is realized and nothing extra was invented. Use `alt` blocks for extensions that branch off the main flow. Give each use case its own `###` heading; that heading is the anchor your traceability matrix cites.]_
 All labels cite steps in the supplied PROG use cases. State-owner messages are proposed in-process methods/signals; Adapter represents future synchronization rather than a chosen protocol.
 
 ### UC-PROG-track-progress: Track voyage progress
