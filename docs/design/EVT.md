@@ -512,7 +512,7 @@ Requirement-preserving contract fixes and planned tests have been added. They re
 - **Team 13 / NAV:** storm wind and visibility scope.
 - **World / architecture:** voyage-scale ledger performance acceptance without history eviction.
 
-Paste the following block under **How it was verified** in the PR description. No repository or PR was supplied, so this document contains the ready-to-paste description block rather than a claim that a PR was updated.
+Paste the following block under **How it was verified** in the PR description. 
 
 <details><summary>Questions test</summary>
 
