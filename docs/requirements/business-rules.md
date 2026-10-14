@@ -1,9 +1,9 @@
 # Business Rules
 
-**Project:** _[Your project name]_
-**Team:** _[Team NN]_
-**Client:** _[Client name and organization]_
-**Version:** 0.1
+**Project:** Game Design
+**Team:** Team 13
+**Client:** ourselves
+**Version:** 0.2
 
 ---
 
@@ -82,7 +82,8 @@ _The Source column is the defense. Every rule traces to a document or a person, 
 
 | Date | Version | Description | Author |
 |---|---|---|---|
-| _[YYYY-MM-DD]_ | 0.1 | Initial rules from the client brief and first client meeting | _[Name]_ |
+| _[YYYY-MM-DD]_ | 0.1 | Initial rules from the client brief and first client meeting | _Shana_ |
+| 2026-10-14 | 0.2 | Updated all 23 current rule IDs referenced in Use Cases version 0.2, retained unresolved values, and updated scope | _Shana_ |
 
 ---
 
@@ -90,29 +91,82 @@ _The Source column is the defense. Every rule traces to a document or a person, 
 
 ### 1.1 Purpose
 
-_[One paragraph: this document collects the policies, regulations, standards, and formulas that govern the business your software operates in, so the specification can cite them rather than restate them.]_
+This document collects the gameplay rules and constraints referenced by the pirate ship co-op sailing/survival game’s use cases and preserves the earlier team development decisions. Each gameplay rule has one definition and cites the use case that supplies its wording.
 
 ### 1.2 Scope
 
-_[Which parts of the client's business these rules cover, and which are out of scope. If your client's organization has rules that your system does not touch, say so here rather than silently omitting them.]_
+The current Use Cases version 0.2 describes a LAN co-op voyage for one to four players, covering deck movement, stations, sailing, weather, survival, repairs, trading, session management, inventory, maps, and island travel. These are project gameplay rules and constraints, not externally imposed business, legal, or regulatory policies. The September 10 single-player-first decision is retained as historical development sequencing rather than the current gameplay scope.
+
+### 1.3 Sources and Unresolved Decisions
+
+The source for Section 2 is the attached `use-cases-draft(2).docx`, titled Use Cases, version 0.2; the cited use cases are dated September 30, 2026, with steering originally dated September 13. These citations establish what the draft says, not independent client approval. Values and policies the draft leaves undecided remain TBD, and approximate values remain provisional. No new rule IDs are created for use cases whose Business Rules field says “none.”
 
 ---
 
-## 2. Rules
+## 2. Referenced Gameplay Rules
 
-_[Group rules under topic headings that fit your project. The Project Pulse headings are one example, not a required set: Course Administration, Teams and Assignment, Access and Ownership, Identity and Uniqueness, Editing and Locking, Deletion Integrity, Review and Submission._
+### 2.1 Deck and Station Access
 
-_Format each rule as a bold identifier, the rule in one sentence, then its source. Worked examples:]_
+- **`BR-deck-bounds`:** Crew members cannot cross the deck railing; leaving through the plank puts them overboard, and the ladder beside the plank provides the return route to the deck. **Source:** Use Cases v0.2, UC-DECK-move-on-deck.
 
-### 2.1 _[Topic]_
+- **`BR-single-station-occupant`:** A station or storage chest may have only one occupant at a time, except that Repair Spots allow multiple crew members and the Hammock allows two; a claim does not displace an existing occupant. **Source:** Use Cases v0.2, UC-DECK-claim-station; UC-DECK-use-station; UC-SYS-shared-inventory.
 
-- **`BR-active-weeks`:** A student may submit or edit a weekly activity report only during a week that the course section has marked active.
-  **Source:** course policy, confirmed by the instructor 2026-09-10.
-- **`BR-section-admin-only`:** Only a course admin may create or edit a course section, configure its active-weeks window (see `BR-active-weeks`), or assign a rubric to it.
-  **Source:** department policy on grade-bearing records.
-- **`BR-artifact-key-unique`:** Every artifact key is unique within a team and remains stable across edits to the artifact's content.
-  **Source:** team decision, 2026-09-10. **Candidate for the specification instead of this file**, since the team, not the client, would approve a change.
+- **`BR-station-slots`:** Most stations have one slot, the Hammock has two slots, and a Repair Spot supports up to four crew members repairing together. **Source:** Use Cases v0.2, UC-DECK-claim-station, Associated Information; UC-FTG-rest; UC-SHIP-repair-damage.
 
-_[That third entry is deliberate. Flag rules you are not sure about rather than dropping them; deciding whether something is a rule or a requirement is a conversation to have with your client, and it is worth having.]_
+### 2.2 Navigation and Weather
 
-_**Checklist:** Does every rule have a source? Could your client change it without asking you? Is it stated as one sentence about the business, rather than as a sentence about your software? Does any use case cite it, and if none does, is that correct?_
+- **`BR-sail-rotation-limit`:** The sail rotates only within a limited arc relative to the ship heading, provisionally about −135° to +135° (270° total), with the exact limits TBD. **Source:** Use Cases v0.2, UC-NAV-rotate-sail, Description and Associated Information.
+
+- **`BR-wind-change-cooldown`:** Normal random wind changes occur when the wind-change cooldown expires, after which a new cooldown begins; its duration and any storm-specific wind rules are TBD. **Source:** Use Cases v0.2, UC-NAV-change-wind.
+
+- **`BR-waves-rough-weather-only`:** Waves affect the ship only during rough weather and stop affecting it when rough weather ends. **Source:** Use Cases v0.2, UC-WAVE-generate-waves.
+
+### 2.3 Capsizing and Ship Repair
+
+- **`BR-capsize-conditions`:** The ship capsizes when stability reaches zero or integrity reaches 0%, with integrity equal to 100% minus 5 percentage points per open leak, so 20 open leaks cause a capsize. **Source:** Use Cases v0.2, UC-WAVE-balance-ship; UC-WAVE-capsize-ship; UC-SHIP-take-damage.
+
+- **`BR-capsize-reset`:** Capsizing continues the voyage by returning the ship and all crew members to the last visited island (or the starting point if none has been visited), emptying all personal inventories and the deck chest, releasing station claims, restoring full stability and integrity, removing Repair Spots, and lowering the sail. **Source:** Use Cases v0.2, UC-WAVE-capsize-ship.
+
+- **`BR-damage-interval`:** Leaks appear at timed intervals that are shorter during storms and shorter still when the ship is not diagonal to the waves or the sail is raised; normal and storm interval values are TBD. **Source:** Use Cases v0.2, UC-SHIP-take-damage; UC-EVT-weather-storm.
+
+- **`BR-repair-cost`:** A completed leak repair consumes a TBD amount of wood from the deck chest once per repair regardless of participant count and restores 5 percentage points of integrity; insufficient wood prevents the repair. **Source:** Use Cases v0.2, UC-SHIP-repair-damage.
+
+### 2.4 Survival and Fatigue
+
+- **`BR-stat-max`:** Each crew member’s hunger, thirst, and fatigue is bounded between zero and its respective maximum, and food, water, or rest cannot restore a stat beyond that maximum; maximum values are TBD. **Source:** Use Cases v0.2, UC-SURV-consume-food; UC-SURV-consume-water; UC-FTG-rest, Associated Information.
+
+- **`BR-barrel-fill-rate`:** The shared water barrel collects drinkable water at a steady TBD rate up to its TBD capacity, and bottle refills are limited by available barrel water and the bottle’s TBD capacity. **Source:** Use Cases v0.2, UC-SURV-consume-water.
+
+- **`BR-stat-depletion-rate`:** Hunger and thirst decrease at their own constant TBD rates during active, unpaused play while a crew member is conscious, and normal fatigue depletion follows the same conditions except that it stops while resting; hunger and thirst continue to decrease during rest. **Source:** Use Cases v0.2, UC-SURV-deplete-hunger-thirst; UC-FTG-deplete-fatigue; UC-FTG-rest.
+
+- **`BR-pass-out-recovery`:** A crew member whose hunger, thirst, or fatigue reaches zero passes out without permanent death, loses the ability to act and any station claim for a TBD cooldown, and then recovers with all three stats at 25% of their respective maxima. **Source:** Use Cases v0.2, UC-SURV-pass-out.
+
+- **`BR-illness-fatigue-floor`:** Illness from raw non-fruit food adds fatigue drain only while fatigue is above a provisional floor of about 50% of maximum and the illness timer remains active; normal depletion can continue below that floor, whose exact value or variation is TBD. **Source:** Use Cases v0.2, UC-SURV-recover-from-illness.
+
+### 2.5 Events and Trading
+
+- **`BR-event-roll-once-per-tile`:** Each map tile receives at most one event roll per voyage and produces at most one event from its event list, with the tile marked as rolled even when no event occurs. **Source:** Use Cases v0.2, UC-EVT-generate-event.
+
+- **`BR-merchant-pricing`:** Merchant purchases spend the crew’s shared gold at the displayed price only when sufficient gold and inventory space are available, and confirmed sales remove the sold item and add the offered gold; gold cannot be negative, and item prices and sell values are TBD. **Source:** Use Cases v0.2, UC-EVT-trade-with-merchant; UC-SYS-item-pool, Associated Information.
+
+### 2.6 Session Management
+
+- **`BR-host-ends-session`:** The Host quitting or disconnecting ends the session for everyone and discards the unsaved voyage, with no host migration, while another crew member leaving does not end the session. **Source:** Use Cases v0.2, UC-PROG-quit-voyage; UC-DECK-claim-station, Failure behavior.
+
+- **`BR-host-controls-session`:** Only the Host may start, restart, pause, or resume the voyage, and pausing freezes movement, stat depletion, wind, waves, and all timers for the whole crew until resumed. **Source:** Use Cases v0.2, UC-PROG-start-voyage; UC-PROG-pause-game.
+
+- **`BR-session-cap-4`:** A session contains one Host and at most three additional crew members, for a maximum of four players including the Host. **Source:** Use Cases v0.2, UC-PROG-host-join.
+
+### 2.7 Inventory Map and Island Travel
+
+- **`BR-inventory-slots`:** Each personal inventory has exactly six quick slots plus a TBD number of expanded slots, with at most 30 matching items per stack and no additional item accepted when every slot and matching stack is full. **Source:** Use Cases v0.2, UC-SYS-player-inventory.
+
+- **`BR-pin-limit`:** If a shared map-pin limit is adopted, the number of active pins must not exceed it; whether a limit exists, its value, and whether excess placement is blocked or replaces the oldest pin are all TBD. **Source:** Use Cases v0.2, UC-MAP-place-pin, Extensions and Open Issues.
+
+- **`BR-rowboat-capacity`:** The rowboat may carry no more than its passenger capacity, whose value is TBD. **Source:** Use Cases v0.2, UC-ISLE-arrive-at-island, Associated Information and Open Issues.
+
+### 2.8 Superseded Reference
+
+`BR-single-helmsman` appears only in the replacement note in UC-DECK-claim-station and is superseded by `BR-single-station-occupant`. It is not a separate active rule; the replacement covers Steering and other stations, including the Repair Spot and Hammock exceptions.
+
+---
