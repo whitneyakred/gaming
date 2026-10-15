@@ -253,3 +253,20 @@ Add MAP to the area/component map as a provisional area owning voyage chart stat
 - Tile size remains a SYS/World decision; MAP accepts tile IDs and must not introduce its own grid calculation.
 - The current sailing HUD's nearest-island indicator is not a map UI. Keep it separate until a deliberate UI consolidation is designed.
 - Current requirements use Host/client wording while project instructions require a single-player-first implementation. MAP state ownership and synchronization must be reconciled before cooperative transport is added.
+
+## Implementation assumptions awaiting decisions
+
+The following details are not resolved by this design. The tentative guesses document the assumptions an implementation would otherwise need to make; the final column is intentionally left open for approved decisions.
+
+| Decision point | Tentative implementation guess | Wrong guess could violate a requirement? | Proposed solution |
+|---|---|---|---|
+| Tile size, origin, boundary rule, and tile-ID format | SYS/World uses fixed-size square tiles with floor division, including negative coordinates. | Yes — MAP must consume SYS tile IDs and must not calculate its own grid. | When map creation is finalized it will have a set coordinate grid that requires and generates only positive locations for useage  |
+| Finding islands contained by an entered tile | Query registered `WorldIsland` nodes using their authoritative world positions and the SYS/World tile contract. | Yes — an incorrect lookup could reveal the wrong islands. | Island system containing specified quieries for each individal island will be added upon completelion of multiple island implementation |
+| Stable island identity | Each `WorldIsland` exposes one unique, voyage-stable island ID. | Yes — discovery and visit sets depend on stable unique IDs. | during map generation each island will be given a unqiue instance ID |
+| Shore-arrival notification | Island Exploration emits one visit notification with `island_id` after a crew member successfully reaches shore. | Yes — visited status must remain distinct from discovery. | map system will track updating and doocumentation of visted islands. This will be done through an aspect of the islands instance |
+| MapState voyage lifecycle | Create state when a voyage begins; preserve it through capsize; discard it only when that voyage ends. | Yes — the stated lifecycle requires capsize retention and no persistence beyond the voyage. | Game automatically ends if ship capsizes and returns players to start menu. All progress is lost and new map is generated when new game starts. |
+| Paradise distance input and display contract | Progress supplies a display-ready Paradise distance for MAP to render. | Potentially — MAP must not recalculate Progress completion rules. | progress completion rules are determine at the start of each voyage. Though ultimate goal will always be to reach a certain location on the other side of the game map. |
+| Pin ID generation | Generate unique local `StringName` IDs for each pin. | No, provided IDs remain unique and removal targets the correct pin. | when pen system is created each will be stored as a unique instance of pin objects that each have unique IDs|
+| Chart projection and pointer conversion | Use one world-to-chart transform for rendering and translating selected map coordinates back to world coordinates. | Potentially — mismatched transforms would place pins at incorrect destinations. | translation and scaling will be set during map generation and will stay consistent from here on out. |
+| Distance-label precision | Calculate the required exact straight-line distance, then display rounded whole metres. | Potentially — the calculation is specified but label precision is not. | label precision will be stored within a double and focus on pixel verse map coordinate distance |
+| Physical map-station scene and controls | Place a reusable deck station using existing Station Interaction claim, range, release, and input conventions. | No, provided Station Interaction remains authoritative for access. | |
