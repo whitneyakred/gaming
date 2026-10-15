@@ -112,7 +112,7 @@ sequenceDiagram
     else empty quick or expanded slot exists (step 2)
         I->>I: create stack in next eligible slot
     else no eligible slot (2b)
-        I-->>C: refused; source item unchanged (2b1)
+        I-->>C: refused — source item unchanged (2b1)
     end
     C->>UI: open inventory (step 3)
     UI->>I: read quick and expanded slots (step 4)
@@ -169,7 +169,7 @@ sequenceDiagram
     alt both source and destination valid
         H->>H: update source and destination together (step 4)
     else destination full (3a or 3b)
-        H-->>C: refused; both stores unchanged
+        H-->>C: refused — both stores unchanged
     end
     C->>H: close chest (step 5)
     H->>S: release claim (step 6)

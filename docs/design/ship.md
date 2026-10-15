@@ -103,14 +103,14 @@ sequenceDiagram
         EVT->>D: Set or remove source-owned storm modifier (1a1)
         D->>D: Recompute effective interval, preserve elapsed fraction (1a1)
     end
-    Note over D: Active simulation only; pause freezes timer (PRE-1)
+    Note over D: Active simulation only — pause freezes timer (PRE-1)
     D->>D: Damage interval expires (1)
     D->>Deck: Pick candidate deck-local footprint (2)
     loop Retry within a bounded search budget (2a)
         Deck-->>D: Reject outside footprint or station/leak overlap (2a1)
     end
     alt No valid location found (placement risk)
-        D->>D: Leave leaks and integrity unchanged; report unavailable placement
+        D->>D: Leave leaks and integrity unchanged — report unavailable placement
     else Valid location and scene prepared
         D->>R: Instantiate and register at local position (3)
         D->>D: Derive integrity and publish committed local state (4 deferred sync, 5)
@@ -144,7 +144,7 @@ sequenceDiagram
     I->>R: request_control(crew) (4)
     R->>Inv: Check deck-chest wood (3a)
     alt Insufficient wood (3a)
-        R-->>I: insufficient_wood; no claim or progress (3a1)
+        R-->>I: insufficient_wood — no claim or progress (3a1)
         I-->>C: Show required wood message (3a1)
     else Wood available and crew eligible
         R->>S: Validate range and claim crew (4)
@@ -152,7 +152,7 @@ sequenceDiagram
         opt Claim accepted
             R-->>C: Show progress while interact remains held (4-5)
             alt Release, forced release, pass out, or capsize (5a, 5b)
-                I->>R: Cancel; forced release also invokes this path (5a1, 5b1)
+                I->>R: Cancel — forced release also invokes this path (5a1, 5b1)
                 R->>R: Discard progress without charging wood (5a1)
                 R->>S: release_control(crew) (5a2)
             else Hold completes
@@ -160,8 +160,8 @@ sequenceDiagram
                 D->>D: Recheck active spot, valid occupant, held input, and capsize latch (6-7)
                 D->>Inv: try_consume(wood_id, cost) (6)
                 alt Wood no longer available
-                    Inv-->>D: insufficient_wood; no inventory mutation (3a)
-                    D-->>R: Reject; discard progress and release claim (3a, 8)
+                    Inv-->>D: insufficient_wood — no inventory mutation (3a)
+                    D-->>R: Reject — discard progress and release claim (3a, 8)
                 else Consumption succeeds
                     D->>D: Remove leak record and derive integrity in same commit (7)
                     D->>R: Release occupant, remove scene, publish results (7-8)

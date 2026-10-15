@@ -163,7 +163,7 @@ sequenceDiagram
         MV->>MC: remove_pin(pin_id)
         MC->>MS: remove pin (2a1)
     end
-    Note over MS: Pins are unlimited; the BR-pin-limit branch is inactive.
+    Note over MS: Pins are unlimited — the BR-pin-limit branch is inactive.
 ```
 
 ### UC-MAP-pin-distance: updating pin distance
@@ -179,7 +179,7 @@ sequenceDiagram
     MC->>MC: straight-line pixels / pixels_per_meter (steps 2-3)
     MC->>MV: update distance labels (step 4)
     alt ship is at pin (2a)
-        MV->>MV: show 0 m; retain pin (2a1)
+        MV->>MV: show 0 m — retain pin (2a1)
     end
 ```
 
