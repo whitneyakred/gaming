@@ -359,11 +359,32 @@ _**The specific failure to watch for: scope that nobody asked for.** An agent dr
 
 ---
 
-## The questions test (before you open the pull request)
+## Implementation assumptions awaiting decisions
 
-_[Start a **fresh** agent session in plan mode, so it carries nothing from the session that drafted this document. Give it only the use case, the business rules it cites, your architecture-of-record's section 8, and this document, and ask:_
+The following details are not resolved by this design. The tentative guesses document the assumptions an implementation would otherwise need to make; the final column proposes how each will be decided.
 
-> _List every point you would still have to guess to implement `<UC-ID>`. For each, say what you would guess and whether a wrong guess could violate a requirement. Do not write code._
-
-_For each item on its list, either fix this document or keep the guess and write one line saying why a wrong guess breaks no requirement. Paste the list, with your answer to each item, into the pull request description under How it was verified, inside a collapsed `<details><summary>Questions test</summary> … </details>` block so the description stays short. The design is ready when nothing on the list could break a requirement.]_
-
+| Decision point | Tentative implementation guess | Wrong guess could violate a requirement? | Proposed solution |
+|---|---|---|---|
+| Sail rotation limit (`UC-NAV-rotate-sail`) | Keep the code's ±60°. | Yes — `BR-sail-rotation-limit` says about ±135°, so the rule and the code disagree. | The team changes either the rule or the code so they match. |
+| Heading wrap for the heading bonus (`UC-NAV-steer-ship` 3c) | Store radians and wrap to 0–359° whenever heading is compared. | Yes — without wrapping, the held-heading check breaks when heading crosses 359°→0°. | The team confirms the bonus check always compares wrapped angles. |
+| Hazard proximity threshold (`UC-NAV-steer-ship` 3b) | About 1.5 ship lengths, hull edge to hazard edge, as an exported property. | Yes — too small a threshold fails the slowdown and makes collisions frequent. | The team picks the value through playtesting. |
+| Shape of the hazard slowdown (`UC-NAV-steer-ship` 3b) | A speed cap that shrinks with distance, with a nonzero floor. | Yes — a zero floor can trap the ship beside a rock. | The team chooses cap vs. multiplier and set a nonzero floor. |
+| How `HazardSensor` finds hazards (`UC-NAV-steer-ship` 3b, 3d) | A `hazard` group; "other ships" stays empty for now. | Yes — untagged hazards get no slowdown and no damage. | The team chooses a group or a physics layer, and every rock is tagged with it. |
+| What counts as holding a heading (`UC-NAV-steer-ship` 3c) | Heading stays within ±3° for the bonus duration. | Yes — a loose definition gives the bonus while circling. | The team sets the tolerance. |
+| Order the speed modifiers combine in (`UC-NAV-steer-ship` 3a–3c) | Wind and sail first, then the bonus, then the hazard cap last; no bonus at speed 0. | Yes — applying the bonus after the cap undermines collision avoidance. | The team confirms the order. |
+| Heading bonus with nobody at the Helm (`UC-NAV-steer-ship` 3c) | The bonus applies only while the Helm is claimed. | Yes — 3c says a crew member holds the heading. | The team confirms. |
+| Collision contract with SHIP (`UC-NAV-steer-ship` 3d) | `ShipMotion` emits `collided(hazard)` and SHIP handles the damage. | Yes — a mismatch breaks `UC-SHIP-take-damage` 1b. | The team agrees the signal and damage amount when SHIP is designed. |
+| Damage per collision (`UC-NAV-steer-ship` 3d) | Once per contact start. | Yes — reporting every frame multiplies damage. | The team decides together with SHIP. |
+| Wind cutoff for hiding the arrow (`UC-NAV-check-wind` 1a) | Hide the arrow below a small strength cutoff set in the Inspector. | Yes — too large a cutoff hides the arrow when there is real wind. | The team picks the cutoff. |
+| How the wind shifts (`UC-NAV-change-wind` step 3, `UC-NAV-check-wind`) | Shift angle and strength separately over about 3 seconds. | Yes — blending the vectors can pass near zero, hiding the arrow and stalling the ship. | The team fixes the method and duration. |
+| Wind cooldown length (`UC-NAV-change-wind`) | About 60 seconds, as an exported property. | Yes — it is the subject of `BR-wind-change-cooldown`. | The team picks the value and record it in the rule. |
+| Becalmed chance (`UC-NAV-change-wind` 2a) | A random roll with a 10% chance. | Yes — if calms should come only from events, random calms are unasked-for behavior. | The team decides, since the use case lists it as open. |
+| How a new wind is picked (`UC-NAV-change-wind` step 2) | Uniform direction, strength 25–100% of the maximum, at least a 45° change. | Yes — a near-identical roll would not force the crew to re-steer. | The team sets the minimum strength and minimum change. |
+| Becalmed result: fade or snap (`UC-NAV-change-wind` 2a) | Fade strength gradually to 0 and keep the old direction. | Yes — the use case's 2a path skips the shift, while this design shifts gradually. | The team decides. |
+| When the next cooldown starts (`UC-NAV-change-wind` step 6) | At timeout; a new change starts from the current mid-shift values. | Yes — waiting for the shift lengthens the interval beyond the rule. | The team decides. |
+| Storm wind rules (`UC-NAV-change-wind` 2b) | A storm hook that is always off for now. | Yes — 2b cannot be met until storms exist. | The team defines them in the EVT design. |
+| Wind and timers while paused (`UC-NAV-change-wind`) | A pausable `Timer`, so the wind freezes on pause. | Yes — a change during a pause breaks PRE-1. | The team decides in the PROG design. |
+| Lookout zoom value (`UC-NAV-use-lookout` step 1) | Zoom about 0.5; in Godot 4, below 1 zooms out. | Yes — the wrong direction zooms in instead of out. | The team picks the value through playtesting. |
+| Instant or animated zoom (`UC-NAV-use-lookout` 2a1) | Ease in and out normally; snap back instantly when forced off. | Yes — 2a1 says the view restores immediately. | The team confirms. |
+| Releasing the Lookout when docking (`UC-NAV-use-lookout`) | Every release path restores the zoom. | Yes — `Ship._stop_sailing()` releases only the Helm and Sail, so the zoom would stay out. | The team adds the Lookout to the docking release. |
+| Lookout and Sail on the same mast (`UC-NAV-use-lookout`) | Separate stations; pressing E claims the nearer one. | Yes — today the first station to handle E wins, not the nearest. | The team decides station selection in the DECK design (`UC-DECK-use-station` 2a). |
