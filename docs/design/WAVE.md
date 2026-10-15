@@ -296,11 +296,22 @@ _**The specific failure to watch for: scope that nobody asked for.** An agent dr
 
 ---
 
-## The questions test (before you open the pull request)
+## Implementation assumptions awaiting decisions
 
-_[Start a **fresh** agent session in plan mode, so it carries nothing from the session that drafted this document. Give it only the use case, the business rules it cites, your architecture-of-record's section 8, and this document, and ask:_
+The following details are not resolved by this design. The tentative guesses document the assumptions an implementation would otherwise need to make; the final column proposes how each will be decided.
 
-> _List every point you would still have to guess to implement `<UC-ID>`. For each, say what you would guess and whether a wrong guess could violate a requirement. Do not write code._
-
-_For each item on its list, either fix this document or keep the guess and write one line saying why a wrong guess breaks no requirement. Paste the list, with your answer to each item, into the pull request description under How it was verified, inside a collapsed `<details><summary>Questions test</summary> … </details>` block so the description stays short. The design is ready when nothing on the list could break a requirement.]_
-
+| Decision point | Tentative implementation guess | Wrong guess could violate a requirement? | Proposed solution |
+|---|---|---|---|
+| How hard waves push the heading (`UC-WAVE-generate-waves` step 4) | A turn rate that scales with intensity, strongest at 45° and settling the ship side-on. | Yes — if the push beats the helm, balancing becomes impossible and capsizes unavoidable. | The team picks a push that stays weaker than the helm's turning at every intensity. |
+| How the waves are drawn (`UC-WAVE-generate-waves` step 3) | A scrolling wave layer moving in the wave direction, faster at higher intensity. | Yes — if the direction is not visible, the helmsman cannot read the incoming waves. | The team designs the wave visuals. |
+| Waves while paused (`UC-WAVE-generate-waves`) | The push and fade freeze on pause. | Yes — pushing during a pause acts outside PRE-1. | The team decides in the PROG design. |
+| What counts as rough weather (`UC-WAVE-generate-waves` step 1) | Storms are the only rough weather. | Yes — milder rough weather without waves would break `BR-waves-rough-weather-only`. | The team decides in the EVT design. |
+| Width of the safe diagonal range (`UC-WAVE-balance-ship`) | ±15° around 45°, as an exported property. | Yes — a tolerance of 45° or more would make straight-on or side-on count as safe. | The team picks a tolerance under 45°. |
+| The capsize-warning shake (`UC-WAVE-balance-ship` 3c) | A jump in shake intensity below the danger threshold. | Yes — if it looks like ordinary shaking, players get no warning. | The team makes the warning clearly different. |
+| A stale last visited island (`UC-WAVE-capsize-ship` 4a) | Clear it when a voyage starts. | Yes — a value from a previous voyage would skip 4a. | The team decides in the PROG and ISLE designs. |
+| When the voyage starting point is recorded (`UC-WAVE-capsize-ship` 4a) | Record position and rotation once, when a new voyage starts. | Yes — recording it after an island trip sends 4a to the wrong place. | The team decides in the PROG design. |
+| Emptying the deck chest (`UC-WAVE-capsize-ship` step 5) | The chest is a `PlayerInventory` with the same `clear()`. | Yes — otherwise step 5 is left half done. | The team designs the chest in SYS with a `clear()`. |
+| Restoring integrity and removing Repair Spots (`UC-WAVE-capsize-ship` step 6) | Integrity is set to 100% and Repair Spot nodes are removed. | Yes — `BR-capsize-reset` requires both. | The team adds both to the SHIP design. |
+| Waves right after a reset (`UC-WAVE-capsize-ship`) | The storm and waves carry on. | Yes — with nobody at the helm, the ship could capsize again at once. | The team decides whether the storm continues after a reset. |
+| A capsize and voyage progress (`UC-WAVE-capsize-ship`) | Progress is unchanged. | Yes — `UC-PROG-track-progress` may expect a capsize to count. | The team decides in the PROG design. |
+| Capsizing while docked (`UC-WAVE-capsize-ship` PRE-1) | Ignore capsize triggers while docked or anchored. | Yes — capsizing while docked breaks PRE-1. | The team confirms. |
