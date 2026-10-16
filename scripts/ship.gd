@@ -60,6 +60,13 @@ func _ready() -> void:
 	islands_root.global_transform = Transform2D.IDENTITY
 	ocean.set_as_top_level(true)
 	ocean.global_rotation = 0.0
+	MapState.pixels_per_meter = pixels_per_meter
+	for island in get_islands():
+		MapState.register_island(
+			str(island.name),
+			island.display_name,
+			island.global_position,
+			island.display_name.to_lower() == "paradise island")
 	_rowboat_home = rowboat.position
 	stern_zone.body_entered.connect(_on_stern_entered)
 	stern_zone.body_exited.connect(_on_stern_exited)
@@ -75,6 +82,7 @@ func _ready() -> void:
 	else:
 		returning_from_island = false
 		_update_sailing_status()
+	MapState.update_player_position(global_position)
 
 func _physics_process(delta: float) -> void:
 	if _state == State.SAILING:
@@ -87,6 +95,7 @@ func _physics_process(delta: float) -> void:
 			_dock(dock_target)
 		else:
 			_update_sailing_status()
+	MapState.update_player_position(global_position)
 	ocean.global_position = global_position
 	prompt_label.visible = _state == State.ANCHORED and _player_at_stern and not player.using_station
 	queue_redraw()

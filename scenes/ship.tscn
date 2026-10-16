@@ -16,6 +16,7 @@
 [ext_resource type="Script" uid="uid://cx41u6oa2ga7r" path="res://scripts/inventory-system/player_inventory.gd" id="13_mx31c"]
 [ext_resource type="Script" path="res://scripts/islands/world_island.gd" id="14"]
 [ext_resource type="Texture2D" path="res://assets/island_large.png" id="15"]
+[ext_resource type="PackedScene" uid="uid://b324lul81i3po" path="res://scenes/maps/MapUI.tscn" id="16_map"]
 
 [sub_resource type="RectangleShape2D" id="SternShape"]
 size = Vector2(44, 40)
@@ -140,6 +141,8 @@ camera = NodePath("../Camera2D")
 draw_ocean_marks = false
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1647158824]
+
+[node name="MapUI" parent="." instance=ExtResource("16_map")]
 
 [node name="StatusLabel" type="Label" parent="HUD" unique_id=1710473860]
 offset_left = 290.0

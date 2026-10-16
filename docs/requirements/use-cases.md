@@ -130,10 +130,10 @@ All 50 items on the team's list are accounted for: 47 are covered by 45 use case
 | `UC-SYS-track-boat` | Track the boat across the map | System | 38 | |
 | `UC-SYS-shared-inventory` | Use a storage chest | Crew Member | 39 | |
 | `UC-SYS-item-drop` | Drop and pick up items | Crew Member | 41 | |
-| `UC-MAP-open-map` | View the map | Crew Member | 42 | |
-| `UC-MAP-view-island-info` | View a discovered island's info | Crew Member | 43 | Renamed from "Location of items on discovered islands"; the map shows islands, not items |
+| `UC-MAP-open-map` | View the map | Player | 42 | |
+| `UC-MAP-view-island-info` | View a discovered island's info | Player | 43 | Renamed from "Location of items on discovered islands"; the map shows islands, not items |
 | `UC-MAP-discover-map` | Reveal the map as the ship explores | System | 44 | |
-| `UC-MAP-place-pin` | Pin a marker to the map | Crew Member | 45 | |
+| `UC-MAP-place-pin` | Pin a marker to the map | Player | 45 | |
 | `UC-MAP-pin-distance` | Show distance to map pins | System | 46 | |
 | `UC-ISLE-arrive-at-island` | Travel between the ship and an island | Crew Member | 47 | |
 | `UC-ISLE-complete-challenge` | Complete an island challenge | Crew Member | 48 | |
@@ -298,7 +298,7 @@ Failure behavior: This use case makes no durable change. If the session drops mi
 
 - Is Fishing a minigame?
 - Cooking and Fishing have no use cases yet (they are not on the team's list).
-- The Map station is assumed (see `UC-MAP-open-map`).
+- The map opens as an overlay with M (see `UC-MAP-open-map`); it is not a deck station.
 
 ---
 
@@ -2845,65 +2845,65 @@ Failure behavior: This use case makes durable changes to where items are. The Ho
 
 **Date Created:** 2026-09-30
 
-**Primary Actor:** Crew Member
+**Primary Actor:** Player
 
 **Secondary Actors:** none
 
-**Trigger:** A crew member claims the Map station.
+**Trigger:** The player presses M to open the map.
 
-**Description:** A crew member uses the ship's map station to see where the ship is, which islands have been discovered, how far it is to Paradise Island, and any pins the crew has placed.
+**Description:** The player opens the map overlay to see explored ocean tiles, the ship's current position, discovered islands, pins and their distances, and the distance to Paradise Island when a registered island has the display name "Paradise Island".
 
 **Preconditions:**
 
-- PRE-1. The crew member has claimed the Map station (`UC-DECK-claim-station`).
+- PRE-1. A sailing scene with the map UI is active.
 
 **Postconditions:**
 
-- POST-1. The crew member has seen the current state of the map.
+- POST-1. The player has seen the current state of the map.
 
 **Main Success Scenario:**
 
-1. The system opens the map view for the crew member.
-2. The system shows the revealed areas, the ship's current location, the discovered islands, the distance to Paradise Island (`UC-PROG-track-progress`), and all pins with their distances (`UC-MAP-pin-distance`).
-3. The crew member views the map.
-4. The crew member leaves the station (`UC-DECK-use-station`, step 7).
-5. The system closes the map view.
-6. Use case ends.
+1. The system opens the map overlay.
+2. The system fits the current world bounds into the available map area without distorting the world coordinates.
+3. The system shows revealed ocean tiles, the ship's current position, discovered islands, pins and their distances, and the Paradise Island distance when configured by its display name.
+4. The player views the map and may select a discovered island or add, remove, or set a destination pin.
+5. The player presses M or Escape to close the map.
+6. The system closes the map overlay.
+7. Use case ends.
 
 **Extensions:**
 
-- **2a. No areas have been revealed yet (start of voyage):**
-    - 2a1. The system shows only the ship's location and the distance to Paradise Island.
-    - 2a2. Flow rejoins the main scenario at step 3.
-- **3a. The crew member selects a discovered island:**
-    - 3a1. Flow continues in `UC-MAP-view-island-info`.
-    - 3a2. Flow rejoins the main scenario at step 3.
-- **3b. The crew member places or removes a pin:**
-    - 3b1. Flow continues in `UC-MAP-place-pin`.
-    - 3b2. Flow rejoins the main scenario at step 3.
+- **3a. Only the ship's current tile has been revealed (start of voyage):**
+    - 3a1. The system shows the ship's location and any configured Paradise Island distance against unexplored ocean.
+    - 3a2. Flow rejoins the main scenario at step 4.
+- **4a. The player selects a discovered island:**
+    - 4a1. Flow continues in `UC-MAP-view-island-info`.
+    - 4a2. Flow rejoins the main scenario at step 4.
+- **4b. The player places or removes a pin:**
+    - 4b1. Flow continues in `UC-MAP-place-pin`.
+    - 4b2. Flow rejoins the main scenario at step 4.
 
 **Priority:** High
 
 **Frequency of Use:** Frequent.
 
-**Business Rules:** `BR-single-station-occupant`
+**Business Rules:** none
 
 **Associated Information:**
 
 | Property name | Data type | Validation rule | Security or access concerns | Glossary reference |
 |---|---|---|---|---|
-| revealed tiles | Set of tile IDs | Tiles the ship has visited | Shared by the whole crew | Map |
+| revealed tiles | Set of tile IDs | Tiles the ship has visited | Shared in the current single-player session | Map |
 
-Failure behavior: This use case makes no durable change.
+Failure behavior: The map is a non-pausing overlay; closing it leaves the voyage and map state unchanged.
 
-**Related Use Cases:** `UC-DECK-use-station`, `UC-MAP-discover-map`, `UC-MAP-view-island-info`, `UC-MAP-place-pin`, `UC-MAP-pin-distance`, `UC-PROG-track-progress`
+**Related Use Cases:** `UC-MAP-discover-map`, `UC-MAP-view-island-info`, `UC-MAP-place-pin`, `UC-MAP-pin-distance`, `UC-PROG-track-progress`
 
-**Assumptions:** The map is a station on the deck, not a menu. The whole crew shares one map and its discoveries.
+**Assumptions:** The map is opened with M and closed with M or Escape. Map state is shared by the single-player voyage and is not persisted between application runs.
 
 **Open Issues:**
 
-- Is the map a station, or a menu anyone can open anytime? (Unconfirmed.)
-- If it's a station, can only one crew member use it at a time?
+- What final map presentation and island details are desired?
 
 ---
 
@@ -2915,33 +2915,33 @@ Failure behavior: This use case makes no durable change.
 
 **Date Created:** 2026-09-30
 
-**Primary Actor:** Crew Member
+**Primary Actor:** Player
 
 **Secondary Actors:** none
 
-**Trigger:** A crew member selects a discovered island on the map.
+**Trigger:** The player selects a discovered island on the map.
 
-**Description:** A crew member checks a discovered island's stats on the map to decide whether it's worth sailing to. The map shows islands, not the items on them.
+**Description:** The player selects a discovered island to see its name and straight-line distance from the ship. The map shows islands, not the items on them.
 
 **Preconditions:**
 
-- PRE-1. The crew member is viewing the map (`UC-MAP-open-map`).
+- PRE-1. The player is viewing the map (`UC-MAP-open-map`).
 - PRE-2. At least one island has been discovered.
 
 **Postconditions:**
 
-- POST-1. The crew member has seen the selected island's stats.
+- POST-1. The player has seen the selected island's name and distance.
 
 **Main Success Scenario:**
 
-1. The crew member selects a discovered island on the map.
-2. The system shows that island's stats ([TBD] which stats).
-3. The crew member closes the island info.
+1. The player selects a discovered island on the map.
+2. The system shows the island's name and current distance from the ship in meters.
+3. The player selects another island or clicks elsewhere on the map to close the island info.
 4. Use case ends.
 
 **Extensions:**
 
-- **1a. The crew member selects an undiscovered area:**
+- **1a. The player selects an undiscovered area:**
     - 1a1. The system shows nothing.
     - 1a2. Use case ends.
 
@@ -2955,7 +2955,7 @@ Failure behavior: This use case makes no durable change.
 
 | Property name | Data type | Validation rule | Security or access concerns | Glossary reference |
 |---|---|---|---|---|
-| island stats | [TBD] | TBD | N/A | Island |
+| island info | Name and distance | Island must be discovered | N/A | Island |
 
 Failure behavior: This use case makes no durable change.
 
@@ -2965,7 +2965,7 @@ Failure behavior: This use case makes no durable change.
 
 **Open Issues:**
 
-- What stats does an island show (e.g. visited or not, shipwreck count, merchant present, challenge completed)?
+- Should island completion or other gameplay status be shown in addition to name and distance?
 
 ---
 
@@ -2979,11 +2979,11 @@ Failure behavior: This use case makes no durable change.
 
 **Primary Actor:** System
 
-**Secondary Actors:** Crew Member (affected)
+**Secondary Actors:** Player (affected)
 
 **Trigger:** The ship enters a tile (`UC-SYS-track-boat`).
 
-**Description:** The map starts hidden and fills in with each place the ship visits, so the crew builds up their chart as they sail.
+**Description:** The map starts unexplored and reveals a 256-world-unit ocean tile when the ship enters it. Islands in that tile become discovered at the same time.
 
 **Preconditions:**
 
@@ -2991,15 +2991,15 @@ Failure behavior: This use case makes no durable change.
 
 **Postconditions:**
 
-- POST-1. Every tile the ship has visited is revealed on the map for all crew members.
+- POST-1. Every tile the ship has visited is revealed on the map.
 - POST-2. Any island in a revealed tile is marked as discovered.
 
 **Main Success Scenario:**
 
-1. The system is notified that the ship has entered a tile.
+1. The system tracks the ship's world position and detects that it entered a new tile.
 2. The system reveals that tile on the map.
-3. The system marks any island in that tile as discovered.
-4. The system syncs the revealed tiles and discovered islands to all clients.
+3. The system marks islands registered in that tile as discovered.
+4. The system redraws the revealed map and discovered island markers.
 5. Use case ends.
 
 **Extensions:**
@@ -3007,8 +3007,8 @@ Failure behavior: This use case makes no durable change.
 - **2a. The tile is already revealed:**
     - 2a1. The system makes no change.
     - 2a2. Use case ends.
-- **4a. The ship is reset by a capsize:**
-    - 4a1. [TBD] The system keeps the revealed map, or resets it.
+- **4a. The ship scene is reloaded during the same application session:**
+    - 4a1. The map autoload retains the discovered tiles and islands.
     - 4a2. Use case ends.
 
 **Priority:** High
@@ -3021,18 +3021,16 @@ Failure behavior: This use case makes no durable change.
 
 | Property name | Data type | Validation rule | Security or access concerns | Glossary reference |
 |---|---|---|---|---|
-| revealed tiles | Set of tile IDs | Only tiles visited this voyage | Owned by the Host's instance | Map |
-| discovered islands | Set of island IDs | Islands in revealed tiles | Owned by the Host's instance | Island |
+| revealed tiles | Set of tile IDs | Only tiles visited this voyage | Single-player autoload state | Map |
+| discovered islands | Set of island IDs | Islands in revealed tiles | Single-player autoload state | Island |
 
-Failure behavior: Map state lasts for the voyage only and is never saved. Clients that desync get the Host's map on the next sync.
+Failure behavior: Discovery is retained by the autoload across scene changes, but is not saved after the application exits. Multiplayer synchronization is not implemented.
 
 **Related Use Cases:** `UC-SYS-track-boat`, `UC-MAP-open-map`, `UC-MAP-view-island-info`
 
-**Assumptions:** Only visited tiles are revealed; there's no reveal radius around the ship and no lookout bonus.
+**Assumptions:** Only the tile containing the ship is revealed; there is no reveal radius or lookout bonus.
 
-**Open Issues:**
-
-- Does a capsize keep the revealed map, or reset it?
+**Open Issues:** none for the current single-player implementation.
 
 ---
 
@@ -3044,62 +3042,54 @@ Failure behavior: Map state lasts for the voyage only and is never saved. Client
 
 **Date Created:** 2026-09-30
 
-**Primary Actor:** Crew Member
+**Primary Actor:** Player
 
 **Secondary Actors:** none
 
-**Trigger:** A crew member selects a spot on the map to pin.
+**Trigger:** The player selects a spot on the map to pin.
 
-**Description:** A crew member places a marker on the map to plan a route or remember a spot. The whole crew sees the pin and its distance.
+**Description:** The player places a pin on any map location, including unexplored areas, to plan a route or remember a spot. Each pin shows its straight-line distance from the ship.
 
 **Preconditions:**
 
-- PRE-1. The crew member is viewing the map (`UC-MAP-open-map`).
+- PRE-1. The player is viewing the map (`UC-MAP-open-map`).
 
 **Postconditions:**
 
-- POST-1. The pin appears on the map for all crew members.
+- POST-1. The pin appears on the map.
 
 **Main Success Scenario:**
 
-1. The crew member selects a location on the map.
-2. The crew member chooses to place a pin.
-3. The system places the pin and syncs it to all clients.
-4. The system starts showing the distance from the ship to the pin (`UC-MAP-pin-distance`).
-5. Use case ends.
+1. The player left-clicks a location not occupied by a discovered island or existing pin.
+2. The system places a pin at that map position.
+3. The system starts showing the distance from the ship to the pin (`UC-MAP-pin-distance`).
+4. Use case ends.
 
 **Extensions:**
 
-- **2a. The crew member selects an existing pin and removes it:**
-    - 2a1. The system removes the pin for all clients.
-    - 2a2. Use case ends.
-- **3a. The pin limit has been reached:**
-    - 3a1. [TBD] The system blocks the new pin, or removes the oldest one.
-    - 3a2. Use case ends.
+- **1a. The player left-clicks an existing pin:**
+    - 1a1. The system removes that pin.
+    - 1a2. Use case ends.
 
 **Priority:** Low
 
 **Frequency of Use:** Occasional.
 
-**Business Rules:** `BR-pin-limit`
+**Business Rules:** none
 
 **Associated Information:**
 
 | Property name | Data type | Validation rule | Security or access concerns | Glossary reference |
 |---|---|---|---|---|
-| pin position | Vector2 (map) | Within map bounds | Shared by the whole crew | Pin |
-| pin limit | Integer | TBD | N/A | Pin |
+| pin position | Vector2 (world) | Within the displayed map bounds | Single-player voyage state | Pin |
 
-Failure behavior: Pins last for the voyage only.
+Failure behavior: Pins last for the current application session and are removed when the application exits.
 
 **Related Use Cases:** `UC-MAP-open-map`, `UC-MAP-pin-distance`
 
-**Assumptions:** Any crew member can place or remove any pin, and pins can be placed on unrevealed areas.
+**Assumptions:** Pins can be placed on unrevealed areas. There is no pin limit in the current single-player implementation.
 
-**Open Issues:**
-
-- Is there a pin limit?
-- Can anyone remove anyone's pin?
+**Open Issues:** none for the current single-player implementation.
 
 ---
 
@@ -3113,7 +3103,7 @@ Failure behavior: Pins last for the voyage only.
 
 **Primary Actor:** System
 
-**Secondary Actors:** Crew Member (views distance)
+**Secondary Actors:** Player (views distance)
 
 **Trigger:** A pin exists and the ship's position changes.
 
@@ -3130,15 +3120,15 @@ Failure behavior: Pins last for the voyage only.
 **Main Success Scenario:**
 
 1. The system detects that the ship's position has changed.
-2. The system calculates the distance from the ship to each pin in map pixels.
-3. The system converts the pixel distance to meters.
+2. The system calculates the straight-line world-coordinate distance from the ship to each pin.
+3. The system converts world units to meters using the configured pixels-per-meter scale.
 4. The system updates each pin's distance label on the map.
 5. Use case ends.
 
 **Extensions:**
 
 - **2a. The ship reaches a pin's location:**
-    - 2a1. The system shows the distance as 0 m ([TBD] or removes the pin automatically).
+    - 2a1. The system shows the distance as 0 m and keeps the pin until the player removes it.
     - 2a2. Flow rejoins the main scenario at step 4.
 
 **Priority:** Low
@@ -3152,7 +3142,7 @@ Failure behavior: Pins last for the voyage only.
 | Property name | Data type | Validation rule | Security or access concerns | Glossary reference |
 |---|---|---|---|---|
 | pin distance | Float (meters) | ≥ 0 | N/A | Pin |
-| pixels-to-meters scale | Float | TBD | N/A | Map |
+| pixels-to-meters scale | Float | Greater than zero; configured on the ship | N/A | Map |
 
 Failure behavior: This use case makes no durable change.
 
@@ -3160,9 +3150,7 @@ Failure behavior: This use case makes no durable change.
 
 **Assumptions:** Distance is straight-line from the ship to the pin.
 
-**Open Issues:**
-
-- What is the pixels-to-meters scale?
+**Open Issues:** none for the current single-player implementation.
 
 ---
 
