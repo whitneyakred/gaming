@@ -1,6 +1,6 @@
 class_name ShipMotion
 extends Node2D
-## Owns movement only. Stations submit commands; this script never reads input.
+## Owns ship movement and local wind. Stations submit commands; no input is read here.
 
 signal sail_changed()
 
@@ -13,6 +13,16 @@ signal sail_changed()
 @export_range(0.01, 1.0) var turn_acceleration: float = 0.07
 ## Direction the wind blows TOWARD; length is strength, clamped to 0..1.
 @export var wind_velocity: Vector2 = Vector2(0.6, -0.8)
+@export_group("Changing Wind")
+@export var changing_wind_enabled: bool = true
+## Time between new targets varies from 75% to 125% of this interval.
+@export_range(0.1, 60.0, 0.1, "suffix:s") var wind_change_interval: float = 7.0
+## Larger values make the wind settle toward its new direction faster.
+@export_range(0.01, 5.0, 0.01) var wind_response: float = 0.32
+
+var _wind_change_left: float = 0.0
+var _target_wind_angle: float = 0.0
+var _wind_random := RandomNumberGenerator.new()
 
 var speed: float = 0.0
 var sail_level: int = 0
@@ -24,6 +34,26 @@ var stations_enabled: bool = true
 func _ready() -> void:
 	# Move the shared parent before crew perform their own walking/collision step.
 	process_physics_priority = -10
+	_target_wind_angle = wind_velocity.angle()
+	_wind_change_left = _next_wind_interval()
+
+func _process(delta: float) -> void:
+	# Separate from movement so anchored/docking ships still experience wind shifts.
+	if not changing_wind_enabled:
+		_target_wind_angle = wind_velocity.angle()
+		_wind_change_left = 0.0
+		return
+	_wind_change_left -= delta
+	if _wind_change_left <= 0.0:
+		_wind_change_left = _next_wind_interval()
+		# Every direction on the full circle is eligible, independent of current wind.
+		_target_wind_angle = _wind_random.randf_range(-PI, PI)
+	var angle := lerp_angle(wind_velocity.angle(), _target_wind_angle, 1.0 - exp(-wind_response * delta))
+	# Change direction only; preserve configured strength, including completely calm air.
+	wind_velocity = Vector2.from_angle(angle) * wind_velocity.length()
+
+func _next_wind_interval() -> float:
+	return maxf(0.1, wind_change_interval) * _wind_random.randf_range(0.75, 1.25)
 
 func set_wheel_angle(degrees: float) -> void:
 	var limit := maximum_wheel_turns * 360.0

@@ -12,7 +12,7 @@ func _process(_delta: float) -> void:
 	if not is_instance_valid(ship):
 		return
 	camera.global_position = ship.global_position
-	# The camera does not rotate, so the arrow uses the world wind direction.
+	# Show the actual smoothed wind, not its next random target. The camera does not rotate.
 	wind_arrow.rotation = ship.wind_velocity.angle() + PI / 2.0
 	wind_arrow.visible = not ship.wind_velocity.is_zero_approx()
 	helm_wheel.set_helm_state(is_instance_valid(helm.operator), ship.wheel_angle_degrees)
