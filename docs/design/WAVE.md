@@ -1,6 +1,8 @@
 # Waves & Stability Design
 
-**Project:** Holy Ship!
+> **Scope (2026-10-20):** The current milestone is single-player. Host/client synchronization, LAN sessions, joint actions, and multi-player capacity are retained only as deferred co-op design. Local gameplay uses the local simulation as authority. Planned behavior is not a claim of implementation; see [scope and status](../requirements/vision-and-scope.md#43-mvp-scope).
+
+**Project:** Holy Ship
 **Team:** Team 13
 **Area:** `WAVE`
 
@@ -35,7 +37,7 @@ _**Write it in this order.** Each step is one person's or one pair's work, and t
 
 _[One paragraph: what this area does, which components of your [architecture-of-record](architectural-design.md) it lives in, and what it reads from or calls in other areas. Link the container diagram rather than redrawing it. If this design changes the architecture-of-record, say so here and list the change under "Changes to the architecture-of-record" below.]_
 
-Waves & Stability makes rough weather dangerous: waves push the ship off its heading, a hidden stability value shows as shaking, and a capsize resets the crew to the last visited island. It runs inside the Game Application ([containers](architectural-design.md#51-containers)). It reads heading, speed, sail state, and wind from `ShipMotion` (NAV), reuses `Ship`'s visited-island tracking and `_stop_sailing()` (ISLE), clears `PlayerInventory` (SYS), is started by storms (EVT), and is also triggered when ship integrity reaches zero (SHIP). It is local and single-player (`KD-local-first`), so steps that sync to all clients are out of scope until networking exists. WAVE is not yet an area in [section 5.2](architectural-design.md#52-use-case-areas-and-components), so this design changes the architecture-of-record; see "Changes to the architecture-of-record" below.
+Waves & Stability makes rough weather dangerous: waves push the ship off its heading, a hidden stability value shows as shaking, and a capsize resets the crew to the last visited island. It runs inside the Game Application ([containers](architectural-design.md#51-containers)). It reads heading, speed, sail state, and wind from `ShipMotion` (NAV), reuses `Ship`'s visited-island tracking and `_stop_sailing()` (ISLE), clears `PlayerInventory` (SYS), is started by storms (EVT), and is also triggered when ship integrity reaches zero (SHIP). It is local and single-player (`KD-local-first`), so steps that sync to all clients are out of scope until networking exists. WAVE is listed in [section 5.2](architectural-design.md#52-use-case-areas-and-components); its proposed interfaces still require integration review.
 
 ## Components & classes
 
@@ -275,11 +277,11 @@ _[What this design could not settle and who can, and what could go wrong that yo
 - Whether waves keep pushing right after a capsize, when nobody is at the helm (`UC-WAVE-capsize-ship`). Liliana and Leiton.
 - Whether the ship can capsize while docked (`UC-WAVE-capsize-ship` PRE-1). Liliana and Leiton.
 - Is a storm the only rough weather? (`UC-WAVE-generate-waves`) The team, since it crosses into EVT.
-- Whether waves and stability stop while paused. The team, since it crosses into PROG.
+- Waves and stability freeze while paused under `BR-host-controls-session`; the PROG pause must gate their updates.
 - When the voyage starting point is recorded, and clearing the last visited island (a `static` value in `Ship`) at the start of each voyage (`UC-WAVE-capsize-ship` 4a). The team, since it crosses into PROG and ISLE.
 - Whether a capsize changes voyage progress (`UC-PROG-track-progress`). The team, since it crosses into PROG.
 - How wide is the tolerance around 45° for the safe diagonal range? (`UC-WAVE-balance-ship`) Liliana and Leiton.
-- Ship integrity, Repair Spots, the deck chest, and storms have no design yet (SHIP, SYS, EVT). The capsize trigger from integrity and parts of steps 5 and 6 cannot be built until they are. The team.
+- Ship integrity, Repair Spots, the deck chest, and storms now have proposed designs (SHIP, SYS, EVT), but their contracts and code remain incomplete. The capsize trigger from integrity and parts of steps 5 and 6 cannot be built until they are. The team.
 - Cooking and fishing hold the player but are not `ShipStation`s, so step 3 needs a way to release them. The team, since it crosses into DECK and SURV.
 - The island trip changes scenes and keeps state in `static` variables in `Ship`; a capsize while crew are ashore (`UC-ISLE-arrive-at-island` 3a) is not designed here. The team, since it crosses into ISLE.
 - `UC-WAVE-capsize-ship` 6a (disconnect during the reset) has no local flow until networking exists (`KD-local-first`).
@@ -304,7 +306,7 @@ The following details are not resolved by this design. The tentative guesses doc
 |---|---|---|---|
 | How hard waves push the heading (`UC-WAVE-generate-waves` step 4) | A turn rate that scales with intensity, strongest at 45° and settling the ship side-on. | Yes — if the push beats the helm, balancing becomes impossible and capsizes unavoidable. | The team picks a push that stays weaker than the helm's turning at every intensity. |
 | How the waves are drawn (`UC-WAVE-generate-waves` step 3) | A scrolling wave layer moving in the wave direction, faster at higher intensity. | Yes — if the direction is not visible, the helmsman cannot read the incoming waves. | The team designs the wave visuals. |
-| Waves while paused (`UC-WAVE-generate-waves`) | The push and fade freeze on pause. | Yes — pushing during a pause acts outside PRE-1. | The team decides in the PROG design. |
+| Waves while paused (`UC-WAVE-generate-waves`) | The push and fade freeze on pause. | Yes — pushing during a pause acts outside PRE-1. | Apply `BR-host-controls-session`; shared pause integration still needs implementation. |
 | What counts as rough weather (`UC-WAVE-generate-waves` step 1) | Storms are the only rough weather. | Yes — milder rough weather without waves would break `BR-waves-rough-weather-only`. | The team decides in the EVT design. |
 | Width of the safe diagonal range (`UC-WAVE-balance-ship`) | ±15° around 45°, as an exported property. | Yes — a tolerance of 45° or more would make straight-on or side-on count as safe. | The team picks a tolerance under 45°. |
 | The capsize-warning shake (`UC-WAVE-balance-ship` 3c) | A jump in shake intensity below the danger threshold. | Yes — if it looks like ordinary shaking, players get no warning. | The team makes the warning clearly different. |

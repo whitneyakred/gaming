@@ -1,6 +1,8 @@
 # Movement & Stations Design
 
-**Project:** Holy Ship!
+> **Scope (2026-10-20):** The current milestone is single-player. Host/client synchronization, LAN sessions, joint actions, and multi-player capacity are retained only as deferred co-op design. Local gameplay uses the local simulation as authority. Planned behavior is not a claim of implementation; see [scope and status](../requirements/vision-and-scope.md#43-mvp-scope).
+
+**Project:** Holy Ship
 **Team:** Team 13 (Gaming): Whitney Akred, Shana Billiot, Liliana Matte, Gustavo Castillo, Leiton Peterson, Ivan Lopez
 **Area:** `UC-DECK`
 

@@ -1,6 +1,8 @@
 # System Behaviors (SYS) Design
 
-**Project:** Man the Ship
+> **Scope (2026-10-20):** The current milestone is single-player. Host/client synchronization, LAN sessions, joint actions, and multi-player capacity are retained only as deferred co-op design. Local gameplay uses the local simulation as authority. Planned behavior is not a claim of implementation; see [scope and status](../requirements/vision-and-scope.md#43-mvp-scope).
+
+**Project:** Holy Ship
 **Team:** Whitney Akred, Leiton Peterson, Ivan Lopez, Liliana Matte, Gustavo Castillo, Shana Billiot
 **Area:** `SYS`
 
@@ -258,35 +260,35 @@ There is no persistent save model. `BR-capsize-reset` calls player/deck-chest cl
 
 ## Changes to the architecture of record
 
-Add SYS to the area/component map as a provisional area owning runtime item quantities, chest/world-item state, and tile tracking. Keep Item Catalog as the cross-cutting owner of definitions only. Update the existing `BR-single-helmsman` note: the current business-rules document marks it as superseded by `BR-single-station-occupant`.
+SYS is now listed in the area/component map as owning runtime item quantities, chest/world-item state, and tile tracking. Keep Item Catalog as the cross-cutting owner of definitions only. Update the existing `BR-single-helmsman` note: the current business-rules document marks it as superseded by `BR-single-station-occupant`.
 
 ## Open questions & risks
 
 - Expanded-slot count, deck-chest base capacity, chest upgrade amount, and map tile size are TBD; implementation must not choose values silently.
 - The overboard-drop outcome is TBD; its branch cannot be implemented or tested until approved.
 - Current inventory code lacks slot placement and the 30-item rule, so dependent UI/chest/drop features wait for its migration.
-- Co-op/Host wording conflicts with the project's single-player-first constraint. Reconcile requirements before adding synchronization behavior.
+- Co-op/Host wording is explicitly deferred by the use-case scope. Current state ownership is local; later synchronization requires separate authorization and design.
 
 ## Implementation assumptions awaiting decisions
 
-The following details are not resolved by this design. The tentative guesses document the assumptions an implementation would otherwise need to make; the final column is intentionally left open for approved decisions.
+The following details are not resolved by this design. The tentative guesses document the assumptions an implementation would otherwise need to make; the final column records proposals or corrections, not automatically approved rules. Numeric proposals remain TBD until reconciled with the use cases; see `OI-11`, `OI-15`, and `OI-17`.
 
 | Decision point | Tentative implementation guess | Wrong guess could violate a requirement? | Proposed solution |
 |---|---|---|---|
 | Item category vocabulary | Define a small documented category enum shared by item definitions and item-pool callers. | Yes — category filtering can otherwise return incorrect or empty loot. | Item categories will be added to the item database systems as additional factor that needs to be set when items are added to the database/item pool.|
 | Item draw weights and sell values | Assign temporary positive weights and nonnegative sell values in the catalog. | Yes — both properties are explicitly TBD and affect weighted selection and merchant behavior. | Feature was not designed until after item system was created will weight and worth will be added as necessary fields for item generation |
-| Item-pool randomness and repeated draws | Use deterministic seeded weighted draws with replacement, including when requested count exceeds matching definitions. | Potentially — weighted selection is required, but seeding and replacement behavior are not specified. | until the use of weighted drops is need will stay seeded random but system will be shifted if needed|
+| Item-pool randomness and repeated draws | Use deterministic seeded weighted draws with replacement, including when requested count exceeds matching definitions. | Potentially — weighted selection is required, but seeding and replacement behavior are not specified. | Weighted selection is required by `UC-SYS-item-pool`; seeded uniform selection is only a prototype idea and cannot satisfy that contract. Exact weights and repeat-draw policy remain TBD.|
 | Expanded inventory-slot count | Do not choose a count; block this portion of the inventory migration pending approval. | Yes — `BR-inventory-slots` leaves it TBD and SYS prohibits a silent choice. | current inventory api requires a set limit for the amount the iventory instance can hold. When created the inventory has to maintain the maximum slot limit. |
 | Add request when only part of an amount fits | Refuse the full request atomically rather than accept a partial amount. | Potentially — stack and slot limits are specified, but partial acceptance is not. | system should be able to handle when stack is overflowed dropping the item out of the player's inventory. |
 | Slot selection and stack-moving behavior | Fill matching stacks first, then the next available quick slot, then an expanded slot. | Potentially — "next eligible" is specified but exact ordering and movement rules are not. | should typically fill left to right unless user specifically places an item in an inventory slot|
-| Deck-chest base capacity and upgrade amount | Do not assign values pending approval. | Yes — both values are explicitly TBD. | deck chest will be limited to 10 slots with no current plans to add upgradability feature.|
+| Deck-chest base capacity and upgrade amount | Do not assign values pending approval. | Yes — both values are explicitly TBD. | Proposal: 10 slots with no upgrades. This is not an approved capacity and does not remove the use case’s TBD upgrade extension; resolve `OI-11`.|
 | Chest types and first-open loot configuration | Make loot count, allowed categories, and weights Inspector-configurable per chest type. | Potentially — first-open initialization is required, but its configuration is unspecified. | each chest will either be storage or treasure drops. Treasure can be opened anytime but only is filled the first time open. Regular chests are always empty when first created but then story the added items in unique inventory instance. |
 | Tile size, origin, boundary rule, and tile-ID format | Use fixed-size square tiles with floor division, including negative coordinates. | Yes — tile size is explicitly TBD and affects MAP, Events, and Progress. | will be set during map generation |
-| Initial BoatTracker position | Treat tracker initialization as entry into the starting tile and publish one notification set. | Potentially — otherwise MAP, Events, and Progress may not receive the initial tile. | ship starts always at the top left location and has to travel to bottom right corner of map to complete journey|
-| Capsize/restart reset input and cleared chest scope | Receive the reset position from Ship State; clear player inventories and the deck chest through SYS operations. | Potentially — SYS must not decide when capsize happens, and exact reset inputs are not specified. | ship event handler will clear all objects and return game to start menu when ship capsizes. |
-| Valid deck and island drop placement | Allow drops only inside a deck collider or active island bounds. | Potentially — the required placement policy is not defined. | items will drop in stack or partial stacks and remain on deck for 3.5 minutes before automatically being cleared from game state. |
+| Initial BoatTracker position | Treat tracker initialization as entry into the starting tile and publish one notification set. | Potentially — otherwise MAP, Events, and Progress may not receive the initial tile. | Earlier top-left-to-bottom-right proposal is unapproved. Starting/destination placement must support the indefinite-travel constraint; tile origin and voyage placement remain TBD (`OI-17`).|
+| Capsize/restart reset input and cleared chest scope | Receive the reset position from Ship State; clear player inventories and the deck chest through SYS operations. | Potentially — SYS must not decide when capsize happens, and exact reset inputs are not specified. | Apply `BR-capsize-reset`: the voyage continues after the ship/crew reset and specified inventories are cleared. Returning to the main menu on capsize was a conflicting proposal and is not the current rule. |
+| Valid deck and island drop placement | Allow drops only inside a deck collider or active island bounds. | Potentially — the required placement policy is not defined. | Proposal: a 3.5-minute deck-drop lifetime. Placement, partial stacks, and despawn/lifetime behavior remain TBD; reconcile SYS and ISLE retention under `OI-15`. |
 | Overboard drop outcome | Do not implement this branch until a policy is approved. | Yes — SYS explicitly marks it TBD and unimplementable pending a decision. | system is still tbd and has not been approved by group members, most likely will not be added. |
 | Whole versus partial world-item pickup | Attempt pickup of the complete stack atomically. | Potentially — ownership must move exactly once, but partial pickup is unspecified. | will auto drop item if no space available but will fill stack if able then drop remaining. |
 | Deck-item attachment | Parent deck drops to the ship/deck transform; store island drops in island/world coordinates. | Yes — deck items are required to move with Ship State. | drops will dissappear after some time if not interacted with by player. When dropped will maintain position relative to location within ships deck. |
-| Unknown item-ID reporting | Return a typed failure and log a diagnostic without mutating state. | No, provided callers never invent definitions or mutate state. | inteded to throw error handled by background systems. Will not immediately crash game unless multiple misses occure. |
-| Typed signal contract and position update cadence | Emit typed tile-ID and world-position signals; publish tile entry only on a changed tile or reset. | No, provided MAP receives position updates and tile-entry semantics remain intact. | every 5 to 10 seconds player location relative to boat within map is updated. Location on boat is update every second to track small movements. |
+| Unknown item-ID reporting | Return a typed failure and log a diagnostic without mutating state. | No, provided callers never invent definitions or mutate state. | Return a failure/diagnostic without partial mutation. Repeated missing item IDs do not authorize terminating gameplay (`ROB-invalid-action`). |
+| Typed signal contract and position update cadence | Emit typed tile-ID and world-position signals; publish tile entry only on a changed tile or reset. | No, provided MAP receives position updates and tile-entry semantics remain intact. | Earlier 5–10-second ship and 1-second crew sampling suggestions are unapproved. `UC-SYS-track-boat` requires tile crossings to notify dependent systems; a chosen cadence must not skip crossings or leave distance feedback stale (`OI-17`). |

@@ -1,12 +1,12 @@
 # Vision and Scope
 
-**Project:** Man the Ship  
+**Project:** Holy Ship
 **Team:** Team 13 (Gaming) — Whitney Akred, Shana Billiot, Liliana Matte, Leiton Peterson, Ivan Lopez, Gustavo Castillo  
 **Client:** None — student-led TCU Senior Design project; the development team owns product decisions  
-**Version:** 0.2 — Updated draft for team review  
-**Reviewed:** September 25, 2026
+**Version:** 0.3
+**Reviewed:** October 20, 2026
 
-This document distinguishes the documented current prototype, the planned game, and ideas that still require a team decision. The current minimal MVP is a stationary ship with one character walking around its bounded deck. It is not yet a complete survival game.
+This document distinguishes the documented current prototype, the planned game, and ideas that still require a team decision. The current prototype supports one player sailing, operating stations, docking, and taking rowboat trips to timed island games. It is not yet the full survival voyage.
 
 This revision uses the repository's minimal-MVP guide and glossary for current scope, the use cases for specified player behavior, and the team contract for decision ownership. Earlier meeting records provide background. Instructions and worked examples in unfinished templates are not project requirements. Where documents disagree, this draft records the conflict rather than assuming approval.
 
@@ -19,7 +19,7 @@ This revision uses the repository's minimal-MVP guide and glossary for current s
 
 ## 1. Introduction
 
-Man the Ship is a top-down 2D sailing and survival game for PC. Its intended experience centers on a shared ship: crew members operate stations, manage supplies, and travel toward Paradise Island, with optional island stops for treasure and resources. Development begins locally with one player; cooperative play is a later goal.
+Holy Ship is a top-down 2D sailing and survival game for PC. Its intended experience centers on a shared ship: crew members operate stations, manage supplies, and travel toward Paradise Island, with optional island stops for treasure and resources. Development begins locally with one player; cooperative play is a later goal.
 
 This document defines the product's purpose, intended benefits, stakeholders, and boundaries. It does not make every brainstormed feature a release commitment.
 
@@ -29,46 +29,27 @@ Team 13 consists of six TCU Senior Design students who collectively define, deve
 
 The September 10 meeting established the ship-survival concept, PC target, and single-player-first direction. Subsequent documentation identifies Godot, a top-down 2D presentation, and a planned loop of sailing, hunger/thirst management, and optional island visits.
 
-The minimal-MVP guide documents a playable starting point with a stationary ship and deck movement. It explicitly excludes sailing, interactive stations, survival, swimming, procedural ocean, a heads-up display, and networking. The current art is static; painted ship controls are not interactive stations. This is documented status, not a new runtime verification performed for this revision.
+The [prototype guide](../minimal-mvp.md) and [sailing guide](../sailing-integration.md) describe current code. The earlier deck-only prototype has grown into a local sailing/island loop. Survival, capsize/repair, full voyage progression, procedural world chunks, and networking remain planned.
 
 ### 1.2 Current Process Flows (As-Is Process Flows)
 
-The current player experience is a movement prototype rather than a replacement for an existing business process.
+The current experience is a local sailing prototype. Use WASD or arrow keys to walk, E to operate a station, the sail to generate propulsion, and the helm to steer. Sail into an island's docking range, use the stern rowboat, complete the island challenge, and return to the ship. See [play instructions](../sailing-integration.md).
 
 ```mermaid
 flowchart TD
-  subgraph Player
-    A[Launch the prototype]
-    C[Press movement controls]
-    F[Continue exploring the deck or stop]
-  end
-  subgraph Game[Current Prototype]
-    B[Display stationary ship and one character]
-    D[Move character and check deck boundary]
-    E[Show updated character position]
-  end
-  A --> B
-  B --> C
-  C --> D
-  D --> E
-  E --> F
-  F --> C
+  A[Launch local prototype] --> B[Walk to sail or helm]
+  B --> C[Sail toward a placed island]
+  C --> D[Dock and take rowboat]
+  D --> E[Play timed island challenge]
+  E --> F{Escape before timeout?}
+  F -- Yes --> G[Return and manually depart]
+  F -- No --> E
+  G --> B
 ```
 
-The player moves around the deck using WASD or arrow keys. The boundary keeps the character aboard, while the ship and camera remain stationary. There is no departure, sailing challenge, resource management, or voyage outcome to evaluate yet.
+Cooking, fishing, item definitions, and a small per-player inventory also exist. They do not establish the planned survival stats, shared chests, or full inventory contract. The current gap is integrating the broader planned systems into a tested, manageable solo voyage.
 
-| Current tool or artifact | Purpose | Current limitation |
-|---|---|---|
-| Godot prototype and minimal-MVP guide | Establish scene structure, movement, and deck collision | Cannot yet demonstrate the intended sailing-survival loop |
-| Repository requirements documents | Record scope, terms, use cases, and open questions | The specification and business-rules files still contain template material |
-| Use-case document | Describe player goals and steering behavior | Only `UC-NAV-steer-ship` is fully written; other entries are a scaffold |
-| Glossary | Define intended gameplay and distinguish planned features from current behavior | Some design decisions remain open or disagree with older documents |
-| Shared meeting records and design boards | Record discussion and feature ideas | Board contents are represented here through the glossary and use cases; the board itself was not supplied in this folder |
-| Team contract | Define ownership, decisions, and review | Communication details differ from the interview record and need reconciliation |
-
-The main product gap is concrete: players can walk to the wheel but cannot steer, and the current scene cannot show whether sailing and survival are enjoyable together. Documentation also needs alignment: the use cases state a four-player cap while the glossary leaves crew size unconfirmed.
-
-Domain definitions belong in the project glossary. A **station** is a place where a crew member performs a ship task; a **voyage** is the planned journey toward Paradise Island; the **minimal MVP** is the current movement-only starting point.
+The use cases contain 46 detailed entries across 11 areas. Their TBDs and deferred co-op flows prevent treating the entire document as completed or as the next milestone's scope. The glossary defines domain terms; [traceability](../traceability.md) links the requirements and designs.
 
 ### 1.3 References
 
@@ -77,13 +58,13 @@ Repository paths below are relative to the repository root.
 | Reference | Date/version | Location |
 |---|---|---|
 | Minimal game starting point | Undated; reviewed 2026-09-25 | `docs/minimal-mvp.md` |
-| Project glossary | Version 0.2, 2026-09-13 | `docs/requirements/project-glossary.md` |
-| Use cases | Version 0.1, 2026-09-13 | `docs/requirements/use-cases.md` |
+| Project glossary | Version 0.3, 2026-10-20 | `docs/requirements/project-glossary.md` |
+| Use cases | Version 0.3, 2026-10-20 | `docs/requirements/use-cases.md` |
 | Team contract | Signed 2026-09-04 | `docs/team-contract.md` |
 | Initial interview and meeting record | Group meeting 1; records September 10 discussion | `docs/requirements/client-interview-guide.md` |
 | Open issues | Entries raised 2026-09-13 | `docs/requirements/OPEN-ISSUES.md` |
-| Software requirements specification | Version 0.1; template not completed | `docs/requirements/software-requirements-specification.md` |
-| Business rules | Version 0.1; template not completed | `docs/requirements/business-rules.md` |
+| Software requirements specification | Version 0.2; project requirements and remaining TBDs | `docs/requirements/software-requirements-specification.md` |
+| Business rules | Version 0.3; gameplay rules | `docs/requirements/business-rules.md` |
 | Rough project assessment | Undated | `docs/napkin-round-0.md` |
 | Project development constraints | Undated | `AGENTS.md` |
 | Original vision-and-scope template | Previously supplied | https://github.com/tcu-cosc-40943/course-templates |
@@ -95,9 +76,9 @@ For this student-led project, business requirements describe intended player val
 
 ### 2.1 Business Opportunity or Problem Statement
 
-Man the Ship explores whether moving between ship duties, responding to wind, and managing supplies can create an engaging survival journey. Optional island visits are intended to offer choices about collecting resources before continuing toward Paradise Island.
+Holy Ship explores whether moving between ship duties, responding to wind, and managing supplies can create an engaging survival journey. Optional island visits are intended to offer choices about collecting resources before continuing toward Paradise Island.
 
-The immediate opportunity is to extend the movement prototype into a coherent local sailing experience and test its appeal. The larger cooperative vision adds shared responsibilities, but networking should not begin before the local boat-and-station loop is stable. The team's earlier single-player-first agreement remains relevant; the exact readiness gate for multiplayer is still undefined.
+The immediate opportunity is to extend the local sailing prototype into a coherent survival experience and test its appeal. The larger cooperative vision adds shared responsibilities, but networking should not begin before the local boat-and-station loop is stable. The team's earlier single-player-first agreement remains relevant; the exact readiness gate for multiplayer is still undefined.
 
 Player demand and differentiation from existing games have not been validated. The current prototype alone cannot establish those claims.
 
@@ -125,7 +106,7 @@ The team must approve sample size, participant selection, standard instructions,
 |---|---|
 | **For** | PC players interested in sailing, survival, and shared ship responsibilities |
 | **Who** | Want to make decisions about operating a ship and obtaining supplies during a voyage |
-| **The Man the Ship** | Is a top-down 2D sailing and survival game |
+| **The Holy Ship** | Is a top-down 2D sailing and survival game |
 | **That** | Centers play on navigating a ship toward Paradise Island, managing hunger and thirst, and choosing optional island stops |
 | **Unlike** | A concept expressed only through documents or disconnected mechanic demonstrations |
 | **Our product** | Aims to connect physical ship duties and voyage decisions into a complete playable experience, developed locally before cooperative expansion |
@@ -141,7 +122,7 @@ flowchart TD
     C[Operate helm and adjust sail]
     E[Manage hunger and thirst]
     F{Make an optional island stop?}
-    G[Explore permitted areas and dig for supplies]
+    G[Explore islands and gather supplies]
   end
   subgraph Game[Planned Game]
     B[Present ship and sailing conditions]
@@ -161,7 +142,7 @@ flowchart TD
   H -- Yes --> I
 ```
 
-Compared with the current flow, sailing, supplies, island stops, and destination progression are new. Player decisions remain manual; the game updates movement and resource consequences. Dock departure, island transfer, failure conditions, restarting, and whether arrival is victory or loot extraction remain to be specified. This planned flow is not the next milestone's approved feature list.
+The planned loop adds survival and destination progression to the existing sailing/island prototype. Arrival, capsize, and restart have use cases; their remaining TBDs are not all approved mechanics. The older docked-start concept and extraction idea do not describe current launch behavior.
 
 ### 2.6 Risks
 
@@ -204,9 +185,9 @@ The team contract assigns routine decisions to the use-case owner and team-wide 
 
 The current prototype supports one local player using WASD or arrow keys. The intended product is a top-down 2D PC game. Minimum hardware, supported operating systems, voyage duration, accessibility requirements, and final control bindings have not been agreed.
 
-The repository calls for Godot 4, GDScript, the Compatibility renderer, and preservation of Web-export compatibility. The minimal-MVP guide names Godot 4.7.2 as its authoring environment; that is a repository statement, not a verified installed version or player requirement. No active Web export preset is documented, so browser delivery is not a committed release platform.
+The repository calls for Godot 4, GDScript, the Compatibility renderer, and preservation of Web-export compatibility. `project.godot` declares Godot 4.7 features; this does not establish an exact required patch version or a tested platform matrix. Browser delivery is not a committed release platform.
 
-The use cases and development guidance target eventual four-player cooperation, while the glossary leaves the supported crew size unconfirmed. Treat four as a planning target pending reconciliation, not a validated capability.
+The current milestone is single-player. The retained deferred LAN design caps sessions at four players including the Host; neither AGENTS.md nor this documentation update authorizes networking implementation.
 
 ### 3.3 Alternatives and Competition
 
@@ -221,17 +202,17 @@ The use cases and development guidance target eventual four-player cooperation, 
 
 ### 4.1 Product Perspective
 
-Man the Ship is a real-time game, with inventory and supplies as potential gameplay state. The rough assessment mentions a database, but no reviewed requirement establishes a database, account service, or external integration. Those are not current scope commitments.
+Holy Ship is a real-time game, with inventory and supplies as potential gameplay state. The rough assessment mentions a database, but no reviewed requirement establishes a database, account service, or external integration. Those are not current scope commitments.
 
 ```mermaid
 flowchart LR
-  Player[Local Player] -->|Movement input now; station actions planned| Game[Man the Ship]
-  Game -->|Scene feedback now; voyage feedback planned| Player
+  Player[Local Player] -->|Movement and station input| Game[Holy Ship]
+  Game -->|Sailing and island feedback| Player
   Crew[Additional Players - Later Scope] -.->|Shared session actions| Game
   Game -.->|Shared ship and crew state| Crew
 ```
 
-The ship is the primary environment. Development guidance calls for reusable station systems and eventual indefinite ocean travel through deterministic or recycled sections. The current blue background does not implement ocean travel.
+The ship is the primary environment. Development guidance calls for reusable station systems and eventual indefinite ocean travel through deterministic or recycled sections. The current repeating ocean visual and hand-placed islands do not implement deterministic world-chunk generation.
 
 ### 4.2 Major Features and Scope
 
@@ -239,64 +220,49 @@ Existing identifiers are retained; status does not imply implementation.
 
 | Identifier | Capability | Status |
 |---|---|---|
-| **FEAT-deck-movement** | Move one character around a stationary ship while remaining inside its deck boundary | Documented current minimal MVP |
-| **FEAT-single-player-survival** | Manage a local ship-survival experience without other players | Product direction; survival not implemented |
-| **FEAT-ship-stations** | Operate ship duties at interactive locations | Planned; only steering is fully written as a use case |
-| **FEAT-sailing-control** | Steer and adjust sails in relation to wind | Planned; `UC-NAV-steer-ship` specified with unresolved tuning and collision effects |
-| **FEAT-ocean-travel** | Travel beyond the starting scene through a continuing ocean | Planned; not implemented |
-| **FEAT-food-water-management** | Obtain and consume food and water to manage hunger and thirst | Planned; quantities, penalties, and storage undefined |
-| **FEAT-island-exploration** | Make optional island stops, walk on land, and dig for treasure or supplies | Planned; transfer, exploration extent, puzzles, and flags need specification |
-| **FEAT-stamina-movement** | Support stamina-related sprinting and swimming | Planned vocabulary and scaffold; depletion, recovery, and exhaustion undecided |
-| **FEAT-ship-repair** | Repair hull damage or leaks | Planned; causes, materials, and consequences undecided |
-| **FEAT-floating-chests** | Encounter and collect chests at sea | Planned; contents and collection undefined |
-| **FEAT-voyage-progress** | Progress toward Paradise Island | Planned; victory, failure, restart, and extraction rules unresolved |
-| **FEAT-cooperative-play** | Share a ship and session among multiple players | Later scope; four-player target requires reconciliation |
-| **FEAT-session-setup** | Host/join, choose appearance, and ready up | Use-case scaffold; networking deferred |
-| **FEAT-trading-encounters** | Interact with pirates and traders and exchange resources or currency | Candidate scope from use-case list; not specified |
-| **FEAT-ocean-encounters** | Vary voyages through random events | Open idea in glossary; event types and inclusion undecided |
-| **FEAT-npc-assistance** | Receive help from game-controlled crew | Earlier meeting idea; not committed |
-| **FEAT-overboard-rescue** | Help a crew member return to safety | Open idea; mechanisms and inclusion undecided |
-| **FEAT-role-attributes** | Give roles distinct gameplay attributes | Earlier design option; not committed |
+| **FEAT-deck-movement** | Move one character around the ship within its deck boundary | Implemented prototype |
+| **FEAT-single-player-survival** | Manage a local sailing/survival experience | Single-player is current scope; survival stats remain planned |
+| **FEAT-ship-stations** | Operate ship duties at interactive locations | Helm, sail, cooking, and fishing exist; common station lifecycle and other stations are planned |
+| **FEAT-sailing-control** | Steer and trim sails in relation to wind | Prototype implemented; planned NAV extensions and tuning remain open |
+| **FEAT-ocean-travel** | Travel through a continuing ocean | Moving ship and repeating ocean exist; deterministic/recycled world chunks remain planned |
+| **FEAT-food-water-management** | Obtain and consume supplies for hunger and thirst | SURV use cases specified with TBD tuning; survival system not implemented |
+| **FEAT-island-exploration** | Visit islands and gather supplies or complete challenges | Rowboat trips and two timed island games exist; persistent voyage resources and wreck salvage remain planned |
+| **FEAT-stamina-movement** | Earlier proposal for sprinting/swimming stamina | Historical feature ID retained; no separate stamina system approved. FTG specifies fatigue; DECK/ISLE describe planned overboard alternatives |
+| **FEAT-ship-repair** | Repair open hull leaks | SHIP rules and design exist; code and tuning remain pending |
+| **FEAT-floating-chests** | Collect floating ocean chests | Earlier idea without a dedicated active use case; not current scope |
+| **FEAT-voyage-progress** | Progress toward Paradise Island | PROG use cases and design exist; full voyage management not implemented |
+| **FEAT-cooperative-play** | Share a ship among multiple players | Deferred LAN design for 1–4 players; no current networking |
+| **FEAT-session-setup** | Start a voyage, choose appearance, and manage sessions | PROG specified; LAN host/join and readiness are deferred |
+| **FEAT-trading-encounters** | Trade items for shared voyage gold | Merchant behavior specified in EVT with TBD prices; pirate combat is not implied |
+| **FEAT-ocean-encounters** | Select events per visited tile and weather storms | EVT/WAVE specified with TBD event tables and tuning; not implemented |
+| **FEAT-npc-assistance** | Receive help from game-controlled crew | Earlier idea; no current use case or implementation commitment |
+| **FEAT-overboard-rescue** | Help a crew member return to safety | Earlier rescue idea; planned plank/ladder movement is not a rescue subsystem |
+| **FEAT-role-attributes** | Give roles distinct gameplay attributes | Earlier idea; not approved current scope |
 
-Fatigue/rest, bathroom mechanics, capsize meters, starvation death, and guaranteed victory on arrival appeared in earlier conversation materials. The reviewed repository does not establish them as current commitments. Stamina is not assumed to mean fatigue. Detailed future behavior must be reconciled before implementation.
+Fatigue/rest, hunger/thirst, capsize, and pass-out recovery are specified planned behavior in the current use cases. Stamina is an older idea, not a synonym for fatigue. Bathroom mechanics and permanent starvation death are not active requirements. MAP and SYS provide supporting chart, inventory, and world-state behavior; see traceability.
 
 ### 4.3 MVP Scope
 
-**Current minimal MVP:** FEAT-deck-movement only. It contains one stationary ship, one controllable character, a bounded deck, a fixed camera, static art, and a simple ocean background. It establishes movement and scene structure; it does not deliver the full product vision.
+**Current milestone: single-player.** The owner confirmed on 2026-10-20 that co-op remains deferred. Existing code supports deck movement, helm/sail propulsion, cooking/fishing interactions, item metadata and a small inventory, docking at two hand-placed islands, rowboat scene transitions, and timed coconut/treasure challenges. See [minimal MVP](../minimal-mvp.md) for the source map and known limits.
 
-**Excluded from that current milestone:** FEAT-single-player-survival beyond deck movement, FEAT-ship-stations, FEAT-sailing-control, FEAT-ocean-travel, FEAT-food-water-management, FEAT-island-exploration, FEAT-stamina-movement, FEAT-ship-repair, FEAT-floating-chests, FEAT-voyage-progress, FEAT-cooperative-play, FEAT-session-setup, FEAT-trading-encounters, FEAT-ocean-encounters, FEAT-npc-assistance, FEAT-overboard-rescue, and FEAT-role-attributes.
+**Planned, not delivered:** SURV/FTG stats, WAVE capsize, SHIP repairs, SYS shared chests and slot inventory, MAP charts, EVT events/trading, and PROG voyage lifecycle. The current tests do not prove those use cases. Large inventory, crafting, and progression expansions still require an explicit milestone decision.
 
-**Next milestone:** Define and approve a narrow local boat-and-station loop. Steering is the strongest documented starting point because it has a written use case. This is a proposed sequencing recommendation, not evidence of team approval. Wind, sail control, and the steering extensions need an explicit milestone boundary.
+**Deferred co-op:** Host/join, LAN replication, disconnect recovery, joint repair, and multi-crew occupancy/competition. The retained design cap is four including the Host. The local player owns applicable session controls; local state authority does not require a networking abstraction.
 
-**Later product scope:** Sailing, hunger/thirst, and optional island visits form the planned loop. Other listed capabilities remain planned or open according to Section 4.2. Networking must wait for a stable local loop; the earlier agreement to complete single-player first needs a precise acceptance gate.
+**Source ownership:** Use this section for milestone status; [business rules](business-rules.md) for domain constraints; [use cases](use-cases.md) for planned flows; [glossary](project-glossary.md) for terms; [specification](software-requirements-specification.md) for cross-cutting constraints/quality; area designs for implementation proposals. Historical interviews, brainstorming, and template examples do not override these. If two designs make incompatible choices, record the issue instead of treating either as automatically approved.
 
-No reviewed document establishes the final delivery date or final release's complete feature list. Large inventory, crafting, and progression systems are outside the narrow current direction unless the team explicitly approves them.
+**Next milestone:** The team still needs to choose a narrow subset of the remaining planned behaviors and its acceptance criteria. The entire backlog and a delivery date have not been approved.
 
 ### 4.4 Deployment Considerations
 
-The documented development entry point is opening the project in Godot and running the starting scene. An exported player build, supported desktop operating systems, distribution channel, and minimum hardware have not been established by the reviewed docs.
+Open `project.godot` in Godot and use **Run Project (F5)**. Windows is the initial desktop target in the specification; minimum hardware, tested OS versions, distribution, and a browser support matrix remain undecided.
 
-Preserve Web-export compatibility without describing a browser release as delivered: the minimal-MVP guide says the optional export preset was removed and may be added later. No hosting deployment or external service is currently required by the documented movement prototype.
+Preserve Web-export compatibility without describing a browser release as delivered: the minimal-MVP guide says the optional export preset was removed and may be added later. No hosting deployment or external service is currently required by the documented local prototype.
 
-Before distribution, decide how players obtain builds, learn controls, report problems, and identify versions. Save/load requirements, intended session length, future networking infrastructure, and post-course maintenance remain open. No existing user-data migration is identified.
+Before distribution, decide how players obtain builds, learn controls, report problems, and identify versions. Voyages are not saved between sessions. Scene-to-scene retention, intended session length, future networking details, and post-course maintenance still require work. No existing user-data migration is identified.
 
 ## Review Questions and Documentation Conflicts
 
-The following questions supplement the existing open-issues file; they do not silently resolve it or approve new scope.
+See [OPEN-ISSUES.md](OPEN-ISSUES.md) for owners and unresolved decisions, including inventory acceptance, sail rotation, swimming alternatives, cross-area state contracts, fatigue effects, testing targets, and communication-channel conflicts. The individual use cases retain detailed tuning questions; the issue register indexes those sections.
 
-| Question | Evidence or existing issue | Decision owner |
-|---|---|---|
-| What exactly ships after deck movement, and by when? | OI-1 and OI-2; minimal-MVP guide distinguishes current capability from plans | Development team |
-| Is four the approved multiplayer cap? | Use cases and development guidance say four; glossary says unconfirmed; OI-scale | Development team |
-| What does stable/completed single-player mean before networking starts? | Development guidance and meeting record use different readiness descriptions | Development team |
-| What are arrival, failure, restart, and extraction rules? | Glossary leaves voyage outcomes open | Development team |
-| Which steering extensions belong in the next milestone, and how are they tested? | `UC-NAV-steer-ship`: collision effects, heading bonus, and release thresholds unresolved | Steering use-case owner and team |
-| Where is the single-helmsman rule defined? | Use case cites `BR-single-helmsman`; business-rules file still contains examples | Requirements owner and team |
-| Which survival/movement systems are committed? | Hunger/thirst planned; stamina undefined; earlier fatigue and failure proposals not confirmed | Development team |
-| Who are the target testers, and are the earlier 80%/70% proposals appropriate? | OI-users and OI-testing; no measurements supplied | Development team |
-| Which operating systems and export paths are required? | PC target and Web compatibility do not establish a tested support matrix | Development team |
-| Which communication record governs? | Team contract lists Slack and response windows; interview record lists Discord and different contact details | Development team |
-| What visual direction and maintenance plan should be adopted? | OI-3 and OI-maintenance remain open | Development team |
-
-The software specification and business-rules templates need project-specific content before they can serve as implementation authority. Their sample recruiting/course-administration requirements do not apply to this game.
-
+The project has 23 active gameplay-rule definitions and 46 detailed use cases. Their presence is evidence of documentation, not client approval, implementation, or test completion. Template examples remain explicitly instructional and must not be treated as project requirements.

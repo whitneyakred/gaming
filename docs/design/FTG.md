@@ -1,20 +1,22 @@
 # Fatigue Design
 
-**Project:** Holy Ship!
+> **Scope (2026-10-20):** The current milestone is single-player. Host/client synchronization, LAN sessions, joint actions, and multi-player capacity are retained only as deferred co-op design. Local gameplay uses the local simulation as authority. Planned behavior is not a claim of implementation; see [scope and status](../requirements/vision-and-scope.md#43-mvp-scope).
+
+**Project:** Holy Ship
 **Team:** Team 13  
 **Area:** `FTG` — Fatigue  
 **Status:** Draft for team review. Tuning, rest policies, and the proposed slowdown/wobble require decisions before implementation.
 
 > **Realizes:** `UC-FTG-rest`, `UC-FTG-deplete-fatigue`, `UC-FTG-warn-exhaustion`. No project-specific `FR-FTG-*` identifiers were supplied.
 > **Depends on:** `BR-stat-max`, `BR-stat-depletion-rate`, `BR-station-slots`, `BR-single-station-occupant`, `BR-pass-out-recovery`, `BR-illness-fatigue-floor`, `BR-host-controls-session`, `BR-capsize-reset`.
-> **See:** [supplied use cases](<C:/Users/Gusy/Downloads/use-cases-draft.md>), [supplied architecture](<C:/Users/Gusy/Downloads/architectural-design.md>), [replacement business rules v0.2](<C:/Users/Gusy/Downloads/business-rules (2).md>), [Survival Design](SURV.md), [repository specification](../requirements/software-requirements-specification.md).
+> **See:** [supplied use cases](../requirements/use-cases.md), [supplied architecture](architectural-design.md), [replacement business rules v0.2](../requirements/business-rules.md), [Survival Design](SURV.md), [repository specification](../requirements/software-requirements-specification.md).
 > **Designed against:** local checkout `bf4428af2f05e238dfca15df0983fde987b4de72`, not independently verified as current `main`. Architecture version 0.2, October 2, 2026; supplied use cases version 0.2; replacement business rules version 0.2, October 14, 2026.
 
 
 
 ## Overview
 
-The Fatigue (`FTG`) area belongs to the planned **Crew Survival** component in the Game Application ([architecture section 5.2](<C:/Users/Gusy/Downloads/architectural-design.md#52-use-case-areas-and-components>); [container view](<C:/Users/Gusy/Downloads/architectural-design.md#51-containers>)). It owns each crew member's fatigue value, applies normal depletion or hammock recovery, and notifies the HUD when fatigue or the exhaustion warning changes. **Station Interaction** owns the Hammock's two claims and supplies rest participation, while **Crew Control** prevents a resting crew member from working another station. FTG accepts illness-related drain from SURV and requests SURV's shared pass-out transition at zero. State stays in memory for the current voyage, with local ownership established before networking. The owner's October 14 direction proposes Minecraft-inspired readable survival feedback with slower movement and seasick screen wobble; these effects are explicitly tracked below because the supplied exhaustion use case currently specifies a red bar with no gameplay penalty.
+The Fatigue (`FTG`) area belongs to the planned **Crew Survival** component in the Game Application ([architecture section 5.2](architectural-design.md#52-use-case-areas-and-components); [container view](architectural-design.md#51-containers)). It owns each crew member's fatigue value, applies normal depletion or hammock recovery, and notifies the HUD when fatigue or the exhaustion warning changes. **Station Interaction** owns the Hammock's two claims and supplies rest participation, while **Crew Control** prevents a resting crew member from working another station. FTG accepts illness-related drain from SURV and requests SURV's shared pass-out transition at zero. State stays in memory for the current voyage, with local ownership established before networking. The owner's October 14 direction proposes Minecraft-inspired readable survival feedback with slower movement and seasick screen wobble; these effects are explicitly tracked below because the supplied exhaustion use case currently specifies a red bar with no gameplay penalty.
 
 ## Components & classes
 
@@ -218,7 +220,7 @@ erDiagram
     }
 ```
 
-This diagram shows only relevant additions and relationships, not a replacement domain model. Station Interaction owns slot claims and permits at most one claim per slot, with two hammock slots in total. FTG derives resting participation from a valid claim and must clear it when that claim ends. Exhaustion is derived, not separately persisted. Hunger, thirst, illness timers, and pass-out cooldowns remain in SURV. Initial fatigue and all numeric tuning except the two-slot count and 25% pass-out restore remain TBD. Fatigue is bounded from zero to its maximum under `BR-stat-max`.
+This diagram shows only relevant additions and relationships, not a replacement domain model. Station Interaction owns slot claims and permits at most one claim per slot, with two hammock slots in total. FTG derives resting participation from a valid claim and must clear it when that claim ends. Exhaustion is derived, not separately persisted. Hunger, thirst, illness timers, and pass-out cooldowns remain in SURV. New voyages initialize fatigue to its maximum under `UC-PROG-start-voyage`; the numeric maximum and other tuning remain TBD. The two-slot hammock count and 25% pass-out restore are already specified. Fatigue is bounded from zero to its maximum under `BR-stat-max`.
 
 ## Reuse & cross-cutting
 
@@ -265,9 +267,9 @@ These are planned acceptance tests, not executed tests. Each main flow and exten
 The supplied architecture is not edited by this draft. Required reconciliations before merge are:
 
 1. Revise section 5.2 to recognize FTG as its own use-case design within Crew Survival, alongside SURV. Separate documents do not require separate deployed services.
-2. Clarify that FTG owns fatigue mutation, Station Interaction owns hammock occupancy, and SURV owns illness/pass-out lifecycles. Replace the older generic “stamina” wording where it refers to these fatigue requirements.
+2. Architecture now assigns FTG fatigue mutation, Station Interaction hammock occupancy, and SURV illness/pass-out lifecycles. Their concrete interfaces still need integration review.
 3. Update section 8.2.2 with `BR-host-controls-session` pause semantics and section 8.2.8 with the supplied unsaved-voyage/future host-authority rules, retaining `KD-local-first`.
-4. Reconcile stale statements that only steering is fully specified with the newer supplied FTG/SURV use cases. Slowdown and wobble remain proposed until their requirements are updated.
+4. Architecture now reflects all eleven use-case areas. Slowdown and wobble remain proposed until their requirements are updated.
 
 ## Working this document with your agent
 
@@ -281,7 +283,7 @@ This is a drafting self-check, not the fresh independent review requested by the
 
 | Remaining guess | Could a wrong guess violate requirements? | Disposition |
 |---|---|---|
-| Numeric tuning and initial fatigue | Yes | Team must select values before implementation acceptance. |
+| Numeric tuning | Yes | Team must select maxima and rates before implementation acceptance; new voyages start with full fatigue per `UC-PROG-start-voyage`. |
 | Full-fatigue hammock policy | Yes | Resolve rest 2a and update design/tests together. |
 | Threshold equality | Yes | Record a precise comparison rule. |
 | Rest/illness calculation and floor reactivation | Yes | Resolve jointly with SURV and define boundary tests. |
@@ -298,7 +300,7 @@ The team acts as client and owns gameplay choices. Mirror requirement-affecting 
 
 | Question or risk | Owner / impact |
 |---|---|
-| Exact maximum, initial fatigue, depletion rate, rest recovery rate, and exhaustion threshold? | Team/session owner. New voyage initialization must not be guessed from the pass-out recovery percentage. |
+| Exact maximum, depletion rate, rest recovery rate, and exhaustion threshold? | Team/session owner. Initial fatigue is full under `UC-PROG-start-voyage`; pass-out recovery is a separate 25% restoration. |
 | Does reaching full fatigue keep the crew member resting or release the slot automatically? | Team/DECK. Rest 2a and its test remain unresolved. |
 | Is warning active at exact threshold equality? | Team. Source uses both “below” and “above,” leaving equality unclear. |
 | How does illness loss combine with hammock recovery? | Team/SURV/FTG. Agree one calculation and boundary order rather than two competing writers. |

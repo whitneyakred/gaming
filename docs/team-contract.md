@@ -1,8 +1,10 @@
-# Team Contract: <Gaming>
+# Team Contract: Holy Ship
 
-**Project:** <Gaming>
+**Project:** Holy Ship
 **Members:** <Whitney Akred, Shana Billiot, Liliana Matte, Gustavo Castillo, Leiton Peterson, Ivan Lopez>
-**Repository:** <https://github.com/whitneyakred/senior-design-13>, owned by <Whitney Akred>
+**Repository:** [whitneyakred/gaming](https://github.com/whitneyakred/gaming), owned by Whitney Akred
+
+Differing Slack/Discord and response-time records require team confirmation (`OI-14`).
 **Signed:**<Sept 4th, 2026>
 
 ## 1. Meeting time

@@ -1,9 +1,9 @@
 # Software Requirements Specification
 
-**Project:** Man the Ship
+**Project:** Holy Ship
 **Team:** Team 13
-**Client:** No external client
-**Version:** 0.1
+**Client:** None — student-led project; product decisions belong to the development team.
+**Version:** 0.2
 
 ---
 
@@ -38,13 +38,13 @@ _Requirements cited from elsewhere keep their own identifiers: `UC-*` from [use-
 
 | Date | Version | Description | Author |
 |---|---|---|---|
-| _[2026-09-13]_ | 0.1 | Initial draft | _[Ivan Lopez]_ |
+| 2026-09-13 | 0.1 | Initial draft | Ivan Lopez |
 
 ---
 
 ## 1. Introduction
 
-### 1.1 The purpose of _[Man the Ship]_
+### 1.1 The purpose of Holy Ship
 
 _[What the system is for: who wants it, why, and who will use it. Even though the vision and scope answers this, restate it in a paragraph here, because people read this document without having read that one.]_
 
@@ -56,7 +56,7 @@ _[What this specification covers and for which release.]_
 
 _Example: "This document describes the functional and nonfunctional requirements for release 1.0 of the Cafeteria Ordering System. It serves as the reference for the project's requirements, defining the scope, functionality, and constraints for stakeholders, developers, and testers."]_
 
-This document describes the minimum functional mechanics and systems required for Version 1.0 of Man the Ship. It serves as a guideline and reference for the project's requirements, defining its scope, limitations, required functionality, and constraints for players, developers, and other interested parties.
+This document describes the minimum functional mechanics and systems required for Version 1.0 of Holy Ship. It serves as a guideline and reference for the project's requirements, defining its scope, limitations, required functionality, and constraints for players, developers, and other interested parties.
 
 ### 1.3 Document conventions
 
@@ -85,19 +85,19 @@ _[Every document this specification refers to, with a link. At minimum, the four
 
 _[How this system relates to other systems and to the user's environment. Self-contained, or one component of something larger? Link to the product perspective section of your vision and scope and to your architecture's context diagram rather than redrawing them.]_
 
-Man the Ship is a self-contained PC survival-adventure game developed in the Godot game engine. It is not intended to be part of a larger software system and does not require external services, online accounts, or network connectivity during gameplay. Version 1.0 provides a single-player experience in which the player navigates a ship, explores islands, collects resources, and manages survival needs while progressing toward a final destination. Multiplayer functionality may be considered for a future release but is outside the scope of Version 1.0.
+Holy Ship is a self-contained PC survival-adventure game developed in the Godot game engine. It is not intended to be part of a larger software system and does not require external services, online accounts, or network connectivity during gameplay. Version 1.0 provides a single-player experience in which the player navigates a ship, explores islands, collects resources, and manages survival needs while progressing toward a final destination. Multiplayer functionality may be considered for a future release but is outside the scope of Version 1.0.
 
 ### 2.2 User classes and characteristics
 
 _[The kinds of user, and what distinguishes them: frequency of use, technical skill, privilege level, whether they are inside or outside the client's organization. Link to the stakeholder profiles in your vision and scope; what belongs here is what affects the software's behavior, especially permissions.]_
 
-The primary user class is a PC player who plays Man the Ship in single-player mode. Gameplay requires basic keyboard and mouse knowledge to control the player character, interact with ship stations, explore locations, collect items, and manage survival needs. Players are expected to have basic familiarity with PC game controls and will receive introductory guidance for core mechanics. Version 1.0 does not use user accounts, special authorization, or different player privilege levels. Players need only install and launch the game.
+The primary user class is a PC player who plays Holy Ship in single-player mode. Gameplay requires basic keyboard and mouse knowledge to control the player character, interact with ship stations, explore locations, collect items, and manage survival needs. Players are expected to have basic familiarity with PC game controls and will receive introductory guidance for core mechanics. Version 1.0 does not use user accounts, special authorization, or different player privilege levels. Players need only install and launch the game.
 
 ### 2.3 Operating environment
 
 _[The environment the software runs in: hardware, operating systems and versions, browsers, where users and servers are located, and any other software it has to coexist with.]_
 
-The initial release of Man the Ship is intended to run as a downloadable desktop application on Windows-based computers. Support for macOS will be considered after the Windows release has been tested. Minimum hardware requirements have not yet been determined and will be established through testing. Users need access to a keyboard and mouse for gameplay controls.
+The initial release of Holy Ship is intended to run as a downloadable desktop application on Windows-based computers. Support for macOS will be considered after the Windows release has been tested. Minimum hardware requirements have not yet been determined and will be established through testing. Users need access to a keyboard and mouse for gameplay controls.
 
 _Examples:_
 
@@ -120,7 +120,10 @@ _The constraint students forget: **who maintains this after you graduate, and wh
 Constraints:
 
 - `CO-maintenance`: Access to the Godot game engine and the project's GitHub repository is required to modify and maintain the game.
-- `CO-language`: Game scripts shall be written in GDScript, the scripting language supported by Godot.
+- `CO-language`: Game scripts shall use GDScript in Godot 4, not C# (source: [AGENTS.md](../../AGENTS.md)).
+- `CO-web-compatibility`: The project shall retain the Compatibility renderer and HTML5/Web export compatibility; this does not promise a delivered browser build (source: AGENTS.md).
+- `CO-ocean-chunks`: Indefinite ocean travel shall use deterministic or recycled chunks rather than one enormous water mesh (source: AGENTS.md).
+- `CO-single-player`: The current milestone shall remain single-player; networking and multiplayer architecture are deferred (source: AGENTS.md and owner confirmation, 2026-10-20).
 - `CO-art-format`: Art assets shall use a format that can be imported into the Godot engine.
 - `CO-coding-standard`: Design, code, and maintenance documentation shall follow the team's agreed coding and game-development standards.
 
@@ -154,6 +157,8 @@ _[Link only. Business requirements, objectives, metrics, and scope live in [visi
 
 ### 5.1 Use cases
 
+The [use cases](use-cases.md) define 46 planned behaviors across 11 areas. Apply the single-player/deferred-co-op convention in their scope section. [Vision and scope](vision-and-scope.md#43-mvp-scope) identifies the implemented prototype and remaining milestone decisions; documented cases are not automatically release commitments.
+
 _[Link to [use-cases.md](use-cases.md). Most of your system's behavior is specified there, as use cases, and it does not get restated here.]_
 
 ### 5.2 Non-use-case functional requirements
@@ -186,16 +191,17 @@ _[Link only, to [business-rules.md](business-rules.md). Business rules are a ric
 
 _[The entities in the problem domain and how they relate, as a mermaid class diagram. Model the **business**, not your database schema: this is what the client would recognize, before any decision about tables or persistence.]_
 
-    ```mermaid
-    classDiagram
-      class Team {
-        +String name
-      }
-      class Student {
-        +String email
-      }
-      Team "1" --> "*" Student : has
-    ```
+```mermaid
+classDiagram
+    Player "1" --> "1" CrewMember : controls locally
+    Voyage "1" --> "1" Ship : uses
+    Ship "1" --> "*" Station : provides
+    CrewMember "1" --> "1" Inventory : owns
+    Inventory "1" --> "*" Item : holds quantities of
+    Voyage "1" --> "*" Island : visits
+```
+
+This is a domain model for the single-player milestone, not a claim that voyage-state ownership is implemented. Shared item definitions are distinct from inventory quantities. Deferred co-op extends membership only after approval.
 
 ### 7.2 Data dictionary
 
@@ -211,7 +217,7 @@ No player-facing or administrative reports are required for Version 1.0. The sof
 
 _[Where the data comes from, how it is kept correct, how long it is kept, and how it is destroyed. If your system holds anything about students or other identifiable people, this section is not optional, and its content is usually a business rule you should cite rather than invent.]_
 
-Version 1.0 does not collect personal player data. Game state is created through player actions during a game session. If save functionality is implemented, save data shall be stored locally on the player's computer and may be deleted by uninstalling the game or deleting its save files.
+Version 1.0 does not collect personal player data. Voyage state is held in memory and is discarded when the session ends; there is no save/load requirement in the current use cases. Keeping selected state across ship/island scene changes is distinct from disk persistence and is proposed through Voyage State in the architecture.
 
 ---
 
@@ -222,7 +228,7 @@ Version 1.0 does not collect personal player data. Game state is created through
 _[The user-facing surfaces, at requirement level: which views exist, standards they must conform to, accessibility requirements. Link to wireframes or prototypes rather than describing pixel layouts.]_
 
 - `UI-main-menu`: The system shall provide a main menu with options to start a new game, access settings, and exit the game.
-- `UI-gameplay-hud`: During gameplay, the system shall display the player's current stamina and relevant resources.
+- `UI-gameplay-hud`: During gameplay, the system shall display the crew member's hunger, thirst, fatigue, and relevant resources when those planned systems are implemented.
 - `UI-station-feedback`: When the player uses a ship station, the system shall display feedback showing the outcome of the interaction.
 - `UI-pause-menu`: The system shall provide a pause menu during active gameplay.
 
@@ -248,7 +254,7 @@ Not applicable. Version 1.0 does not provide or consume an external API.
 
 _[Email, notifications, messaging, and the protocols involved.]_
 
-Not applicable. Version 1.0 does not require in-game messaging, email, network communication, or multiplayer communication. As of filling out this form we do not have plans for multiplayer implementation before 1.0 release. However following initial release multiplayer will be added though how that will function has not been discussed yet.
+The current single-player milestone requires no network or multiplayer communication. The use cases retain a deferred LAN co-op design with Host authority and a four-player cap. This does not authorize implementing networking or commit it to release 1.0.
 
 ---
 
@@ -271,7 +277,7 @@ _Example: `USE-wcag-aa`: All user-facing views shall conform to WCAG 2.1 level A
 
 _Example: `PER-report-load`: A peer evaluation report for a section of 80 students shall render within 2 seconds at the 95th percentile._
 
-Not yet set wil be determined during next team meeting.
+TBD — the team must select measurable targets, hardware, and a repeatable performance test before acceptance (`OI-testing`).
 
 ### 9.3 Security
 
@@ -296,7 +302,7 @@ _Example: `AVL-uptime`: The system shall be available 99% of the time during the
 _Example: `ROB-edit-loss-bound`: On an unexpected client disconnect, the system shall lose no more than 30 seconds of a student's in-progress edits._
 
 - `ROB-invalid-action`: If the player attempts an unavailable interaction, then the system shall prevent the action without terminating the game session.
-- `ROB-resource-bound`: The system shall prevent item quantities and stamina values from falling below zero.
+- `ROB-resource-bound`: The system shall prevent item quantities and hunger, thirst, and fatigue values from falling below zero.
 
 ### 9.7 Scalability, interoperability, maintainability
 

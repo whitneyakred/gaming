@@ -1,8 +1,8 @@
 # Player inventory system
 
 This folder holds a small, per-player inventory model. It is deliberately
-data-only: it has no UI, saving, networking, item removal, or world-drop
-behavior yet. Gameplay features should use this API instead of editing the
+data-only: it supports adding, counting, and removing items, but has no UI,
+saving, networking, or world-drop behavior yet. Gameplay features should use this API instead of editing the
 exported arrays and dictionary directly.
 
 ## Runtime pieces
@@ -21,6 +21,11 @@ The current prototype gives each player one `fishing_rod` during `_ready()`.
 This is starter equipment, not a general-purpose item grant pattern.
 
 ## Data model and capacity
+
+This section describes current code. The planned contract in
+[BR-inventory-slots](../../docs/requirements/business-rules.md#27-inventory-map-and-island-travel)
+has six quick slots plus TBD expanded slots and 30-item stacks. It is not
+implemented by this distinct-item model; see `OI-11` in the open-issues register.
 
 `max_inv_space` is the maximum number of *distinct item types*, not the total
 number of individual items. Its default is `4`.
@@ -92,7 +97,7 @@ attach `inventory_usage.gd`, and assign the intended `PlayerInventory` in the
 Inspector. Call its `add_item()` and `get_quantity()` methods. This is useful
 only when that component has a stable, known owner; interaction stations
 should normally use the player who initiated the interaction so it remains
-correct for future local multiplayer.
+correct if deferred co-op is later approved.
 
 ## Checking required equipment
 
@@ -116,6 +121,6 @@ with `get_quantity(item.id)`. It should not maintain a second quantity list.
 When implementing UI refreshes, add a `changed` signal to `PlayerInventory`
 and emit it after every successful mutation; connect the UI to that signal.
 
-Before adding removal, consumption, transfers, saves, or multiplayer syncing,
+Before adding transactional consumption, transfers, saves, or multiplayer syncing,
 extend `PlayerInventory` with explicit methods and tests. Do not mutate
 `inventory` or `quantities` from outside this folder.

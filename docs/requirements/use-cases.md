@@ -1,10 +1,10 @@
 # Use Cases
 
-**Project:** Pirate Ship Co-op Sailing/Survival Game
+**Project:** Holy Ship
 
 **Team:** Whitney Akred, Leiton Peterson, Ivan Lopez, Liliana Matte, Gustavo Castillo, Shana Billiot
 
-**Version:** 0.2
+**Version:** 0.3
 
 ---
 
@@ -21,9 +21,13 @@
 
 ### 1.1 Purpose
 
-This document specifies the goals a player can accomplish within the pirate ship co-op sailing/survival game, in enough detail that a developer knows what to build and a tester knows what to check.
+This document specifies the goals a player can accomplish within Holy Ship, in enough detail that a developer knows what to build and a tester knows what to check.
 
 ### 1.2 Scope
+
+The current milestone is **single-player**, confirmed on 2026-10-20. These use cases describe planned product behavior, including retained **deferred co-op** flows; they are not an implementation checklist for the current milestone. `UC-PROG-host-join`, LAN lobbies, client synchronization, disconnect handling, joint repair, and multi-crew competition are deferred. For applicable local flows, read Host as the local player/session owner and shared-state authority as the local simulation; no network transport or extra players are required. See [current capability and scope](vision-and-scope.md#43-mvp-scope).
+
+The DECK/ISLE designs select rowboat-only island access for the current milestone. Swimming-to-island extensions remain deferred alternatives below; overboard movement beside the ship is a separate planned mechanic. The prototype’s timed island retries are not a full-voyage loss or capsize. Numerical TBDs remain unresolved.
 
 This document covers every item on the team's updated use case list (50 items), grouped into the feature areas below. Section 3 maps each use case back to its number on that list and notes which items were merged, renamed, moved, removed, or added.
 
@@ -53,8 +57,8 @@ Values marked [TBD] have not been decided yet and are listed in each use case's 
 
 **Primary and Secondary Actors.** This project has three actors:
 
-- **Crew Member:** any player. Picks a look from a set of preset characters.
-- **Host:** a Crew Member who also manages the session (hosts it over LAN, starts, restarts, and pauses the voyage). The session cap is 4 players.
+- **Crew Member:** the character controlled by a player. The player is the human actor represented through that character; preset appearance selection is planned.
+- **Host:** the player who owns a deferred LAN co-op session (at most four players including the Host). In applicable single-player session-control flows, these permissions belong to the local player.
 - **System:** the game itself, for behavior triggered by timers or events rather than by a player.
 
 **Trigger.**
@@ -83,7 +87,7 @@ Values marked [TBD] have not been decided yet and are listed in each use case's 
 
 **Open Issues.** Mirror into OPEN-ISSUES.md.
 
-**Networking convention.** The Host's game instance is the authority for all shared state. "Synced to all clients" means the Host's state is sent to every crew member's game. Voyages are never saved; each one is unique.
+**State and networking convention.** The local simulation owns state in the current milestone. In deferred co-op, the Host’s game instance owns shared state; “synced to all clients” describes future replication only. Voyages are in memory and are not saved between sessions. Scene-to-scene state retention is a separate implementation concern, not disk saving.
 
 ---
 
@@ -357,7 +361,9 @@ Failure behavior: This use case makes no durable change. If the session drops mi
 
 **Frequency of Use:** Continuous. Runs every time any station is used.
 
-**Business Rules:** `BR-single-station-occupant` (replaces `BR-single-helmsman`; must state the Repair Spot and Hammock exceptions), `BR-station-slots`
+**Business Rules:** `BR-single-station-occupant`, `BR-station-slots`
+
+Historical note: `BR-single-helmsman` was replaced by `BR-single-station-occupant`; the active rule defines the Repair Spot and Hammock exceptions.
 
 **Associated Information:**
 

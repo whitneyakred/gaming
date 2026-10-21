@@ -1,6 +1,8 @@
 # Map Interaction & Discovery (MAP) Design
 
-**Project:** Man the Ship
+> **Scope (2026-10-20):** The current milestone is single-player. Host/client synchronization, LAN sessions, joint actions, and multi-player capacity are retained only as deferred co-op design. Local gameplay uses the local simulation as authority. Planned behavior is not a claim of implementation; see [scope and status](../requirements/vision-and-scope.md#43-mvp-scope).
+
+**Project:** Holy Ship
 **Team:** Whitney Akred, Leiton Peterson, Ivan Lopez, Liliana Matte, Gustavo Castillo, Shana Billiot
 **Area:** `MAP`
 
@@ -18,6 +20,8 @@ MAP owns the voyage-only chart state and its station-driven presentation: reveal
 Existing sailing code supplies world-space `WorldIsland` nodes, ship position, and an Inspector-configurable `pixels_per_meter` conversion. It does not implement a map station, chart UI, reveal model, pins, or discovery state; those components are new.
 
 ## Components & classes
+
+The station-based access path below is a proposal: `UC-MAP-open-map` still asks whether the map is a station or a menu. Confirm access before implementing these components (`OI-18`).
 
 ```mermaid
 classDiagram
@@ -195,9 +199,9 @@ sequenceDiagram
 
 ## Key decisions
 
-**The map is an exclusive deck station.** `UC-MAP-open-map` and `BR-single-station-occupant` govern access. A personal or globally available pause-menu map is rejected because it would bypass station claim/release behavior already specified for this use case.
+**Proposed map access.** The design below assumes an exclusive deck station, but `UC-MAP-open-map` explicitly leaves station-versus-menu access unconfirmed. `BR-single-station-occupant` applies if the station option is adopted. A menu has not been rejected by an approved requirement; resolve `OI-18`.
 
-**Discovery survives capsize for the voyage.** `MapState` retains revealed and discovered sets during a capsize reset. Clearing the map is rejected because a capsize already resets the ship and inventory, and the chosen exploration result should not erase the crew's chart knowledge.
+**Map retention after capsize is unresolved.** `UC-MAP-discover-map` extension 4a leaves retention versus reset TBD. Capsize continues the voyage under `BR-capsize-reset`; neither retaining discovery nor clearing it is approved here. Resolve `OI-18` before finalizing lifecycle code/tests.
 
 **Pins have no capacity limit.** `BR-pin-limit` applies only if a limit is adopted; this milestone does not adopt one. Rejecting or evicting a pin would add an unrequested policy and make the use-case extension reachable without a chosen threshold.
 
@@ -211,7 +215,7 @@ sequenceDiagram
 
 | State | Owner | Lifecycle and constraints |
 |---|---|---|
-| Revealed tiles | MapState | Set of tile IDs received from `BoatTracker`; starts empty and survives capsize until voyage end. |
+| Revealed tiles | MapState | Set of tile IDs received from `BoatTracker`; starts empty. Retention on capsize is TBD; discarded at voyage end. |
 | Discovered islands | MapState | Set of island IDs contained by revealed tiles. |
 | Visited islands | MapState | Set of island IDs whose shore has been reached by a crew member; distinct from discovery. |
 | Map pins | MapState | Zero or more `MapPin` records with unique IDs and map coordinates; no capacity limit. |
@@ -238,7 +242,7 @@ Map state lasts for one voyage and is never saved. `pixels_per_meter` remains ex
 | `UC-MAP-view-island-info` 1a | Unit | An undiscovered coordinate returns no island card. |
 | `UC-MAP-discover-map` main | Unit | A new tile is stored and its contained islands become discovered. |
 | `UC-MAP-discover-map` 2a | Unit | An already revealed tile makes no duplicate change. |
-| `UC-MAP-discover-map` 4a | Integration | A capsize preserves reveal/discovery state for the active voyage. |
+| `UC-MAP-discover-map` 4a | Integration, pending decision | Assert the team-approved retention/reset policy after `OI-18` is resolved; capsize must not end the voyage. |
 | `UC-MAP-place-pin` main / 2a | Unit | A pin can be placed on any map coordinate and later removed. |
 | `UC-MAP-place-pin` limit | Unit | Any number of valid pins is accepted; no capacity branch runs. |
 | `UC-MAP-pin-distance` main | Unit | Distance equals straight-line pixel distance divided by `pixels_per_meter` (10 by default). |
@@ -252,21 +256,21 @@ Add MAP to the area/component map as a provisional area owning voyage chart stat
 
 - Tile size remains a SYS/World decision; MAP accepts tile IDs and must not introduce its own grid calculation.
 - The current sailing HUD's nearest-island indicator is not a map UI. Keep it separate until a deliberate UI consolidation is designed.
-- Current requirements use Host/client wording while project instructions require a single-player-first implementation. MAP state ownership and synchronization must be reconciled before cooperative transport is added.
+- Current scope is single-player; Host/client wording is deferred co-op design. MAP state is local today, and transport details remain outside this milestone.
 
 ## Implementation assumptions awaiting decisions
 
-The following details are not resolved by this design. The tentative guesses document the assumptions an implementation would otherwise need to make; the final column is intentionally left open for approved decisions.
+The following details are not resolved by this design. The tentative guesses document the assumptions an implementation would otherwise need to make; the final column records proposals, not approved requirements; see `OI-17` and `OI-18`.
 
 | Decision point | Tentative implementation guess | Wrong guess could violate a requirement? | Proposed solution |
 |---|---|---|---|
-| Tile size, origin, boundary rule, and tile-ID format | SYS/World uses fixed-size square tiles with floor division, including negative coordinates. | Yes — MAP must consume SYS tile IDs and must not calculate its own grid. | When map creation is finalized it will have a set coordinate grid that requires and generates only positive locations for useage  |
+| Tile size, origin, boundary rule, and tile-ID format | SYS/World uses fixed-size square tiles with floor division, including negative coordinates. | Yes — MAP must consume SYS tile IDs and must not calculate its own grid. | A positive-only bounded-world proposal conflicts with indefinite travel in any horizontal direction. Coordinate encoding may use offsets, but world travel must support negative directions; grid/origin remain TBD (`OI-17`).  |
 | Finding islands contained by an entered tile | Query registered `WorldIsland` nodes using their authoritative world positions and the SYS/World tile contract. | Yes — an incorrect lookup could reveal the wrong islands. | Island system containing specified quieries for each individal island will be added upon completelion of multiple island implementation |
 | Stable island identity | Each `WorldIsland` exposes one unique, voyage-stable island ID. | Yes — discovery and visit sets depend on stable unique IDs. | during map generation each island will be given a unqiue instance ID |
 | Shore-arrival notification | Island Exploration emits one visit notification with `island_id` after a crew member successfully reaches shore. | Yes — visited status must remain distinct from discovery. | map system will track updating and doocumentation of visted islands. This will be done through an aspect of the islands instance |
-| MapState voyage lifecycle | Create state when a voyage begins; preserve it through capsize; discard it only when that voyage ends. | Yes — the stated lifecycle requires capsize retention and no persistence beyond the voyage. | Game automatically ends if ship capsizes and returns players to start menu. All progress is lost and new map is generated when new game starts. |
+| MapState voyage lifecycle | Create state when a voyage begins; capsize retention/reset is TBD; discard state when the voyage ends. | Yes — capsize must continue the voyage; map retention remains unresolved in the use case. | `BR-capsize-reset` continues the voyage. Ending the game on capsize was a conflicting proposal; map retention still requires `OI-18`. |
 | Paradise distance input and display contract | Progress supplies a display-ready Paradise distance for MAP to render. | Potentially — MAP must not recalculate Progress completion rules. | progress completion rules are determine at the start of each voyage. Though ultimate goal will always be to reach a certain location on the other side of the game map. |
 | Pin ID generation | Generate unique local `StringName` IDs for each pin. | No, provided IDs remain unique and removal targets the correct pin. | when pen system is created each will be stored as a unique instance of pin objects that each have unique IDs|
 | Chart projection and pointer conversion | Use one world-to-chart transform for rendering and translating selected map coordinates back to world coordinates. | Potentially — mismatched transforms would place pins at incorrect destinations. | translation and scaling will be set during map generation and will stay consistent from here on out. |
 | Distance-label precision | Calculate the required exact straight-line distance, then display rounded whole metres. | Potentially — the calculation is specified but label precision is not. | label precision will be stored within a double and focus on pixel verse map coordinate distance |
-| Physical map-station scene and controls | Place a reusable deck station using existing Station Interaction claim, range, release, and input conventions. | No, provided Station Interaction remains authoritative for access. | |
+| Physical map-station scene and controls | Use a reusable deck station if that access mode is approved. | Yes — station versus menu remains open in `UC-MAP-open-map`. | Resolve `OI-18` before implementing exclusive station access. |

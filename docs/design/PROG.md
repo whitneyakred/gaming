@@ -1,6 +1,8 @@
 # Progress & Session Design
 
-**Project:** Holy Ship!
+> **Scope (2026-10-20):** The current milestone is single-player. Host/client synchronization, LAN sessions, joint actions, and multi-player capacity are retained only as deferred co-op design. Local gameplay uses the local simulation as authority. Planned behavior is not a claim of implementation; see [scope and status](../requirements/vision-and-scope.md#43-mvp-scope).
+
+**Project:** Holy Ship
 **Team:** Team 13 (Gaming)
 **Area:** `UC-PROG` (Progress & Session)
 **Status:** Proposed future design; questions test answered; requirement decisions remain blocked; no PROG code exists.
@@ -8,7 +10,7 @@
 
 > **Realizes:** `UC-PROG-track-progress`, `UC-PROG-reach-paradise`, `UC-PROG-quit-voyage`, `UC-PROG-start-voyage`, `UC-PROG-host-join`, `UC-PROG-pause-game`, `UC-PROG-choose-character`. No supplied `FR-PROG-*` identifiers.
 > **Depends on:** `BR-host-ends-session`, `BR-host-controls-session`, `BR-session-cap-4`; architecture `KD-deployment-shape`, `KD-local-first`, `KD-station-components`, `KD-world-chunks`; related use cases are cited below.
-> **See:** [use cases](../requirements/use-cases.md), [business rules](../requirements/business-rules.md), [specification](../requirements/software-requirements-specification.md), [architecture-of-record](../architectural-design.md). Links target the intended repository location `docs/design/prog.md`; the specification was not supplied.
+> **See:** [use cases](../requirements/use-cases.md), [business rules](../requirements/business-rules.md), [specification](../requirements/software-requirements-specification.md), [architecture-of-record](architectural-design.md). Repository links now point to the checked-in requirements and architecture.
 > **Designed against:** Supplied use-cases-draft(4).docx v0.2, business-rules (2)(2).md v0.2, and architectural-design(3).md v0.2. No source checkout or main commit supplied; no code inspection claimed.
 
 ---
@@ -37,7 +39,7 @@ _**Write it in this order.** Each step is one person's or one pair's work, and t
 
 _[One paragraph: what this area does, which components of your [architecture-of-record](architectural-design.md) it lives in, and what it reads from or calls in other areas. Link the container diagram rather than redrawing it. If this design changes the architecture-of-record, say so here and list the change under "Changes to the architecture-of-record" below.]_
 
-Progress & Session owns the voyage lifecycle and session coordination inside the [Game Application](../architectural-design.md#51-containers). It builds on the architecture's planned Session Setup component, reads authoritative ship positions from SYS/Ship State, asks World and Ocean to generate voyage content, and coordinates crew placement, survival initialization, inventory initialization, station release, and map distance presentation through their owners. The newer use-case draft groups these responsibilities under PROG rather than the architecture's older LOBBY label. Required reconciliation is listed below. All PROG code and interfaces are proposed for future implementation; no checkout or main commit was supplied. Networking remains a separate future integration stage under `KD-local-first`.
+Progress & Session owns the voyage lifecycle and session coordination inside the [Game Application](architectural-design.md#51-containers). It builds on the architecture's planned Session Setup component, reads authoritative ship positions from SYS/Ship State, asks World and Ocean to generate voyage content, and coordinates crew placement, survival initialization, inventory initialization, station release, and map distance presentation through their owners. The repository architecture now groups these responsibilities under PROG; the older LOBBY label is superseded. All PROG code and interfaces are proposed for future implementation; no checkout or main commit was supplied. Networking remains a separate future integration stage under `KD-local-first`.
 
 Sources: supplied Use Cases v0.2 in use-cases-draft(4).docx, business-rules (2)(2).md v0.2, and architectural-design(3).md v0.2. The newer use cases establish Host authority, LAN joining, unsaved voyages, and global pause; older architecture statements that these are unspecified need updating. No project-specific FR identifiers are supplied, so none are invented.
 
@@ -453,14 +455,14 @@ Planned tests only; no code or executed runtime checks are claimed. Tests whose 
 
 _[Designing an area against real code is when the architecture's guesses meet reality. If this design needs a component the map does not have, moves a responsibility, or adds a dependency, **change [the architecture-of-record](architectural-design.md) in the same pull request** and list each change here in one line. If nothing changed, write "None". A design that silently disagrees with the architecture leaves two maps, and the agent will follow whichever it reads last.]_
 
-Required companion updates are **proposed**, not edits made to architectural-design.md by this deliverable. Review and apply in the same design PR before implementation:
+The remaining companion interface updates below are proposals requiring review before implementation:
 
-- Section 5.2: reconcile the older LOBBY area with PROG and record SessionCoordinator, VoyageCoordinator, ProgressTracker, and character selection responsibilities inside the existing Game Application.
+- Section 5.2 now lists PROG. Its proposed coordinator interfaces still require review; LAN membership remains deferred.
 - Section 5.2: add dependencies on world generation, SYS ship/inventory tracking, MAP presentation, DECK claims, and SURV/FTG initialization; retain domain state ownership.
 - Sections 8.1 and 8.2.8: record use-case Host authority, serialized admission, `BR-session-cap-4`, Host termination/no migration, unsaved voyage lifecycle, and prepare-before-restart replacement.
-- Section 8.2.2: replace the outdated pause-policy gap with global Host-controlled simulation freeze and operational UI/network controls.
-- Identifiers/11.2: update the obsolete claim that only steering is specified and the save/authority gaps settled by the supplied Use Cases v0.2. Keep transport and recovery gaps open.
-- Section 6: add PROG runtime views when implementation exists; current movement prototype remains distinct.
+- Section 8.2.2 now records the simulation freeze; UI/session-control and deferred networking details still require integration.
+- Identifiers/11.2 now acknowledge the full use-case list and no-save scope; transport and recovery gaps remain open.
+- Section 6: add PROG runtime views when implementation exists; current sailing/island prototype remains distinct.
 
 No external server, online matchmaking, account service, database, save format, or new deployment container is proposed.
 

@@ -1,9 +1,11 @@
 # Client Interview Guide
 
-**Project:** Gaming
-**Team:** _Liliana Matte, Ivan Lopez, Leiton Peterson, Shana Billiot, Gustavo Castillo, Whitney Akred
-**Client:** Ourselves
+**Project:** Holy Ship
+**Team:** Liliana Matte, Ivan Lopez, Leiton Peterson, Shana Billiot, Gustavo Castillo, Whitney Akred
+**Client:** None — the development team acts as product owner.
 **Meeting:** Group meeting 1
+
+> Historical interview record. Original answers and candidate IDs are preserved as meeting evidence, not current rule definitions. Use [business rules](business-rules.md), [scope](vision-and-scope.md), and [open issues](OPEN-ISSUES.md) for the reconciled requirements. Communication and scheduling differences still require team confirmation.
 
 ---
 

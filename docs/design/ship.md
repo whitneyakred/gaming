@@ -1,6 +1,8 @@
 # Ship Damage & Repair Design
 
-**Project:** Man the Ship (called Holy Ship! in neighboring area designs)
+> **Scope (2026-10-20):** The current milestone is single-player. Host/client synchronization, LAN sessions, joint actions, and multi-player capacity are retained only as deferred co-op design. Local gameplay uses the local simulation as authority. Planned behavior is not a claim of implementation; see [scope and status](../requirements/vision-and-scope.md#43-mvp-scope).
+
+**Project:** Holy Ship
 **Team:** Team 13 (Gaming)
 **Area:** `SHIP`
 **Status:** Proposed design for review; damage and repair are not implemented.
@@ -19,7 +21,7 @@ _[Describe this area's responsibility, its component boundary, and the other are
 
 SHIP owns the active leaks and the integrity derived from them inside the [Game Application](architectural-design.md#51-containers). A ship-local damage controller schedules leaks and creates repair stations on the moving deck. Repairs use DECK's planned station claim/release interface and ask SYS's planned shared-inventory owner to spend wood. SHIP sends an integrity-based capsize request to WAVE; it does not implement a second capsize/reset system. EVT supplies storm state and WAVE/NAV supply the conditions that affect damage frequency. Existing `Ship`, `ShipMotion`, player station ownership, and inventory methods are foundations only: no current code spawns leaks or repairs them. The architecture component row is updated with this design's boundaries.
 
-The use cases describe Host/client synchronization and joint repair, but [AGENTS.md](../../AGENTS.md) establishes single-player scope. Damage step 4 and the synchronization portion of repair step 8 have no network implementation here. Repair extension 4a is recorded as deferred, not claimed as completed or silently removed. Resolving this requirements mismatch is `OI-8`.
+The use cases describe Host/client synchronization and joint repair, but [AGENTS.md](../../AGENTS.md) establishes single-player scope. Damage step 4 and the synchronization portion of repair step 8 have no network implementation here. Repair extension 4a is recorded as deferred, not claimed as completed or silently removed. The owner confirmed this scope on 2026-10-20; `OI-8` now tracks only deferred joint-repair details.
 
 ## Components & classes
 

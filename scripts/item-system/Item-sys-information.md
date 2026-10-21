@@ -77,10 +77,15 @@ a warning.
 | ID | Name | Stack limit | Current use |
 | --- | --- | ---: | --- |
 | `fish_cod` | Cod | 10 | Fishing reward |
-| `rope` | Rope | 25 | Fishing reward; future repair material |
+| `rope` | Rope | 25 | Fishing reward; repair flavor text is not the planned wood requirement |
 | `fishing_rod` | Fishing Rod | 1 | Required to begin fishing; starter player item |
+| `coconut` | Coconut | 20 | Registered fruit definition; placed challenge pickups do not yet grant it to inventory |
 
 ## Scope and future work
+
+These are prototype per-item limits, distinct from the planned 30-item slot
+stacks in `BR-inventory-slots`. `BR-repair-cost` requires wood; the `wood_plank`
+snippet above is an example, not a registered item or an approved repair ID.
 
 Keep this system as item definitions only. Item removal, recipes, world
 pickups, saving, and item UI belong in their own focused changes. When adding
