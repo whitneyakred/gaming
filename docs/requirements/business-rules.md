@@ -1,9 +1,9 @@
 # Business Rules
 
-**Project:** Game Design
+**Project:** Holy Ship
 **Team:** Team 13
-**Client:** ourselves
-**Version:** 0.2
+**Client:** None — student-led project; product decisions belong to the development team.
+**Version:** 0.3
 
 ---
 
@@ -83,6 +83,7 @@ _The Source column is the defense. Every rule traces to a document or a person, 
 | Date | Version | Description | Author |
 |---|---|---|---|
 | _[YYYY-MM-DD]_ | 0.1 | Initial rules from the client brief and first client meeting | _Shana_ |
+| 2026-10-20 | 0.3 | Align single-player scope, deferred co-op applicability, repository sources, and inventory status; retain rule IDs and unresolved tuning. | AI-assisted consistency review |
 | 2026-10-14 | 0.2 | Updated all 23 current rule IDs referenced in Use Cases version 0.2, retained unresolved values, and updated scope | _Shana_ |
 
 ---
@@ -91,15 +92,15 @@ _The Source column is the defense. Every rule traces to a document or a person, 
 
 ### 1.1 Purpose
 
-This document collects the gameplay rules and constraints referenced by the pirate ship co-op sailing/survival game’s use cases and preserves the earlier team development decisions. Each gameplay rule has one definition and cites the use case that supplies its wording.
+This document defines the gameplay rules referenced by Holy Ship’s use cases. These are team-authored domain rules, not external business or regulatory policies. Existing IDs are retained so references remain stable.
 
 ### 1.2 Scope
 
-The current Use Cases version 0.2 describes a LAN co-op voyage for one to four players, covering deck movement, stations, sailing, weather, survival, repairs, trading, session management, inventory, maps, and island travel. These are project gameplay rules and constraints, not externally imposed business, legal, or regulatory policies. The September 10 single-player-first decision is retained as historical development sequencing rather than the current gameplay scope.
+The current milestone is single-player, confirmed by the project owner on 2026-10-20 and consistent with [AGENTS.md](../../AGENTS.md). The use cases preserve a broader planned sailing/survival game. LAN hosting, client synchronization, joint repair, and multi-crew occupancy are deferred co-op design, not current delivery requirements. For local play, the player controls the session and the local simulation owns state; quitting ends the local voyage. `BR-session-cap-4` applies only to deferred co-op. Station capacities do not imply additional current players.
 
 ### 1.3 Sources and Unresolved Decisions
 
-The source for Section 2 is the attached `use-cases-draft(2).docx`, titled Use Cases, version 0.2; the cited use cases are dated September 30, 2026, with steering originally dated September 13. These citations establish what the draft says, not independent client approval. Values and policies the draft leaves undecided remain TBD, and approximate values remain provisional. No new rule IDs are created for use cases whose Business Rules field says “none.”
+The source for Section 2 is the repository [use cases](use-cases.md), originally version 0.2 dated September 30, 2026, now clarified for milestone scope in version 0.3. These citations establish what the draft says, not independent client approval. Values and policies the draft leaves undecided remain TBD, and approximate values remain provisional. No new rule IDs are created for use cases whose Business Rules field says “none.”
 
 ---
 
@@ -107,63 +108,67 @@ The source for Section 2 is the attached `use-cases-draft(2).docx`, titled Use C
 
 ### 2.1 Deck and Station Access
 
-- **`BR-deck-bounds`:** Crew members cannot cross the deck railing; leaving through the plank puts them overboard, and the ladder beside the plank provides the return route to the deck. **Source:** Use Cases v0.2, UC-DECK-move-on-deck.
+- **`BR-deck-bounds`:** Crew members cannot cross the deck railing; leaving through the plank puts them overboard, and the ladder beside the plank provides the return route to the deck. **Source:** [Use Cases](use-cases.md), UC-DECK-move-on-deck.
 
-- **`BR-single-station-occupant`:** A station or storage chest may have only one occupant at a time, except that Repair Spots allow multiple crew members and the Hammock allows two; a claim does not displace an existing occupant. **Source:** Use Cases v0.2, UC-DECK-claim-station; UC-DECK-use-station; UC-SYS-shared-inventory.
+- **`BR-single-station-occupant`:** A station or storage chest may have only one occupant at a time, except that Repair Spots allow multiple crew members and the Hammock allows two; a claim does not displace an existing occupant. **Source:** [Use Cases](use-cases.md), UC-DECK-claim-station; UC-DECK-use-station; UC-SYS-shared-inventory.
 
-- **`BR-station-slots`:** Most stations have one slot, the Hammock has two slots, and a Repair Spot supports up to four crew members repairing together. **Source:** Use Cases v0.2, UC-DECK-claim-station, Associated Information; UC-FTG-rest; UC-SHIP-repair-damage.
+- **`BR-station-slots`:** Most stations have one slot, the Hammock has two slots, and a Repair Spot supports up to four crew members repairing together. **Source:** [Use Cases](use-cases.md), UC-DECK-claim-station, Associated Information; UC-FTG-rest; UC-SHIP-repair-damage.
 
 ### 2.2 Navigation and Weather
 
-- **`BR-sail-rotation-limit`:** The sail rotates only within a limited arc relative to the ship heading, provisionally about −135° to +135° (270° total), with the exact limits TBD. **Source:** Use Cases v0.2, UC-NAV-rotate-sail, Description and Associated Information.
+- **`BR-sail-rotation-limit`:** The sail rotates only within a limited arc relative to the ship heading, provisionally about −135° to +135° (270° total), with the exact limits TBD. **Source:** [Use Cases](use-cases.md), UC-NAV-rotate-sail, Description and Associated Information.
 
-- **`BR-wind-change-cooldown`:** Normal random wind changes occur when the wind-change cooldown expires, after which a new cooldown begins; its duration and any storm-specific wind rules are TBD. **Source:** Use Cases v0.2, UC-NAV-change-wind.
+- **`BR-wind-change-cooldown`:** Normal random wind changes occur when the wind-change cooldown expires, after which a new cooldown begins; its duration and any storm-specific wind rules are TBD. **Source:** [Use Cases](use-cases.md), UC-NAV-change-wind.
 
-- **`BR-waves-rough-weather-only`:** Waves affect the ship only during rough weather and stop affecting it when rough weather ends. **Source:** Use Cases v0.2, UC-WAVE-generate-waves.
+- **`BR-waves-rough-weather-only`:** Waves affect the ship only during rough weather and stop affecting it when rough weather ends. **Source:** [Use Cases](use-cases.md), UC-WAVE-generate-waves.
 
 ### 2.3 Capsizing and Ship Repair
 
-- **`BR-capsize-conditions`:** The ship capsizes when stability reaches zero or integrity reaches 0%, with integrity equal to 100% minus 5 percentage points per open leak, so 20 open leaks cause a capsize. **Source:** Use Cases v0.2, UC-WAVE-balance-ship; UC-WAVE-capsize-ship; UC-SHIP-take-damage.
+- **`BR-capsize-conditions`:** The ship capsizes when stability reaches zero or integrity reaches 0%, with integrity equal to 100% minus 5 percentage points per open leak, so 20 open leaks cause a capsize. **Source:** [Use Cases](use-cases.md), UC-WAVE-balance-ship; UC-WAVE-capsize-ship; UC-SHIP-take-damage.
 
-- **`BR-capsize-reset`:** Capsizing continues the voyage by returning the ship and all crew members to the last visited island (or the starting point if none has been visited), emptying all personal inventories and the deck chest, releasing station claims, restoring full stability and integrity, removing Repair Spots, and lowering the sail. **Source:** Use Cases v0.2, UC-WAVE-capsize-ship.
+- **`BR-capsize-reset`:** Capsizing continues the voyage by returning the ship and all crew members to the last visited island (or the starting point if none has been visited), emptying all personal inventories and the deck chest, releasing station claims, restoring full stability and integrity, removing Repair Spots, and lowering the sail. **Source:** [Use Cases](use-cases.md), UC-WAVE-capsize-ship.
 
-- **`BR-damage-interval`:** Leaks appear at timed intervals that are shorter during storms and shorter still when the ship is not diagonal to the waves or the sail is raised; normal and storm interval values are TBD. **Source:** Use Cases v0.2, UC-SHIP-take-damage; UC-EVT-weather-storm.
+- **`BR-damage-interval`:** Leaks appear at timed intervals that are shorter during storms and shorter still when the ship is not diagonal to the waves or the sail is raised; normal and storm interval values are TBD. **Source:** [Use Cases](use-cases.md), UC-SHIP-take-damage; UC-EVT-weather-storm.
 
-- **`BR-repair-cost`:** A completed leak repair consumes a TBD amount of wood from the deck chest once per repair regardless of participant count and restores 5 percentage points of integrity; insufficient wood prevents the repair. **Source:** Use Cases v0.2, UC-SHIP-repair-damage.
+- **`BR-repair-cost`:** A completed leak repair consumes a TBD amount of wood from the deck chest once per repair regardless of participant count and restores 5 percentage points of integrity; insufficient wood prevents the repair. **Source:** [Use Cases](use-cases.md), UC-SHIP-repair-damage.
 
 ### 2.4 Survival and Fatigue
 
-- **`BR-stat-max`:** Each crew member’s hunger, thirst, and fatigue is bounded between zero and its respective maximum, and food, water, or rest cannot restore a stat beyond that maximum; maximum values are TBD. **Source:** Use Cases v0.2, UC-SURV-consume-food; UC-SURV-consume-water; UC-FTG-rest, Associated Information.
+- **`BR-stat-max`:** Each crew member’s hunger, thirst, and fatigue is bounded between zero and its respective maximum, and food, water, or rest cannot restore a stat beyond that maximum; maximum values are TBD. **Source:** [Use Cases](use-cases.md), UC-SURV-consume-food; UC-SURV-consume-water; UC-FTG-rest, Associated Information.
 
-- **`BR-barrel-fill-rate`:** The shared water barrel collects drinkable water at a steady TBD rate up to its TBD capacity, and bottle refills are limited by available barrel water and the bottle’s TBD capacity. **Source:** Use Cases v0.2, UC-SURV-consume-water.
+- **`BR-barrel-fill-rate`:** The shared water barrel collects drinkable water at a steady TBD rate up to its TBD capacity, and bottle refills are limited by available barrel water and the bottle’s TBD capacity. **Source:** [Use Cases](use-cases.md), UC-SURV-consume-water.
 
-- **`BR-stat-depletion-rate`:** Hunger and thirst decrease at their own constant TBD rates during active, unpaused play while a crew member is conscious, and normal fatigue depletion follows the same conditions except that it stops while resting; hunger and thirst continue to decrease during rest. **Source:** Use Cases v0.2, UC-SURV-deplete-hunger-thirst; UC-FTG-deplete-fatigue; UC-FTG-rest.
+- **`BR-stat-depletion-rate`:** Hunger and thirst decrease at their own constant TBD rates during active, unpaused play while a crew member is conscious, and normal fatigue depletion follows the same conditions except that it stops while resting; hunger and thirst continue to decrease during rest. **Source:** [Use Cases](use-cases.md), UC-SURV-deplete-hunger-thirst; UC-FTG-deplete-fatigue; UC-FTG-rest.
 
-- **`BR-pass-out-recovery`:** A crew member whose hunger, thirst, or fatigue reaches zero passes out without permanent death, loses the ability to act and any station claim for a TBD cooldown, and then recovers with all three stats at 25% of their respective maxima. **Source:** Use Cases v0.2, UC-SURV-pass-out.
+- **`BR-pass-out-recovery`:** A crew member whose hunger, thirst, or fatigue reaches zero passes out without permanent death, loses the ability to act and any station claim for a TBD cooldown, and then recovers with all three stats at 25% of their respective maxima. **Source:** [Use Cases](use-cases.md), UC-SURV-pass-out.
 
-- **`BR-illness-fatigue-floor`:** Illness from raw non-fruit food adds fatigue drain only while fatigue is above a provisional floor of about 50% of maximum and the illness timer remains active; normal depletion can continue below that floor, whose exact value or variation is TBD. **Source:** Use Cases v0.2, UC-SURV-recover-from-illness.
+- **`BR-illness-fatigue-floor`:** Illness from raw non-fruit food adds fatigue drain only while fatigue is above a provisional floor of about 50% of maximum and the illness timer remains active; normal depletion can continue below that floor, whose exact value or variation is TBD. Whether illness drain resumes after rest raises fatigue above the floor is also TBD (`OI-12`). **Source:** [Use Cases](use-cases.md), UC-SURV-recover-from-illness.
 
 ### 2.5 Events and Trading
 
-- **`BR-event-roll-once-per-tile`:** Each map tile receives at most one event roll per voyage and produces at most one event from its event list, with the tile marked as rolled even when no event occurs. **Source:** Use Cases v0.2, UC-EVT-generate-event.
+- **`BR-event-roll-once-per-tile`:** Each map tile receives at most one event roll per voyage and produces at most one event from its event list, with the tile marked as rolled even when no event occurs. **Source:** [Use Cases](use-cases.md), UC-EVT-generate-event.
 
-- **`BR-merchant-pricing`:** Merchant purchases spend the crew’s shared gold at the displayed price only when sufficient gold and inventory space are available, and confirmed sales remove the sold item and add the offered gold; gold cannot be negative, and item prices and sell values are TBD. **Source:** Use Cases v0.2, UC-EVT-trade-with-merchant; UC-SYS-item-pool, Associated Information.
+- **`BR-merchant-pricing`:** Merchant purchases spend the crew’s shared gold at the displayed price only when sufficient gold and inventory space are available, and confirmed sales remove the sold item and add the offered gold; gold cannot be negative, and item prices and sell values are TBD. **Source:** [Use Cases](use-cases.md), UC-EVT-trade-with-merchant; UC-SYS-item-pool, Associated Information.
 
 ### 2.6 Session Management
 
-- **`BR-host-ends-session`:** The Host quitting or disconnecting ends the session for everyone and discards the unsaved voyage, with no host migration, while another crew member leaving does not end the session. **Source:** Use Cases v0.2, UC-PROG-quit-voyage; UC-DECK-claim-station, Failure behavior.
+Host permissions and disconnect semantics below describe deferred co-op. In single-player, the local player starts, restarts, pauses, resumes, and quits; the same pause freeze applies to all simulation timers. These rules describe planned session controls, not an implemented pause menu.
 
-- **`BR-host-controls-session`:** Only the Host may start, restart, pause, or resume the voyage, and pausing freezes movement, stat depletion, wind, waves, and all timers for the whole crew until resumed. **Source:** Use Cases v0.2, UC-PROG-start-voyage; UC-PROG-pause-game.
+- **`BR-host-ends-session`:** The Host quitting or disconnecting ends the session for everyone and discards the unsaved voyage, with no host migration, while another crew member leaving does not end the session. **Source:** [Use Cases](use-cases.md), UC-PROG-quit-voyage; UC-DECK-claim-station, Failure behavior.
 
-- **`BR-session-cap-4`:** A session contains one Host and at most three additional crew members, for a maximum of four players including the Host. **Source:** Use Cases v0.2, UC-PROG-host-join.
+- **`BR-host-controls-session`:** Only the Host may start, restart, pause, or resume the voyage, and pausing freezes movement, stat depletion, wind, waves, and all timers for the whole crew until resumed. **Source:** [Use Cases](use-cases.md), UC-PROG-start-voyage; UC-PROG-pause-game.
 
-### 2.7 Inventory Map and Island Travel
+- **`BR-session-cap-4`:** A session contains one Host and at most three additional crew members, for a maximum of four players including the Host. **Source:** [Use Cases](use-cases.md), UC-PROG-host-join.
 
-- **`BR-inventory-slots`:** Each personal inventory has exactly six quick slots plus a TBD number of expanded slots, with at most 30 matching items per stack and no additional item accepted when every slot and matching stack is full. **Source:** Use Cases v0.2, UC-SYS-player-inventory.
+### 2.7 Inventory, Map, and Island Travel
 
-- **`BR-pin-limit`:** If a shared map-pin limit is adopted, the number of active pins must not exceed it; whether a limit exists, its value, and whether excess placement is blocked or replaces the oldest pin are all TBD. **Source:** Use Cases v0.2, UC-MAP-place-pin, Extensions and Open Issues.
+The six quick slots and 30-item stacks below are the planned inventory contract. The current prototype instead has four distinct-item spaces and per-item stack limits; see the [inventory implementation guide](../../scripts/inventory-system/Inventory-sys-information.md). Updating documentation does not change those code limits.
 
-- **`BR-rowboat-capacity`:** The rowboat may carry no more than its passenger capacity, whose value is TBD. **Source:** Use Cases v0.2, UC-ISLE-arrive-at-island, Associated Information and Open Issues.
+- **`BR-inventory-slots`:** Each personal inventory has exactly six quick slots plus a TBD number of expanded slots, with at most 30 matching items per stack and no additional item accepted when every slot and matching stack is full. **Source:** [Use Cases](use-cases.md), UC-SYS-player-inventory.
+
+- **`BR-pin-limit`:** If a shared map-pin limit is adopted, the number of active pins must not exceed it; whether a limit exists, its value, and whether excess placement is blocked or replaces the oldest pin are all TBD. **Source:** [Use Cases](use-cases.md), UC-MAP-place-pin, Extensions and Open Issues.
+
+- **`BR-rowboat-capacity`:** The rowboat may carry no more than its passenger capacity, whose value is TBD. **Source:** [Use Cases](use-cases.md), UC-ISLE-arrive-at-island, Associated Information and Open Issues.
 
 ### 2.8 Superseded Reference
 

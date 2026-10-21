@@ -1,6 +1,8 @@
 # Navigation & Sailing Design
 
-**Project:** Holy Ship!
+> **Scope (2026-10-20):** The current milestone is single-player. Host/client synchronization, LAN sessions, joint actions, and multi-player capacity are retained only as deferred co-op design. Local gameplay uses the local simulation as authority. Planned behavior is not a claim of implementation; see [scope and status](../requirements/vision-and-scope.md#43-mvp-scope).
+
+**Project:** Holy Ship
 **Team:** Team 13
 **Area:** `NAV`
 
@@ -255,6 +257,8 @@ _[One row per endpoint, scheduled job, or message this area adds or changes, app
 
 ## Key decisions
 
+**Prototype differences, not requirement overrides:** The sail levels, rudder controls, sail arc, drift, wind display, and speed-dependent turning described below record existing code and the original design rationale. “Rejected” alternatives do not revoke a use case or business rule merely because the prototype differs. Treat these as unresolved acceptance differences under `OI-10`; the team must update either the requirements or implementation explicitly.
+
 _[Only the decisions a reader could not recover from the code: an invariant, who may do this and how it is enforced, a trade-off you chose, a reason you reused something rather than writing it. **Each one names what you chose, what you rejected, and why.** If you cannot name an alternative you considered, it probably was not a decision; leave it out._
 
 _A decision that affects the whole system rather than this area is an architecture decision. It belongs in your architecture-of-record as a `KD-*` entry, not here.]_
@@ -343,7 +347,7 @@ _[What this design could not settle and who can, and what could go wrong that yo
 - Lookout: the zoom value, and whether the zoom is instant or animated, given that 2a1 says "immediately". `Ship._stop_sailing()` must also release the Lookout when docking (`UC-NAV-use-lookout`). Liliana and Leiton.
 - How much damage a collision causes, and whether it is once per contact (`UC-NAV-steer-ship` 3d). The team, since it crosses into SHIP.
 - Storm wind rules (`UC-NAV-change-wind` 2b). The team, since it crosses into EVT.
-- Whether the wind cooldown and the heading-bonus timer stop while paused. The team, since it crosses into PROG.
+- Wind cooldown and heading-bonus timers freeze while paused under `BR-host-controls-session`; implementation must use the shared simulation pause.
 - When the Lookout and Sail are both in range, the first station to handle E wins, not the nearest (`UC-DECK-use-station` 2a). The team, since it crosses into DECK.
 - Docking at an island's circle is built but is described by no use case. It needs one, or a step in `UC-ISLE-arrive-at-island`. The team, since it crosses into ISLE.
 
@@ -383,7 +387,7 @@ The following details are not resolved by this design. The tentative guesses doc
 | Becalmed result: fade or snap (`UC-NAV-change-wind` 2a) | Fade strength gradually to 0 and keep the old direction. | Yes — the use case's 2a path skips the shift, while this design shifts gradually. | The team decides. |
 | When the next cooldown starts (`UC-NAV-change-wind` step 6) | At timeout; a new change starts from the current mid-shift values. | Yes — waiting for the shift lengthens the interval beyond the rule. | The team decides. |
 | Storm wind rules (`UC-NAV-change-wind` 2b) | A storm hook that is always off for now. | Yes — 2b cannot be met until storms exist. | The team defines them in the EVT design. |
-| Wind and timers while paused (`UC-NAV-change-wind`) | A pausable `Timer`, so the wind freezes on pause. | Yes — a change during a pause breaks PRE-1. | The team decides in the PROG design. |
+| Wind and timers while paused (`UC-NAV-change-wind`) | A pausable simulation timer. | Yes — a change during a pause violates `BR-host-controls-session`. | The pause policy is specified; implement the shared pause gate. |
 | Lookout zoom value (`UC-NAV-use-lookout` step 1) | Zoom about 0.5; in Godot 4, below 1 zooms out. | Yes — the wrong direction zooms in instead of out. | The team picks the value through playtesting. |
 | Instant or animated zoom (`UC-NAV-use-lookout` 2a1) | Ease in and out normally; snap back instantly when forced off. | Yes — 2a1 says the view restores immediately. | The team confirms. |
 | Releasing the Lookout when docking (`UC-NAV-use-lookout`) | Every release path restores the zoom. | Yes — `Ship._stop_sailing()` releases only the Helm and Sail, so the zoom would stay out. | The team adds the Lookout to the docking release. |

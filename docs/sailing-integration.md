@@ -15,10 +15,11 @@ the island game remain part of the same playable loop.
    blows; wind pushing the sail forward provides speed. Press **E** to leave.
 4. Approach the wheel near the stern and press **E**. Hold **A/D** to steer,
    then press **E** to leave. The rudder keeps its setting unless centered.
-5. After sailing 660 pixels, an island appears ahead. Sail into the yellow
-   docking circle. The ship aligns beside the island, stows the sail, and anchors.
-6. Walk to the stern and press **E** to play the rowboat cutscene. Collect the
-   coconuts in the island game and return to its rowboat before time expires.
+5. Follow the nearest-island indicator toward one of the two hand-placed
+   islands. Sail into its yellow docking circle. The ship aligns beside the
+   island, stows the sail, and anchors.
+6. Walk to the stern and press **E** to play the rowboat cutscene. Complete that island’s coconut-collection or treasure-digging challenge
+   and return to its rowboat before time expires.
 7. After the return cutscene, raise the sail again to depart. The ship waits
    for your input; it no longer leaves automatically.
 

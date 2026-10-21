@@ -1,6 +1,8 @@
 # Events & Encounters Design
 
-**Project:** Holy Ship!
+> **Scope (2026-10-20):** The current milestone is single-player. Host/client synchronization, LAN sessions, joint actions, and multi-player capacity are retained only as deferred co-op design. Local gameplay uses the local simulation as authority. Planned behavior is not a claim of implementation; see [scope and status](../requirements/vision-and-scope.md#43-mvp-scope).
+
+**Project:** Holy Ship
 **Team:** Team 13 (Gaming)
 **Area:** `UC-EVT` (Events & Encounters)
 **Status:** Proposed design for future implementation; no EVT code exists.
@@ -8,7 +10,7 @@
 
 > **Realizes:** `UC-EVT-generate-event`, `UC-EVT-trade-with-merchant`, `UC-EVT-weather-storm`. No supplied `FR-EVT-*` identifiers.
 > **Depends on:** `BR-event-roll-once-per-tile`, `BR-merchant-pricing`, `BR-capsize-conditions`, `BR-damage-interval`; supporting `BR-inventory-slots`, `BR-waves-rough-weather-only`, `BR-capsize-reset`, `BR-host-controls-session`, `BR-host-ends-session`; architecture `KD-deployment-shape`, `KD-local-first`, `KD-station-components`, `KD-world-chunks`.
-> **See:** [use cases](../requirements/use-cases.md), [business rules](../requirements/business-rules.md), [specification](../requirements/software-requirements-specification.md), [architecture-of-record](../architectural-design.md#8-crosscutting-concepts). These are intended repository links for `docs/design/evt.md`; supplied attachment names differ, and the specification was not supplied.
+> **See:** [use cases](../requirements/use-cases.md), [business rules](../requirements/business-rules.md), [specification](../requirements/software-requirements-specification.md), [architecture-of-record](architectural-design.md#8-crosscutting-concepts). Repository links now point to the checked-in requirements and architecture.
 > **Designed against:** Supplied architectural-design(2).md v0.2, October 2, 2026; use-cases-draft(3).docx v0.2; business-rules (2)(1).md v0.2, October 14, 2026. No code checkout or main commit supplied; no implementation commit is claimed.
 
 ---
@@ -37,9 +39,9 @@ _**Write it in this order.** Each step is one person's or one pair's work, and t
 
 _[One paragraph: what this area does, which components of your [architecture-of-record](architectural-design.md) it lives in, and what it reads from or calls in other areas. Link the container diagram rather than redrawing it. If this design changes the architecture-of-record, say so here and list the change under "Changes to the architecture-of-record" below.]_
 
-Events & Encounters coordinates tile-triggered events, merchant exchanges, and temporary storm effects inside the local Godot Game Application ([containers](../architectural-design.md#51-containers)). It receives tile-entry information from World and Ocean/boat tracking, obtains merchant items from the item-pool owner and Item Catalog, and calls inventory, ship, wave, and navigation owners rather than duplicating their state. Architecture section 5.2 currently places encounters in TRADE and weather responsibilities in NAV/World and Ocean; the newer use-case draft defines EVT as its own area. The reconciliation is listed below. All EVT classes, methods, signals, and paths in this draft are proposed; no EVT code or repository checkout was supplied. This is a design for future implementation, not evidence that those interfaces already exist.
+Events & Encounters coordinates tile-triggered events, merchant exchanges, and temporary storm effects inside the local Godot Game Application ([containers](architectural-design.md#51-containers)). It receives tile-entry information from World and Ocean/boat tracking, obtains merchant items from the item-pool owner and Item Catalog, and calls inventory, ship, wave, and navigation owners rather than duplicating their state. Architecture section 5.2 now lists EVT as the owner of events, storms, and merchant trades. Detailed cross-area interfaces below remain proposals. All EVT classes, methods, signals, and paths in this draft are proposed; no EVT code or repository checkout was supplied. This is a design for future implementation, not evidence that those interfaces already exist.
 
-The supplied use cases v0.2 (September 30, 2026) govern behavior; the supplied business rules v0.2 define the cited rules. The October 2 architecture supplies implementation conventions, but its statements that only steering is fully specified and pause/authority rules are unspecified are superseded by the supplied use cases. No FR identifiers were supplied, so none are invented.
+The supplied use cases v0.2 (September 30, 2026) govern behavior; the supplied business rules v0.2 define the cited rules. The original October 2 architecture supplied implementation conventions. The repository architecture now reflects the eleven use-case areas and the pause rule; retain the original attachment names below only as draft provenance. No FR identifiers were supplied, so none are invented.
 
 ## Components & classes
 
@@ -332,7 +334,7 @@ _[Designing an area against real code is when the architecture's guesses meet re
 
 **Required companion edits, proposed only; architectural-design.md is not modified by this deliverable.** Apply/review these in the same design pull request before treating EVT as the approved design-of-record.
 
-- Section 5.2: reconcile the older six-area map with Use Cases v0.2's eleven areas; add EVT, assign event generation, merchant exchanges, and storm orchestration to it, and remove overlapping encounter ownership from TRADE. Confirm that no retained TRADE scope duplicates EVT.
+- Section 5.2 now records EVT in the eleven-area map; interface details still need agreement with SYS, WAVE, SHIP, and PROG.
 - Section 5.2: record EVT dependencies on boat/world tracking, session authority, item pool/catalog, inventory/shared gold, navigation, waves, and ship damage/capsize. Cross-area state remains with its owner.
 - Sections Identifiers, 5.2, and 11.2: replace the outdated statement that only steering is specified with the supplied use-case baseline; cite current business-rule identifiers, including BR-single-station-occupant in place of BR-single-helmsman.
 - Sections 8.1 and 8.2.2/8.2.8: record use-case requirements for Host-owned shared mutations, whole-session pause, voyage-only durability, and host termination; retain transport/identity/recovery decisions as unresolved.
@@ -407,7 +409,7 @@ Paste the following block under **How it was verified** in the PR description.
 
 **Shared gaps**
 
-- **EVT ownership conflicts with TRADE and NAV/World.** Could break: yes. **Open (architecture owner):** retain the proposed EVT coordination/state-owner split, but reconcile section 5.2 before implementation; the companion changes are still proposals.
+- **EVT cross-area ownership.** Could break: yes. The area map now assigns EVT coordination; concrete SYS/WAVE/SHIP/PROG interfaces still require agreement (`OI-15`).
 - **Actual integration interfaces and component lifetimes.** Could break: yes. **Fixed (proposed):** one voyage-scoped coordinator and identity-bound callbacks. **Open (implementer / area owners):** verify the real source and agree concrete dependency interfaces; paths are not verified code.
 - **Multiplayer transport and crew identity.** Could break: yes. **Open (PROG):** keep Host authority and caller-bound identity as required constraints; no transport or identity implementation is guessed into existence.
 - **Replication, late joining, retries, and desynchronization.** Could break: yes. **Open (PROG):** clients must receive committed current state and duplicate requests must not repeat exchanges; snapshot, retry, and deduplication contracts need design.

@@ -1,4 +1,6 @@
-# _[Area name]_ Design
+# Area Design Template
+
+> This file is a reusable template, not an area design or a source of game requirements. Worked examples are instructional only.
 
 **Project:** _[Your project name]_
 **Team:** _[Team NN]_

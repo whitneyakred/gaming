@@ -1,6 +1,8 @@
 # Island Interaction Design
 
-**Project:** Holy Ship!
+> **Scope (2026-10-20):** The current milestone is single-player. Host/client synchronization, LAN sessions, joint actions, and multi-player capacity are retained only as deferred co-op design. Local gameplay uses the local simulation as authority. Planned behavior is not a claim of implementation; see [scope and status](../requirements/vision-and-scope.md#43-mvp-scope).
+
+**Project:** Holy Ship
 **Team:** Team 13 (Gaming): Whitney Akred, Shana Billiot, Liliana Matte, Gustavo Castillo, Leiton Peterson, Ivan Lopez
 **Area:** `UC-ISLE`
 
@@ -35,7 +37,7 @@ _**Write it in this order.** Each step is one person's or one pair's work, and t
 
 _[One paragraph: what this area does, which components of your [architecture-of-record](architectural-design.md) it lives in, and what it reads from or calls in other areas. Link the container diagram rather than redrawing it. If this design changes the architecture-of-record, say so here and list the change under "Changes to the architecture-of-record" below.]_
 
-Island Interaction gets a crew member from an anchored ship onto an island and back, runs the island's challenge, and lets them gather items there. It is the **Island Exploration** component of the Game Application ([containers](architectural-design.md#51-containers), [use case areas](architectural-design.md#52-use-case-areas-and-components)). Most of the trip already works on `main`. `Ship` (Ship State) anchors at a `WorldIsland`'s dock, plays the rowboat cutscene, and loads that island as **its own scene**. The island scene's `IslandGame` runs a timed challenge (collect every coconut on Coconut Island, dig up the treasure on Treasure Island), and the island's rowboat sends the player back. This area reads the item catalog (Item Catalog) and writes into the crew member's `PlayerInventory` (`UC-SYS-player-inventory`). What is missing: island state and the crew's inventory do not survive the scene swaps, coconuts never reach an inventory, and there are no gatherable resources (trees, wood). This design adds one in-memory **`VoyageState`** autoload to carry that state across scenes, which is a change to the architecture-of-record (see the last sections). Every "sync to all clients" step waits for networking (`KD-local-first`). `UC-ISLE-salvage-shipwreck` is left for a later pass: it is built on `UC-SYS-shared-inventory` (the storage chest), which has neither a design nor code yet.
+Island Interaction gets a crew member from an anchored ship onto an island and back, runs the island's challenge, and lets them gather items there. It is the **Island Exploration** component of the Game Application ([containers](architectural-design.md#51-containers), [use case areas](architectural-design.md#52-use-case-areas-and-components)). Most of the trip already works on `main`. `Ship` (Ship State) anchors at a `WorldIsland`'s dock, plays the rowboat cutscene, and loads that island as **its own scene**. The island scene's `IslandGame` runs a timed challenge (collect every coconut on Coconut Island, dig up the treasure on Treasure Island), and the island's rowboat sends the player back. This area reads the item catalog (Item Catalog) and writes into the crew member's `PlayerInventory` (`UC-SYS-player-inventory`). What is missing: island state and the crew's inventory do not survive the scene swaps, coconuts never reach an inventory, and there are no gatherable resources (trees, wood). This design adds one in-memory **`VoyageState`** autoload to carry that state across scenes, which is a change to the architecture-of-record (see the last sections). Every "sync to all clients" step waits for networking (`KD-local-first`). `UC-ISLE-salvage-shipwreck` is left for a later pass: it is built on `UC-SYS-shared-inventory` (the storage chest), which has a proposed SYS design but no code yet.
 
 ## Components & classes
 
@@ -375,7 +377,7 @@ _[What this design could not settle and who can, and what could go wrong that yo
 - **Rewards are TBD.** `reward_item_ids` is empty until decided. When a reward doesn't fit, this design blocks completion ("Make room for the reward") rather than granting part of it. That's safe only together with leave-early, so the player can go make room. Owner: the team.
 - **Passing out does not exist yet.** PRE-2 is trivially true until `UC-SURV-pass-out` exists. A passed-out crew member can't act (`BR-pass-out-recovery`), and the stern E check is where that will be enforced for the rowboat.
 - **Cooking stock moves into `VoyageState`** (decided above), though cooking has no use case. Owner: whoever owns cooking.
-- **Items left on the ground are lost when you leave the island.** The resource amount has already dropped (decided above), and ground items belong to `UC-SYS-item-drop`, which has no design yet. Owner: whoever designs `SYS`.
+- **Items left on the ground are lost when you leave the island.** The resource amount has already dropped (decided above), and ground items belong to `UC-SYS-item-drop`, whose SYS design now proposes world-item lifetime. This older scene-local loss proposal is not a settled cross-area contract; resolve `OI-15` before implementation. Owner: whoever designs `SYS`.
 - **The inventory home is shared with `SYS`.** `VoyageState.get_inventory` is placed here because ISLE's POST-1 needs it first. The `SYS` design should adopt it or move it, not build a second one.
 - **"Interact to drop, walk over to pick up"** is still an open question on the use case ("Is the collection method right?"). This design builds it as written.
 - **Risk, E means two things on Treasure Island:** E digs there. If a `ResourceNode` is ever placed on Treasure Island, one press would both dig and gather. Mitigation: `ResourceNode` marks the input handled, and no resource nodes go on Treasure Island until the deck's single-reader approach ([deck.md](deck.md)) is extended to islands.
@@ -399,7 +401,7 @@ _**The specific failure to watch for: scope that nobody asked for.** An agent dr
 
 - Leave-early (Key decisions, "Team to confirm")
 - What the rewards are, and whether blocking completion when a reward doesn't fit is right
-- Removing swimming from `UC-ISLE-arrive-at-island` itself (see the questions test)
+- The use-case scope now marks island swimming as a deferred alternative; current island access is rowboat-only.
 - Approval of the PR by a teammate who did not write it
 
 ### Scope check: interactions with no use case step

@@ -1,19 +1,21 @@
 # Survival Design
 
-**Project:** Holy Ship!
+> **Scope (2026-10-20):** The current milestone is single-player. Host/client synchronization, LAN sessions, joint actions, and multi-player capacity are retained only as deferred co-op design. Local gameplay uses the local simulation as authority. Planned behavior is not a claim of implementation; see [scope and status](../requirements/vision-and-scope.md#43-mvp-scope).
+
+**Project:** Holy Ship
 **Team:** Team 13  
 **Area:** `SURV` — Hunger, Thirst & Illness  
 **Status:** Draft for team review; unresolved policies and the proposed sensory effects below prevent implementation approval.
 
 > **Realizes:** `UC-SURV-consume-food`, `UC-SURV-consume-water`, `UC-SURV-deplete-hunger-thirst`, `UC-SURV-pass-out`, `UC-SURV-recover-from-illness`. No project-specific `FR-SURV-*` identifiers were supplied.
 > **Depends on:** `BR-stat-max`, `BR-barrel-fill-rate`, `BR-stat-depletion-rate`, `BR-pass-out-recovery`, `BR-illness-fatigue-floor`, `BR-host-controls-session`, `BR-capsize-reset`; the inventory, station, fatigue, and session interfaces identified below.
-> **See:** [supplied use cases](<C:/Users/Gusy/Downloads/use-cases-draft.md>), [supplied architecture](<C:/Users/Gusy/Downloads/architectural-design.md>), [replacement business rules v0.2](<C:/Users/Gusy/Downloads/business-rules (2).md>), [repository specification](../requirements/software-requirements-specification.md).
+> **See:** [supplied use cases](../requirements/use-cases.md), [supplied architecture](architectural-design.md), [replacement business rules v0.2](../requirements/business-rules.md), [repository specification](../requirements/software-requirements-specification.md).
 > **Designed against:** local checkout `bf4428af2f05e238dfca15df0983fde987b4de72`; not independently verified as the current `main` revision. Architecture source: version 0.2, October 2, 2026. Use-case source: version 0.2. Business rules source: version 0.2, October 14, 2026.
 
 
 ## Overview
 
-The Survival (`SURV`) area belongs to the planned **Crew Survival** component within the Game Application ([architecture section 5.2](<C:/Users/Gusy/Downloads/architectural-design.md#52-use-case-areas-and-components>); see its [container view](<C:/Users/Gusy/Downloads/architectural-design.md#51-containers>)). It maintains per-crew hunger, thirst, illness, and pass-out recovery using reusable components and signals to the HUD. It reads food definitions from **Item Catalog**, coordinates consumption with the inventory owner, and uses **Crew Control** and **Station Interaction** to disable actions and release occupied stations during pass-out. Fatigue remains a separate design area in `FTG.md` within Crew Survival: SURV supplies illness effects and requests recovery, while FTG owns fatigue mutation. All gameplay state is voyage-local and in memory. Local ownership is established first; networking remains deferred under `KD-local-first`. The owner's October 14 direction additionally proposes Minecraft-inspired readable survival feedback, movement slowdown, and seasick screen wobble; these are recorded below as a requirements change, pending precise triggers and tuning.
+The Survival (`SURV`) area belongs to the planned **Crew Survival** component within the Game Application ([architecture section 5.2](architectural-design.md#52-use-case-areas-and-components); see its [container view](architectural-design.md#51-containers)). It maintains per-crew hunger, thirst, illness, and pass-out recovery using reusable components and signals to the HUD. It reads food definitions from **Item Catalog**, coordinates consumption with the inventory owner, and uses **Crew Control** and **Station Interaction** to disable actions and release occupied stations during pass-out. Fatigue remains a separate design area in `FTG.md` within Crew Survival: SURV supplies illness effects and requests recovery, while FTG owns fatigue mutation. All gameplay state is voyage-local and in memory. Local ownership is established first; networking remains deferred under `KD-local-first`. The owner's October 14 direction additionally proposes Minecraft-inspired readable survival feedback, movement slowdown, and seasick screen wobble; these are recorded below as a requirements change, pending precise triggers and tuning.
 
 ## Components & classes
 
@@ -329,7 +331,7 @@ Required reconciliations are listed here; the supplied architecture file has not
 
 1. Revise section 5.2's area map to recognize separate SURV and FTG designs inside Crew Survival and identify inventory/session dependencies now specified by the newer use cases. Do not create separate deployed services.
 2. Update 8.2.2 and 8.2.8 from unspecified pause/authority/save behavior to the newer use-case rules: pause freezes all timers, voyage state is unsaved, future cooperative authority is the Host. Preserve local-first implementation.
-3. Update the stale claims that only steering is fully specified and that only six areas exist; the supplied use-case draft defines more areas and full SURV/FTG flows.
+3. Architecture now lists all eleven areas and acknowledges the detailed SURV/FTG flows; interface and acceptance work remains pending.
 4. Keep kitchen/cooking ownership outside this document: cooking has no supplied SURV use case. Reconcile the architecture's kitchen mention without adding a cooking feature here.
 
 ## Working this document with your agent
