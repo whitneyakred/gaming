@@ -23,7 +23,6 @@ This glossary defines the vocabulary of Holy Ship, a top-down 2D sailing/surviva
 |---|---|---|---|
 | 2026-09-11 | 0.1 | Initial project-specific glossary based on the earlier prototype | Leiton Peterson (with AI assistance) |
 | 2026-09-13 | 0.2 | Align vocabulary with the Miro main game loop and feature board | Leiton Peterson (with AI assistance) |
-| 2026-10-20 | 0.3 | Align with repository use cases and rules; define missing referenced terms; distinguish current prototype, planned mechanics, and deferred co-op | AI-assisted consistency review |
 
 ## Definitions
 

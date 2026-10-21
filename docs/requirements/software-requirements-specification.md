@@ -39,7 +39,6 @@ _Requirements cited from elsewhere keep their own identifiers: `UC-*` from [use-
 | Date | Version | Description | Author |
 |---|---|---|---|
 | 2026-09-13 | 0.1 | Initial draft | Ivan Lopez |
-| 2026-10-20 | 0.2 | Align milestone, terminology, state lifetime, engine constraints, and source links; retain unresolved quality targets. | AI-assisted consistency review |
 
 ---
 

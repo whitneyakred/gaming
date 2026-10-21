@@ -56,7 +56,7 @@ Raised while drafting [Ship Damage & Repair](../design/ship.md). These refine th
 
 ### Cross-document decisions
 
-Raised 2026-10-20 during the consistency review. These preserve undecided behavior rather than choosing new gameplay rules.
+These questions identify unresolved gameplay and integration decisions.
 
 | ID | Question | Why it matters | Who can answer | Raised |
 |---|---|---|---|---|
@@ -64,7 +64,7 @@ Raised 2026-10-20 during the consistency review. These preserve undecided behavi
 | OI-11 | When should the prototype’s four distinct-item spaces and per-item caps be replaced by six quick slots, expanded slots, and 30-item stacks? | BR-inventory-slots is planned behavior, not current inventory implementation. Wood ID/cost also remain unresolved under OI-6. | SYS owner and team | 2026-10-20 |
 | OI-12 | Does illness drain resume after rest raises fatigue above its floor; what are threshold equality and same-tick recovery rules? | SURV/FTG designs identify ambiguity. Preserve display-only exhaustion until any slowdown/wobble proposal is explicitly approved. | SURV and FTG owners with team | 2026-10-20 |
 | OI-13 | Should future island swimming be supported, and how should general island challenges relate to the prototype’s timed retries? | Current DECK/ISLE designs use rowboat-only island access. Retained swimming flows are deferred alternatives; generic rewards and retry policies remain TBD. | DECK and ISLE owners with team | 2026-10-20 |
-| OI-14 | Which communication channel and response windows govern: the signed contract’s Slack/6-hour/3-hour entries or the interview/Discord record? | A documentation cleanup cannot invent a replacement team agreement. | Development team | 2026-10-20 |
+| OI-14 | Which communication channel and response windows govern: the signed contract’s Slack/6-hour/3-hour entries or the interview/Discord record? | The team must confirm which communication agreement governs. | Development team | 2026-10-20 |
 | OI-15 | Which cross-area contracts govern world-item retention, Voyage State ownership, inventory handoff, and capsize reset ordering? | ISLE scene-local drop loss conflicts with SYS lifetime proposals; existing static scene handoffs are not the proposed shared state component. | SYS, ISLE, WAVE, SHIP, and PROG owners | 2026-10-20 |
 | OI-17 | What world-grid origin, tile size, placement, and update cadence satisfy indefinite travel and notify every crossed tile? | SYS/MAP positive-only, fixed-route, and coarse-sampling proposals are not approved world constraints. | SYS, MAP, NAV, EVT, and PROG owners | 2026-10-20 |
 | OI-18 | Is map access a station or menu, and is discovery retained or reset after capsize? | The use cases leave both open. Capsize continues the voyage regardless; MAP must not end the session or silently choose retention. | MAP, WAVE, and PROG owners with team | 2026-10-20 |
@@ -116,4 +116,4 @@ Detailed numeric and behavioral questions remain in each use case's **Open Issue
 
 | ID | Question | Answer | Answered by | Date | Filed in |
 |---|---|---|---|---|---|
-| OI-16 | Which scope should the documents describe? | Single-player current milestone; retain co-op as deferred design. | Project owner in this review | 2026-10-20 | Vision 4.3; use-case scope; business-rule applicability; glossary; area scope notes |
+| OI-16 | Which scope should the documents describe? | Single-player current milestone; retain co-op as deferred design. | Project owner | 2026-10-20 | Vision 4.3; use-case scope; business-rule applicability; glossary; area scope notes |

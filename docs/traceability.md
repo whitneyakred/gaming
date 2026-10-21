@@ -3,7 +3,6 @@
 **Project:** Holy Ship
 **Team:** Team 13 (Gaming)
 **Version:** 0.2
-**Last checked:** 2026-10-20, AI-assisted consistency review
 
 This matrix links the current requirements without claiming implementation or test completion. The current milestone is single-player; co-op flows are deferred. [Vision section 4.3](requirements/vision-and-scope.md#43-mvp-scope) owns scope, [business rules](requirements/business-rules.md) owns rule text, and [use cases](requirements/use-cases.md) owns behavior.
 

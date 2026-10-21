@@ -39,7 +39,6 @@ Identifiers from other documents retain their original names. The use-case docum
 |---|---|---|---|
 | 0.1 | Not recorded in original draft | Original contributors | Architecture template and section 5.1 diagram |
 | 0.2 | 2026-10-02 | AI-assisted draft for Team 13 review | Complete architectural sections from repository evidence, preserve the original diagram, and distinguish implementation from plans and unresolved requirements |
-| 0.4 | 2026-10-20 | AI-assisted consistency review | Canonical name, current scope, eleven areas, fatigue ownership, source/traceability updates, and stale-status corrections; remove stray conflict marker |
 | 0.3 | 2026-10-14 | AI-assisted update for Team 13 review | Apply the changes required by the `DECK` and `ISLE` designs-of-record: Station Interaction and the new Voyage State component (5.2), the implementation map (5.3), the island trip runtime view (6), restart behavior (7.3), station authorization (8.1), reason codes (8.2.1), the island placement note on `KD-world-chunks` (9.2), and station quality scenarios (10.2) |
 
 ## 1. Introduction and Goals

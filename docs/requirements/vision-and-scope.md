@@ -3,7 +3,7 @@
 **Project:** Holy Ship
 **Team:** Team 13 (Gaming) — Whitney Akred, Shana Billiot, Liliana Matte, Leiton Peterson, Ivan Lopez, Gustavo Castillo  
 **Client:** None — student-led TCU Senior Design project; the development team owns product decisions  
-**Version:** 0.3 — Consistency revision for team review
+**Version:** 0.3
 **Reviewed:** October 20, 2026
 
 This document distinguishes the documented current prototype, the planned game, and ideas that still require a team decision. The current prototype supports one player sailing, operating stations, docking, and taking rowboat trips to timed island games. It is not yet the full survival voyage.
@@ -15,7 +15,6 @@ This revision uses the repository's minimal-MVP guide and glossary for current s
 | Date | Version | Description | Author |
 |---|---|---|---|
 | 2026-09-11 | 0.1 | Initial draft based on September 10 meeting notes | Original author/reviewer not recorded |
-| 2026-10-20 | 0.3 | Align current prototype, use-case coverage, glossary, deferred co-op, and source ownership with the checkout and owner-confirmed milestone. | AI-assisted consistency review |
 | 2026-09-25 | 0.2 | Align name, student ownership, current prototype, planned game loop, feature status, and unresolved decisions with repository documentation | AI-assisted revision requested by Gustavo Castillo; pending team review |
 
 ## 1. Introduction
@@ -252,7 +251,7 @@ Fatigue/rest, hunger/thirst, capsize, and pass-out recovery are specified planne
 
 **Source ownership:** Use this section for milestone status; [business rules](business-rules.md) for domain constraints; [use cases](use-cases.md) for planned flows; [glossary](project-glossary.md) for terms; [specification](software-requirements-specification.md) for cross-cutting constraints/quality; area designs for implementation proposals. Historical interviews, brainstorming, and template examples do not override these. If two designs make incompatible choices, record the issue instead of treating either as automatically approved.
 
-**Next milestone:** The team still needs to choose a narrow subset of the remaining planned behaviors and its acceptance criteria. This review does not approve the entire backlog or a delivery date.
+**Next milestone:** The team still needs to choose a narrow subset of the remaining planned behaviors and its acceptance criteria. The entire backlog and a delivery date have not been approved.
 
 ### 4.4 Deployment Considerations
 

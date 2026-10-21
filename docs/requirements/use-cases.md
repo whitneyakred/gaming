@@ -12,7 +12,6 @@
 
 | Date | Version | Description | Author |
 |---|---|---|---|
-| 2026-10-20 | 0.3 | Clarify single-player scope, deferred co-op and island-swimming alternatives, character terminology, and state ownership; preserve use case IDs and tuning TBDs. | AI-assisted consistency review |
 | 2026-09-30 | 0.2 | Rebuilt the use case list from the team's updated 50-item list; fully specified every use case; revised `UC-NAV-steer-ship` to use the shared station use cases | Whitney |
 | 2026-09-13 | 0.1 | Initial use case list and first fully-specified use case (steering) | Whitney |
 

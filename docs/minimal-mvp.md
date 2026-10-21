@@ -47,7 +47,7 @@ The earlier stationary deck prototype now includes manual sailing, ship stations
 - Two placed islands and a repeating ocean visual do not fulfill indefinite deterministic/recycled world-chunk travel.
 - Ship/island transitions use limited static handoff state in `Ship`; general inventory/resource retention across scenes is not implemented. The proposed Voyage State component is in memory, not a save system.
 - The prototype inventory defaults to four distinct item types with per-item stack limits. The planned six quick slots and 30-item stacks in `BR-inventory-slots` are not implemented.
-- Current sail-angle tuning differs from the provisional arc in `BR-sail-rotation-limit`. See `OI-10`; neither value is silently changed by this documentation review.
+- Current sail-angle tuning differs from the provisional arc in `BR-sail-rotation-limit`. See `OI-10`.
 - The island countdown/pirate icon is challenge feedback, not a simulated pursuing pirate ship or a full-voyage loss condition.
 - No networking, permanent saves, or published browser build is claimed. Preserve Web compatibility; configure a future export through **Project > Export**.
 

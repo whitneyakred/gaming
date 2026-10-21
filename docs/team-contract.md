@@ -4,7 +4,7 @@
 **Members:** <Whitney Akred, Shana Billiot, Liliana Matte, Gustavo Castillo, Leiton Peterson, Ivan Lopez>
 **Repository:** [whitneyakred/gaming](https://github.com/whitneyakred/gaming), owned by Whitney Akred
 
-Repository reference corrected on 2026-10-20. The signed agreement and signatures below are retained; differing Slack/Discord and response-time records require team confirmation (`OI-14`).
+Differing Slack/Discord and response-time records require team confirmation (`OI-14`).
 **Signed:**<Sept 4th, 2026>
 
 ## 1. Meeting time

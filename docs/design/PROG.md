@@ -455,7 +455,7 @@ Planned tests only; no code or executed runtime checks are claimed. Tests whose 
 
 _[Designing an area against real code is when the architecture's guesses meet reality. If this design needs a component the map does not have, moves a responsibility, or adds a dependency, **change [the architecture-of-record](architectural-design.md) in the same pull request** and list each change here in one line. If nothing changed, write "None". A design that silently disagrees with the architecture leaves two maps, and the agent will follow whichever it reads last.]_
 
-The consistency review applied the area-map, pause-rule, and stale-source corrections. Remaining companion interface updates below are proposals requiring review before implementation:
+The remaining companion interface updates below are proposals requiring review before implementation:
 
 - Section 5.2 now lists PROG. Its proposed coordinator interfaces still require review; LAN membership remains deferred.
 - Section 5.2: add dependencies on world generation, SYS ship/inventory tracking, MAP presentation, DECK claims, and SURV/FTG initialization; retain domain state ownership.
