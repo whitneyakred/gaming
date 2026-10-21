@@ -1,0 +1,87 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/islands/crab_cove.gd" id="game"]
+[ext_resource type="Script" path="res://scripts/ocean.gd" id="ocean"]
+[ext_resource type="Script" path="res://scripts/islands/island_terrain.gd" id="terrain"]
+[ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="player"]
+[ext_resource type="Script" uid="uid://d0p5ddal0wg2" path="res://scripts/rowboat.gd" id="rowboat"]
+[ext_resource type="Texture2D" uid="uid://jf2hgacmc8nt" path="res://assets/rowboat.png" id="rowboat_tex"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_hud.tscn" id="hud"]
+
+[sub_resource type="RectangleShape2D" id="RowboatShape"]
+size = Vector2(44, 28)
+
+[node name="CrabCove" type="Node2D"]
+script = ExtResource("game")
+time_limit_seconds = 80.0
+intro_message = "Herd the crabs into the pen!
+They run from you, so walk around behind them."
+intro_message_seconds = 4.0
+win_message = "You rowed off with a bag full of crab!"
+incomplete_message = "Pen all the crabs first!"
+
+[node name="Ocean" type="Node2D" parent="."]
+z_index = -20
+script = ExtResource("ocean")
+scroll_speed = 6.0
+cover_size = Vector2(1980, 1660)
+
+[node name="Terrain" type="Node2D" parent="."]
+z_index = -10
+script = ExtResource("terrain")
+radius = Vector2(440, 320)
+shape_seed = 11
+dock_length = 70.0
+inner_scale = 0.35
+
+[node name="Rowboat" type="Area2D" parent="."]
+position = Vector2(0, 376)
+script = ExtResource("rowboat")
+
+[node name="Sprite2D" type="Sprite2D" parent="Rowboat"]
+z_index = -9
+texture_filter = 1
+position = Vector2(0, 30)
+scale = Vector2(2.5, 2.5)
+texture = ExtResource("rowboat_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Rowboat"]
+shape = SubResource("RowboatShape")
+
+[node name="World" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Player" parent="World" instance=ExtResource("player")]
+position = Vector2(0, 320)
+
+[node name="Camera2D" type="Camera2D" parent="World/Player"]
+limit_left = -690
+limit_top = -570
+limit_right = 690
+limit_bottom = 590
+position_smoothing_enabled = true
+
+[node name="Pen" type="Marker2D" parent="World"]
+position = Vector2(0, -170)
+
+[node name="CrabSpawns" type="Node2D" parent="World"]
+
+[node name="Spawn1" type="Marker2D" parent="World/CrabSpawns"]
+position = Vector2(-250, 40)
+
+[node name="Spawn2" type="Marker2D" parent="World/CrabSpawns"]
+position = Vector2(-140, -40)
+
+[node name="Spawn3" type="Marker2D" parent="World/CrabSpawns"]
+position = Vector2(170, -10)
+
+[node name="Spawn4" type="Marker2D" parent="World/CrabSpawns"]
+position = Vector2(260, 90)
+
+[node name="Spawn5" type="Marker2D" parent="World/CrabSpawns"]
+position = Vector2(-60, 120)
+
+[node name="Spawn6" type="Marker2D" parent="World/CrabSpawns"]
+position = Vector2(90, 150)
+
+[node name="IslandHUD" parent="." instance=ExtResource("hud")]

@@ -12,10 +12,13 @@ exported arrays and dictionary directly.
 | `player_inventory.gd` | `PlayerInventory`, a Resource holding one player's item types and quantities. |
 | `inventory_usage.gd` | Optional Node component that forwards calls to an assigned `PlayerInventory`. |
 
-Each `Player` owns a `player_inventory` property. In `scenes/player.tscn` it
-is a scene-local Resource, so each future Player scene instance receives a
-separate inventory. `player.gd` also creates one if the property is missing,
-which keeps programmatically created players safe.
+Each `Player` has a `player_inventory` property. In `_ready()` the player
+swaps it for its **voyage inventory** from the `VoyageState` autoload
+(`scripts/voyage_state.gd`), keyed by `player_id` (default `player_1`). That
+way the ship and every island share one bag per crew member, and items picked
+up on an island are still there back on the ship. The scene-local Resource in
+`scenes/player.tscn` now only supplies the `player_id`. Voyage inventories
+hold `VoyageState.INVENTORY_SLOTS` (12) distinct item types.
 
 The current prototype gives each player one `fishing_rod` during `_ready()`.
 This is starter equipment, not a general-purpose item grant pattern.
@@ -46,7 +49,11 @@ sync.
 var added: bool = player_inventory.add_item(item)
 var cod_count: int = player_inventory.get_quantity(&"fish_cod")
 var removed: bool = player_inventory.remove_item(&"fish_cod", 2)
+var stored: int = player_inventory.add_items(item, 5)  # how many fit
 ```
+
+Every successful add or remove calls `emit_changed()`, so UI can connect to
+the Resource's built-in `changed` signal (the island HUD's bag line does).
 
 `add_item(item)` returns `true` only when it stored one item. It returns
 `false` when:
@@ -118,8 +125,7 @@ members need their own tools and rewards.
 
 An inventory UI should render the `inventory` item types and obtain each count
 with `get_quantity(item.id)`. It should not maintain a second quantity list.
-When implementing UI refreshes, add a `changed` signal to `PlayerInventory`
-and emit it after every successful mutation; connect the UI to that signal.
+Connect UI refreshes to the inventory's `changed` signal (see `IslandHUD`).
 
 Before adding transactional consumption, transfers, saves, or multiplayer syncing,
 extend `PlayerInventory` with explicit methods and tests. Do not mutate

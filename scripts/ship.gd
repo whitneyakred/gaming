@@ -1,9 +1,10 @@
 class_name Ship
 extends ShipMotion
 
-# Sail and steer around an open map of islands. The status line names the
-# nearest island and how far away it is, and a yellow arrow points to it.
-# Sail into an island's yellow docking circle to anchor beside it, then walk
+# Sail and steer around an open map of islands. There is no nearest-island
+# text or arrow while voyaging: you find islands by sailing. A yellow docking
+# circle appears when you are close to one. Sail into it to anchor beside the
+# island, then walk
 # to the stern and press E (the "interact" action) to row over. When you come
 # back, the rowboat rows you home and you can sail to any island you like.
 
@@ -14,7 +15,7 @@ static var returning_from_island: bool = false
 # Static so it survives the scene swaps to and from the island.
 static var visited_island_name: StringName = &""
 # Islands you've finished (won and rowed back from). They no longer count as
-# "nearest island" and the arrow stops pointing at them.
+# the "nearest island" (get_nearest_island()).
 static var completed_islands: Array[StringName] = []
 
 # --- Tunable in the Inspector on the Ship node ---
@@ -50,7 +51,6 @@ var _dock_position: Vector2
 var _docked_island: WorldIsland
 # The island you just left. It can't re-anchor you until you sail clear.
 var _leaving_island: WorldIsland
-var _nearest: WorldIsland
 
 func _ready() -> void:
 	super._ready()
@@ -79,7 +79,6 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _state == State.SAILING:
 		super._physics_process(delta)
-		_nearest = get_nearest_island()
 		if _leaving_island and global_position.distance_to(_leaving_island.get_dock_position()) > docking_distance * 3.0:
 			_leaving_island = null
 		var dock_target := _island_in_docking_range()
@@ -136,19 +135,10 @@ func _island_in_docking_range() -> WorldIsland:
 			return candidate
 	return null
 
+# While voyaging the status line stays empty: no nearest-island name,
+# distance, or arrow. Docking and rowing still use it for their messages.
 func _update_sailing_status() -> void:
-	var nearest := get_nearest_island()
-	if nearest == null:
-		_set_status("All islands explored!")
-		return
-	var distance := global_position.distance_to(nearest.get_dock_position())
-	var meters := roundi(distance / pixels_per_meter)
-	if _leaving_island and speed < 1.0:
-		_set_status("Raise the sail! Next island: %s, %d m away" % [nearest.display_name, meters])
-	elif distance <= marker_distance:
-		_set_status("%s: sail into the yellow circle to anchor (%d m)" % [nearest.display_name, meters])
-	else:
-		_set_status("Nearest island: %s, %d m away" % [nearest.display_name, meters])
+	_set_status("")
 
 func _draw() -> void:
 	if _state != State.SAILING:
@@ -159,14 +149,6 @@ func _draw() -> void:
 		var dock := candidate.get_dock_position()
 		if global_position.distance_to(dock) <= marker_distance:
 			draw_arc(to_local(dock), docking_distance, 0, TAU, 48, MARKER_COLOR, 3.0)
-	# Arrow just off the bow side pointing at the nearest unfinished island.
-	if _nearest:
-		var target := to_local(_nearest.get_dock_position())
-		if target.length() > marker_distance * 0.5:
-			var dir := target.normalized()
-			var tip := dir * 300.0
-			var side := dir.orthogonal() * 12.0
-			draw_colored_polygon(PackedVector2Array([tip, tip - dir * 26.0 + side, tip - dir * 26.0 - side]), MARKER_COLOR)
 
 # --- Docking and the rowboat ---------------------------------------------------
 
@@ -253,6 +235,7 @@ func _row_along(points: Array[Vector2]) -> void:
 
 func _set_status(text: String) -> void:
 	status_label.text = text
+	status_label.visible = not text.is_empty()
 
 func _on_stern_entered(body: Node2D) -> void:
 	if body == player:

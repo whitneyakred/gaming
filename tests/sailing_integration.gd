@@ -43,8 +43,8 @@ func _run() -> void:
 	var initial_position := ship.global_position
 	await _wait(7.0)
 	_check(ship.global_position.is_equal_approx(initial_position), "Stowed sails must not automatically move the ship")
-	_check(ship.get_islands().size() == 2, "Both islands must be placed on the map")
-	_check(ship.status_label.text.begins_with("Nearest island:"), "The status line must name the nearest island")
+	_check(ship.get_islands().size() == 10, "All ten islands must be placed on the map")
+	_check(not ship.status_label.visible, "No nearest-island text may show while voyaging")
 	_check(get_first_node_in_group("crew") == player, "Main must keep the cooking-compatible player")
 	ship.wind_velocity = Vector2.UP
 	player.position = Vector2(-20, 0)
@@ -140,7 +140,8 @@ func _run() -> void:
 			break
 	_check(ship._state == Ship.State.SAILING, "Return cutscene must finish")
 	_check(ship.global_position.distance_to(ship.get_island(&"CoconutIsland").get_dock_position()) < 1, "Returning must put the ship back at the island it left from")
-	_check(ship.get_nearest_island() == ship.get_island(&"TreasureIsland"), "A finished island must no longer count as the nearest island")
+	_check(ship.get_nearest_island() != ship.get_island(&"CoconutIsland"), "A finished island must no longer count as the nearest island")
+	_check(not ship.status_label.visible, "Sailing again must not show nearest-island text")
 	_check(ship.player.visible and not ship.player.using_station, "Returning must restore player movement")
 	_check(ship.has_node("Cooking") and ship.has_node("Sail") and ship.has_node("Helm"), "All stations must survive the island round trip")
 	_check(ship.get_node("Camera2D").is_current(), "Returning directly to the ship must retain the camera")

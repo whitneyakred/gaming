@@ -16,6 +16,7 @@ func add_item(item: ItemData) -> bool:
 		if quantities[item.id] >= item.max_stack:
 			return false
 		quantities[item.id] += 1
+		emit_changed()  # Resource.changed: lets a HUD redraw
 		return true
 
 	if inventory.size() >= max_inv_space:
@@ -23,7 +24,16 @@ func add_item(item: ItemData) -> bool:
 
 	inventory.append(item)
 	quantities[item.id] = 1
+	emit_changed()  # Resource.changed: lets a HUD redraw
 	return true
+
+## Adds up to `amount` of one item. Returns how many were actually stored
+## (fewer when the stack limit or the distinct-item space runs out).
+func add_items(item: ItemData, amount: int) -> int:
+	var added := 0
+	while added < amount and add_item(item):
+		added += 1
+	return added
 
 func get_quantity(item_id: StringName) -> int:
 	return quantities.get(item_id, 0)
@@ -55,6 +65,7 @@ func remove_item(item_id: StringName, amount: int = 1) -> bool:
 	else:
 		quantities[item_id] = current_quantity - amount
 
+	emit_changed()  # Resource.changed: lets a HUD redraw
 	return true
 
 

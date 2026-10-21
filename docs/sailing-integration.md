@@ -15,11 +15,13 @@ the island game remain part of the same playable loop.
    blows; wind pushing the sail forward provides speed. Press **E** to leave.
 4. Approach the wheel near the stern and press **E**. Hold **A/D** to steer,
    then press **E** to leave. The rudder keeps its setting unless centered.
-5. Follow the nearest-island indicator toward one of the two hand-placed
-   islands. Sail into its yellow docking circle. The ship aligns beside the
-   island, stows the sail, and anchors.
-6. Walk to the stern and press **E** to play the rowboat cutscene. Complete that island’s coconut-collection or treasure-digging challenge
-   and return to its rowboat before time expires.
+5. Explore to find one of the ten hand-placed islands. There is no
+   nearest-island text or arrow; a yellow docking circle appears when you are
+   close. Sail into it. The ship aligns beside the island, stows the sail, and
+   anchors.
+6. Walk to the stern and press **E** to play the rowboat cutscene. Complete
+   that island’s challenge (see [island minigames](island-minigames.md)) and
+   return to its rowboat before time expires.
 7. After the return cutscene, raise the sail again to depart. The ship waits
    for your input; it no longer leaves automatically.
 
@@ -35,6 +37,7 @@ Using your Godot executable in place of `godot`:
 godot --headless --path . --editor --import --quit
 godot --headless --path . --quit-after 120
 godot --headless --path . --script res://tests/sailing_integration.gd
+godot --headless --path . --script res://tests/island_minigames.gd
 ```
 
 The integration test exercises station input, sail propulsion, helm turning,

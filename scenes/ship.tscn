@@ -59,6 +59,106 @@ scale = Vector2(0.8, 0.8)
 texture = ExtResource("15")
 
 
+[node name="CrabCove" type="Node2D" parent="Islands"]
+position = Vector2(-1600, -700)
+script = ExtResource("14")
+display_name = "Crab Cove"
+scene = "res://scenes/islands/crab_cove.tscn"
+
+[node name="Sprite2D" type="Sprite2D" parent="Islands/CrabCove"]
+modulate = Color(1, 0.85, 0.8, 1)
+texture_filter = 1
+scale = Vector2(2.0, 2.0)
+texture = ExtResource("3")
+
+[node name="TikiTotems" type="Node2D" parent="Islands"]
+position = Vector2(-1900, -2600)
+script = ExtResource("14")
+display_name = "Tiki Totems"
+scene = "res://scenes/islands/tiki_totems.tscn"
+
+[node name="Sprite2D" type="Sprite2D" parent="Islands/TikiTotems"]
+modulate = Color(0.9, 1, 0.85, 1)
+texture_filter = 1
+position = Vector2(-1, -47)
+scale = Vector2(0.7, 0.7)
+texture = ExtResource("15")
+
+[node name="TimberIsle" type="Node2D" parent="Islands"]
+position = Vector2(600, -3600)
+script = ExtResource("14")
+display_name = "Timber Isle"
+scene = "res://scenes/islands/timber_isle.tscn"
+
+[node name="Sprite2D" type="Sprite2D" parent="Islands/TimberIsle"]
+modulate = Color(0.75, 0.95, 0.7, 1)
+texture_filter = 1
+scale = Vector2(2.2, 2.2)
+texture = ExtResource("3")
+
+[node name="CoconutSquall" type="Node2D" parent="Islands"]
+position = Vector2(2700, -2600)
+script = ExtResource("14")
+display_name = "Coconut Squall"
+scene = "res://scenes/islands/coconut_squall.tscn"
+
+[node name="Sprite2D" type="Sprite2D" parent="Islands/CoconutSquall"]
+modulate = Color(0.85, 0.9, 1, 1)
+texture_filter = 1
+scale = Vector2(1.7, 1.7)
+texture = ExtResource("3")
+
+[node name="SkullRock" type="Node2D" parent="Islands"]
+position = Vector2(3000, -400)
+script = ExtResource("14")
+display_name = "Skull Rock Ruins"
+scene = "res://scenes/islands/skull_rock.tscn"
+
+[node name="Sprite2D" type="Sprite2D" parent="Islands/SkullRock"]
+modulate = Color(0.8, 0.8, 0.8, 1)
+texture_filter = 1
+position = Vector2(-1, -47)
+scale = Vector2(0.75, 0.75)
+texture = ExtResource("15")
+
+[node name="SmugglersDen" type="Node2D" parent="Islands"]
+position = Vector2(2200, 1500)
+script = ExtResource("14")
+display_name = "Smuggler's Den"
+scene = "res://scenes/islands/smugglers_den.tscn"
+
+[node name="Sprite2D" type="Sprite2D" parent="Islands/SmugglersDen"]
+modulate = Color(1, 0.9, 0.75, 1)
+texture_filter = 1
+position = Vector2(-1, -47)
+scale = Vector2(0.8, 0.8)
+texture = ExtResource("15")
+
+[node name="OvergrownIsle" type="Node2D" parent="Islands"]
+position = Vector2(-600, 1900)
+script = ExtResource("14")
+display_name = "Overgrown Isle"
+scene = "res://scenes/islands/overgrown_isle.tscn"
+
+[node name="Sprite2D" type="Sprite2D" parent="Islands/OvergrownIsle"]
+modulate = Color(0.6, 0.85, 0.55, 1)
+texture_filter = 1
+position = Vector2(-1, -47)
+scale = Vector2(0.85, 0.85)
+texture = ExtResource("15")
+
+[node name="ParrotPoint" type="Node2D" parent="Islands"]
+position = Vector2(-2600, 900)
+script = ExtResource("14")
+display_name = "Parrot Point"
+scene = "res://scenes/islands/parrot_point.tscn"
+
+[node name="Sprite2D" type="Sprite2D" parent="Islands/ParrotPoint"]
+modulate = Color(1, 1, 0.8, 1)
+texture_filter = 1
+scale = Vector2(2.0, 2.0)
+texture = ExtResource("3")
+
 [node name="ShipSprite" type="Sprite2D" parent="." unique_id=1638528428]
 texture_filter = 1
 scale = Vector2(2, 2)
