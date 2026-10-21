@@ -83,6 +83,7 @@ _The Source column is the defense. Every rule traces to a document or a person, 
 | Date | Version | Description | Author |
 |---|---|---|---|
 | _[YYYY-MM-DD]_ | 0.1 | Initial rules from the client brief and first client meeting | _Shana_ |
+| 2026-10-20 | 0.3 | Align single-player scope, deferred co-op applicability, repository sources, and inventory status; retain rule IDs and unresolved tuning. | |
 | 2026-10-14 | 0.2 | Updated all 23 current rule IDs referenced in Use Cases version 0.2, retained unresolved values, and updated scope | _Shana_ |
 
 ---
