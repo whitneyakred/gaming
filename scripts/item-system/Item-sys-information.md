@@ -30,6 +30,9 @@ identifier once merged.
 | `description` | Player-facing description for future UI. |
 | `max_stack` | Maximum count of this item in a single inventory item type. Use at least `1`. |
 | `icon` | Optional `Texture2D` for a future inventory UI. |
+| `category` | Catalog category used by future systems to filter item definitions. Current categories are `FOOD`, `MATERIAL`, and `TOOL`. |
+| `draw_weight` | Positive relative weight for a future item-pool draw. The current definitions use the neutral value `1.0` until loot tuning is approved. |
+| `sell_value` | Nonnegative future merchant value. The current definitions use `0` until economy values are approved. |
 
 ## Adding an item
 
@@ -41,11 +44,14 @@ ItemDatabase.register_item(make_item(
 	&"wood_plank",
 	"Wood Plank",
 	"Useful lumber for repairs.",
-	20
+	20,
+	ItemData.Category.MATERIAL
 ))
 ```
 
-The database asserts if an ID is empty or duplicated. Keep all gameplay item
+The database asserts if an item is null, an ID is empty or duplicated, its
+stack limit is below `1`, its draw weight is not positive, or its sell value is
+negative. Keep all gameplay item
 definitions in `Items._ready()` so that every system uses the same metadata
 object, instead of constructing duplicate `ItemData` objects in stations.
 
@@ -64,6 +70,11 @@ if item == null:
 Always handle a `null` lookup. It usually means an ID was misspelled or the
 definition was not registered.
 
+Systems that need to examine the catalog without granting ownership can use
+`ItemDatabase.get_all_items()`. It returns the registered shared definitions;
+future item-pool code is responsible for filtering categories and applying
+draw weights.
+
 ## Configuring station loot
 
 Station scripts should expose item IDs for designers, as `FishingStation`
@@ -77,7 +88,7 @@ a warning.
 | ID | Name | Stack limit | Current use |
 | --- | --- | ---: | --- |
 | `fish_cod` | Cod | 10 | Fishing reward |
-| `rope` | Rope | 25 | Fishing reward; repair flavor text is not the planned wood requirement |
+| `rope` | Rope | 25 | Fishing reward; general shipboard material |
 | `fishing_rod` | Fishing Rod | 1 | Required to begin fishing; starter player item |
 | `coconut` | Coconut | 20 | Registered fruit definition; placed challenge pickups do not yet grant it to inventory |
 
