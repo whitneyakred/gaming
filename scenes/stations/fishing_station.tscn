@@ -32,7 +32,7 @@ offset_bottom = -47.0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
-text = "Hold E to fish"
+text = "Hold F to fish"
 horizontal_alignment = 1
 
 [node name="HoldTimer" type="Timer" parent="." unique_id=1669023249]
