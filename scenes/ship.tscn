@@ -161,7 +161,7 @@ theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 24
-text = "Press E to take the rowboat to the island"
+text = "Press E / Space to take the rowboat to the island"
 horizontal_alignment = 1
 
 [node name="ControlsLabel" type="Label" parent="HUD" unique_id=1865941422]
@@ -171,7 +171,7 @@ offset_right = 620.0
 offset_bottom = 642.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
-text = "E: use / leave station | WASD: walk
+text = "E / Space: use / leave station | WASD: walk
 Sail: W/S deployment, A/D trim | Helm: A/D steer"
 
 [editable path="FishingStation"]

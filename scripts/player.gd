@@ -49,10 +49,6 @@ func _physics_process(_delta: float) -> void:
 	move_and_slide()
 
 func play_fishing_animation() -> void:
-	if using_station:
-		return
-
-	using_station = true
 	idle_sprite.hide()
 	fishing_animation.show()
 	fishing_animation.play(&"fishing_side")
@@ -60,4 +56,3 @@ func play_fishing_animation() -> void:
 func _on_fishing_animation_animation_finished() -> void:
 	fishing_animation.hide()
 	idle_sprite.show()
-	using_station = false
