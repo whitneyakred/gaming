@@ -83,7 +83,7 @@ func _physics_process(delta: float) -> void:
 		if _leaving_island and global_position.distance_to(_leaving_island.get_dock_position()) > docking_distance * 3.0:
 			_leaving_island = null
 		var dock_target := _island_in_docking_range()
-		if dock_target:
+		if dock_target and not anchor_deployed:
 			_dock(dock_target)
 		else:
 			_update_sailing_status()
@@ -137,6 +137,9 @@ func _island_in_docking_range() -> WorldIsland:
 	return null
 
 func _update_sailing_status() -> void:
+	if anchor_deployed:
+		_set_status("Anchor lowered. Press E at the anchor to sail again.")
+		return
 	var nearest := get_nearest_island()
 	if nearest == null:
 		_set_status("All islands explored!")
@@ -172,6 +175,7 @@ func _draw() -> void:
 
 func _stop_sailing() -> void:
 	stations_enabled = false
+	anchor_deployed = true
 	$Helm.release_control()
 	$Sail.release_control()
 	speed = 0.0
@@ -227,6 +231,7 @@ func _row_back_from_island(from_island: WorldIsland) -> void:
 	_leaving_island = from_island
 	_docked_island = null
 	_state = State.SAILING
+	anchor_deployed = false
 	stations_enabled = true
 	_update_sailing_status()
 
