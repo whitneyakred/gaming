@@ -106,6 +106,8 @@ func _run() -> void:
 			break
 	_check(ship._state == Ship.State.ANCHORED, "Reaching the docking marker must anchor the ship")
 	_check(ship.speed == 0 and ship.sail_level == 0 and not ship.stations_enabled, "Docking must stop sailing")
+	_check(ship.anchor_deployed and not ship.get_node("Anchor/AnchorArtwork").visible, "Docking must lower the anchor and update its artwork")
+	_check(not ship.get_node("Anchor").try_take_control(player), "The anchor must stay locked during island docking")
 	_check(ship.global_position.distance_to(ship._dock_position) < 1, "Docking must align the rowboat route with land")
 	player.position = ship.stern_zone.position
 	await _wait(0.3)
@@ -139,6 +141,7 @@ func _run() -> void:
 		if ship._state == Ship.State.SAILING:
 			break
 	_check(ship._state == Ship.State.SAILING, "Return cutscene must finish")
+	_check(not ship.anchor_deployed and ship.get_node("Anchor/AnchorArtwork").visible, "Returning must raise the anchor and update its artwork")
 	_check(ship.global_position.distance_to(ship.get_island(&"CoconutIsland").get_dock_position()) < 1, "Returning must put the ship back at the island it left from")
 	_check(ship.get_nearest_island() != ship.get_island(&"CoconutIsland"), "A finished island must no longer count as the nearest island")
 	_check(not ship.status_label.visible, "Sailing again must not show nearest-island text")

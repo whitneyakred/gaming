@@ -4,11 +4,11 @@ extends ShipMotion
 # Sail and steer around an open map of islands. There is no nearest-island
 # text or arrow while voyaging: you find islands by sailing. Islands are solid:
 # the hull scrapes along a shore instead of sailing over it (each island's
-# Land/Coast outline). A yellow docking circle appears when you are close to
-# an island. Sail into it (or run aground near it) to anchor beside the
-# island, then walk
-# to the stern and press E (the "interact" action) to row over. When you come
-# back, the rowboat rows you home and you can sail to any island you like.
+# Land/Coast outline). Lower the anchor (E at the anchor station) within
+# anchor_island_distance of an island's shore and the ship anchors right
+# there. Then walk to the stern and press E (the "interact" action) to row
+# ashore, or raise the anchor again to sail on. When you come back, the
+# rowboat rows you home to the ship where you left it.
 
 # Set by IslandGame (scripts/islands/island_game.gd) right before it switches back to this scene, so we know
 # to play the "row back to the ship" part instead of starting fresh.
@@ -19,28 +19,25 @@ static var visited_island_name: StringName = &""
 # Islands you've finished (won and rowed back from). They no longer count as
 # the "nearest island" (get_nearest_island()).
 static var completed_islands: Array[StringName] = []
+# Where the ship was anchored when you rowed ashore, so it is still there
+# when you row back.
+static var anchored_position: Vector2 = Vector2.ZERO
+static var anchored_rotation: float = 0.0
 
 # --- Tunable in the Inspector on the Ship node ---
-@export var docking_distance: float = 90.0         # how close to the dock point anchors the ship
-@export var marker_distance: float = 900.0         # docking circle shows within this range
+## Lowering the anchor this close (px) to an island's shore lets you row ashore.
+@export var anchor_island_distance: float = 500.0
 @export var row_speed: float = 130.0               # rowboat speed, px/s
 ## Map pixels per "meter" shown in the status line.
 @export var pixels_per_meter: float = 10.0
-## Running aground this close to an island's dock point anchors there too, so
-## sailing bow-first at the dock side still docks.
-@export var aground_docking_distance: float = 330.0
-## Seconds per leg of the anchoring move.
-@export var docking_leg_seconds: float = 0.6
 
-enum State { SAILING, DOCKING, ANCHORED, ROWING }
+enum State { SAILING, ANCHORED, ROWING }
 
-const MARKER_COLOR := Color(1, 0.9, 0.45)
-
-# Route the rowboat takes from the stern to the island's dock (ship-local
-# coordinates). The last point is just below the island's dock.
-const ROW_PATH: Array[Vector2] = [
-	Vector2(70, 300), Vector2(230, 305), Vector2(345, 262), Vector2(400, 188),
-]
+# Where the rowboat goes first after leaving the stern (ship-local), so it
+# clears the hull before heading for shore.
+const ROW_LAUNCH := Vector2(70, 300)
+# The rowboat stops this far short of the coastline.
+const SHORE_GAP := 24.0
 
 @onready var ocean: Ocean = $Ocean
 @onready var islands_root: Node2D = $Islands
@@ -54,9 +51,9 @@ const ROW_PATH: Array[Vector2] = [
 var _state: State = State.SAILING
 var _player_at_stern: bool = false
 var _rowboat_home: Vector2
-var _dock_position: Vector2
 var _docked_island: WorldIsland
-# The island you just left. It can't re-anchor you until you sail clear.
+# The island you just left. Anchoring near it again does nothing until you
+# sail clear of it.
 var _leaving_island: WorldIsland
 # The island whose shore the hull last touched.
 var _aground_island: WorldIsland
@@ -72,6 +69,7 @@ func _ready() -> void:
 	_rowboat_home = rowboat.position
 	stern_zone.body_entered.connect(_on_stern_entered)
 	stern_zone.body_exited.connect(_on_stern_exited)
+	anchor_changed.connect(_on_anchor_changed)
 	prompt_label.visible = false
 	rider.visible = false
 
@@ -86,23 +84,17 @@ func _ready() -> void:
 		_update_sailing_status()
 
 func _physics_process(delta: float) -> void:
-	if _state == State.SAILING:
+	if _state == State.SAILING or _state == State.ANCHORED:
 		super._physics_process(delta)
-		if _leaving_island and global_position.distance_to(_leaving_island.get_dock_position()) > docking_distance * 3.0:
+		if _leaving_island and _distance_to_shore(_leaving_island) > anchor_island_distance:
 			_leaving_island = null
-		var dock_target := _island_in_docking_range()
-		if dock_target == null and aground and _aground_island != _leaving_island and _aground_island != null \
-				and global_position.distance_to(_aground_island.get_dock_position()) <= aground_docking_distance:
-			dock_target = _aground_island
-		if dock_target:
-			_dock(dock_target)
-		elif aground:
-			_set_status("Ran aground! Steer away from the shore.")
-		else:
-			_update_sailing_status()
+		if _state == State.SAILING:
+			if aground:
+				_set_status("Ran aground! Steer away from the shore.")
+			else:
+				_update_sailing_status()
 	ocean.global_position = global_position
 	prompt_label.visible = _state == State.ANCHORED and _player_at_stern and not player.using_station
-	queue_redraw()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _state == State.ANCHORED and _player_at_stern and not player.using_station:
@@ -140,14 +132,22 @@ func get_nearest_island() -> WorldIsland:
 			best_distance = d
 	return best
 
-# Any island (finished or not) whose docking circle the ship is inside,
-# except the one you just rowed back from.
-func _island_in_docking_range() -> WorldIsland:
+# The nearest island (finished or not) whose shore is within
+# anchor_island_distance, except the one you just rowed back from.
+func _island_in_anchor_range() -> WorldIsland:
+	var best: WorldIsland = null
+	var best_distance := anchor_island_distance
 	for candidate in get_islands():
-		if candidate != _leaving_island \
-				and global_position.distance_to(candidate.get_dock_position()) <= docking_distance:
-			return candidate
-	return null
+		if candidate == _leaving_island:
+			continue
+		var d := _distance_to_shore(candidate)
+		if d <= best_distance:
+			best = candidate
+			best_distance = d
+	return best
+
+func _distance_to_shore(island: WorldIsland) -> float:
+	return global_position.distance_to(island.get_nearest_coast_point(global_position))
 
 # --- Keeping the hull off land -------------------------------------------------
 
@@ -171,24 +171,19 @@ func _get_shore_normal(at: Vector2) -> Vector2:
 	return away.normalized() if away.length() > 0.01 else Vector2.ZERO
 
 # While voyaging the status line stays empty: no nearest-island name,
-# distance, or arrow. Docking and rowing still use it for their messages.
+# distance, or arrow. It only speaks up when the anchor is down out at sea.
+# Anchoring and rowing use it for their own messages.
 func _update_sailing_status() -> void:
-	_set_status("")
+	if anchor_deployed:
+		_set_status("Anchor lowered. Press E at the anchor to sail again.")
+	else:
+		_set_status("")
 
-func _draw() -> void:
-	if _state != State.SAILING:
-		return
-	for candidate in get_islands():
-		if candidate == _leaving_island:
-			continue
-		var dock := candidate.get_dock_position()
-		if global_position.distance_to(dock) <= marker_distance:
-			draw_arc(to_local(dock), docking_distance, 0, TAU, 48, MARKER_COLOR, 3.0)
-
-# --- Docking and the rowboat ---------------------------------------------------
+# --- Anchoring and the rowboat -------------------------------------------------
 
 func _stop_sailing() -> void:
 	stations_enabled = false
+	anchor_deployed = true
 	$Helm.release_control()
 	$Sail.release_control()
 	speed = 0.0
@@ -196,61 +191,39 @@ func _stop_sailing() -> void:
 	set_sail_level(0)
 	set_wheel_angle(0.0)
 
-func _dock(target: WorldIsland) -> void:
-	_state = State.DOCKING
-	_docked_island = target
-	_dock_position = target.get_dock_position()
-	_stop_sailing()
-	_set_status("Docking at %s..." % target.display_name)
-	# Move to the anchoring spot along a route that never puts the hull on land.
-	for pose in _plan_docking_route(target):
-		var tween := create_tween().set_parallel(true)
-		tween.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
-		tween.tween_property(self, "global_position", pose[0], docking_leg_seconds)
-		tween.tween_property(self, "global_rotation", pose[1], docking_leg_seconds)
-		await tween.finished
+# Lowering the anchor near an island anchors there; raising it sails on.
+func _on_anchor_changed(deployed: bool) -> void:
+	if deployed and _state == State.SAILING:
+		var island := _island_in_anchor_range()
+		if island:
+			_anchor_at(island)
+	elif not deployed and _state == State.ANCHORED:
+		_docked_island = null
+		_state = State.SAILING
+		_update_sailing_status()
+
+func _anchor_at(island: WorldIsland) -> void:
 	_state = State.ANCHORED
-	_set_status("Anchored at %s! Head to the back of the ship." % target.display_name)
+	_docked_island = island
+	_set_status("Anchored near %s! Head to the back of the ship to row ashore, or raise the anchor to sail on." % island.display_name)
 
-# A list of [position, rotation] stops from the current pose to the anchored
-# pose. Tries a direct move first, then turning before or after moving, then
-# backing out to a spot clear of the island first.
-func _plan_docking_route(target: WorldIsland) -> Array:
-	var start_position := global_position
-	var start_rotation := global_rotation
-	var goal_position := target.get_dock_position()
-	var goal_rotation := start_rotation + wrapf(target.global_rotation - start_rotation, -PI, PI)
-	var away := (goal_position - target.global_position).normalized()
-	var staging := goal_position + away * 260.0
-	var goal := [goal_position, goal_rotation]
-	var routes := [
-		[goal],
-		[[start_position, goal_rotation], goal],
-		[[goal_position, start_rotation], goal],
-		[[staging, start_rotation], [staging, goal_rotation], goal],
-		[[staging, goal_rotation], goal],
-	]
-	for route in routes:
-		if _route_is_clear(start_position, start_rotation, route):
-			return route
-	return [goal]
-
-func _route_is_clear(from_position: Vector2, from_rotation: float, route: Array) -> bool:
-	const SAMPLES := 12
-	for pose in route:
-		for i in range(1, SAMPLES + 1):
-			var t := float(i) / SAMPLES
-			if _is_pose_blocked(from_position.lerp(pose[0], t), lerpf(from_rotation, pose[1], t)):
-				return false
-		from_position = pose[0]
-		from_rotation = pose[1]
-	return true
+# Ship-local spot just off the stretch of shore nearest the ship.
+func _landing_point(island: WorldIsland) -> Vector2:
+	var shore := island.get_nearest_coast_point(global_position)
+	var back := global_position - shore
+	if back.length() > SHORE_GAP:
+		shore += back.normalized() * SHORE_GAP
+	return to_local(shore)
 
 func _row_to_island() -> void:
 	_state = State.ROWING
+	_stop_sailing()
+	anchored_position = global_position
+	anchored_rotation = global_rotation
 	_set_status("Rowing to %s..." % _docked_island.display_name)
 	_board_rowboat()
-	await _row_along(ROW_PATH)
+	var path: Array[Vector2] = [ROW_LAUNCH, _landing_point(_docked_island)]
+	await _row_along(path)
 	visited_island_name = _docked_island.name
 	get_tree().change_scene_to_file(_docked_island.scene)
 
@@ -258,17 +231,15 @@ func _row_back_from_island(from_island: WorldIsland) -> void:
 	_state = State.ROWING
 	_stop_sailing()
 	_docked_island = from_island
-	_dock_position = from_island.get_dock_position()
-	global_position = _dock_position
-	global_rotation = from_island.global_rotation
+	global_position = anchored_position
+	global_rotation = anchored_rotation
+	force_update_transform()
 	ocean.global_position = global_position
-	rowboat.position = ROW_PATH[-1]
+	rowboat.position = _landing_point(from_island)
 	rowboat.rotation = -PI / 2.0
 	_board_rowboat()
 	_set_status("Rowing back to the ship...")
-	var path: Array[Vector2] = ROW_PATH.duplicate()
-	path.reverse()
-	path.append(_rowboat_home)
+	var path: Array[Vector2] = [ROW_LAUNCH, _rowboat_home]
 	await _row_along(path)
 	# Back aboard: hang the rowboat up, put the player at the stern, set sail.
 	rowboat.rotation = 0.0
@@ -280,6 +251,7 @@ func _row_back_from_island(from_island: WorldIsland) -> void:
 	_leaving_island = from_island
 	_docked_island = null
 	_state = State.SAILING
+	anchor_deployed = false
 	stations_enabled = true
 	_update_sailing_status()
 
