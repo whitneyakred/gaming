@@ -2,8 +2,10 @@ class_name Ship
 extends ShipMotion
 
 # Sail and steer around an open map of islands. There is no nearest-island
-# text or arrow while voyaging: you find islands by sailing. A yellow docking
-# circle appears when you are close to one. Sail into it to anchor beside the
+# text or arrow while voyaging: you find islands by sailing. Islands are solid:
+# the hull scrapes along a shore instead of sailing over it (each island's
+# Land/Coast outline). A yellow docking circle appears when you are close to
+# an island. Sail into it (or run aground near it) to anchor beside the
 # island, then walk
 # to the stern and press E (the "interact" action) to row over. When you come
 # back, the rowboat rows you home and you can sail to any island you like.
@@ -24,6 +26,11 @@ static var completed_islands: Array[StringName] = []
 @export var row_speed: float = 130.0               # rowboat speed, px/s
 ## Map pixels per "meter" shown in the status line.
 @export var pixels_per_meter: float = 10.0
+## Running aground this close to an island's dock point anchors there too, so
+## sailing bow-first at the dock side still docks.
+@export var aground_docking_distance: float = 330.0
+## Seconds per leg of the anchoring move.
+@export var docking_leg_seconds: float = 0.6
 
 enum State { SAILING, DOCKING, ANCHORED, ROWING }
 
@@ -51,6 +58,8 @@ var _dock_position: Vector2
 var _docked_island: WorldIsland
 # The island you just left. It can't re-anchor you until you sail clear.
 var _leaving_island: WorldIsland
+# The island whose shore the hull last touched.
+var _aground_island: WorldIsland
 
 func _ready() -> void:
 	super._ready()
@@ -82,8 +91,13 @@ func _physics_process(delta: float) -> void:
 		if _leaving_island and global_position.distance_to(_leaving_island.get_dock_position()) > docking_distance * 3.0:
 			_leaving_island = null
 		var dock_target := _island_in_docking_range()
+		if dock_target == null and aground and _aground_island != _leaving_island and _aground_island != null \
+				and global_position.distance_to(_aground_island.get_dock_position()) <= aground_docking_distance:
+			dock_target = _aground_island
 		if dock_target:
 			_dock(dock_target)
+		elif aground:
+			_set_status("Ran aground! Steer away from the shore.")
 		else:
 			_update_sailing_status()
 	ocean.global_position = global_position
@@ -135,6 +149,27 @@ func _island_in_docking_range() -> WorldIsland:
 			return candidate
 	return null
 
+# --- Keeping the hull off land -------------------------------------------------
+
+func _is_pose_blocked(at: Vector2, angle: float) -> bool:
+	if hull_outline.is_empty():
+		return false
+	var hull := get_hull_polygon(at, angle)
+	var bounds := Rect2(hull[0], Vector2.ZERO)
+	for point in hull:
+		bounds = bounds.expand(point)
+	for island in get_islands():
+		if island.overlaps_land(hull, bounds):
+			_aground_island = island
+			return true
+	return false
+
+func _get_shore_normal(at: Vector2) -> Vector2:
+	if _aground_island == null:
+		return Vector2.ZERO
+	var away := at - _aground_island.get_nearest_coast_point(at)
+	return away.normalized() if away.length() > 0.01 else Vector2.ZERO
+
 # While voyaging the status line stays empty: no nearest-island name,
 # distance, or arrow. Docking and rowing still use it for their messages.
 func _update_sailing_status() -> void:
@@ -167,13 +202,49 @@ func _dock(target: WorldIsland) -> void:
 	_dock_position = target.get_dock_position()
 	_stop_sailing()
 	_set_status("Docking at %s..." % target.display_name)
-	var tween := create_tween().set_parallel(true)
-	tween.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
-	tween.tween_property(self, "global_position", _dock_position, 0.8)
-	tween.tween_property(self, "global_rotation", global_rotation + wrapf(target.global_rotation - global_rotation, -PI, PI), 0.8)
-	await tween.finished
+	# Move to the anchoring spot along a route that never puts the hull on land.
+	for pose in _plan_docking_route(target):
+		var tween := create_tween().set_parallel(true)
+		tween.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+		tween.tween_property(self, "global_position", pose[0], docking_leg_seconds)
+		tween.tween_property(self, "global_rotation", pose[1], docking_leg_seconds)
+		await tween.finished
 	_state = State.ANCHORED
 	_set_status("Anchored at %s! Head to the back of the ship." % target.display_name)
+
+# A list of [position, rotation] stops from the current pose to the anchored
+# pose. Tries a direct move first, then turning before or after moving, then
+# backing out to a spot clear of the island first.
+func _plan_docking_route(target: WorldIsland) -> Array:
+	var start_position := global_position
+	var start_rotation := global_rotation
+	var goal_position := target.get_dock_position()
+	var goal_rotation := start_rotation + wrapf(target.global_rotation - start_rotation, -PI, PI)
+	var away := (goal_position - target.global_position).normalized()
+	var staging := goal_position + away * 260.0
+	var goal := [goal_position, goal_rotation]
+	var routes := [
+		[goal],
+		[[start_position, goal_rotation], goal],
+		[[goal_position, start_rotation], goal],
+		[[staging, start_rotation], [staging, goal_rotation], goal],
+		[[staging, goal_rotation], goal],
+	]
+	for route in routes:
+		if _route_is_clear(start_position, start_rotation, route):
+			return route
+	return [goal]
+
+func _route_is_clear(from_position: Vector2, from_rotation: float, route: Array) -> bool:
+	const SAMPLES := 12
+	for pose in route:
+		for i in range(1, SAMPLES + 1):
+			var t := float(i) / SAMPLES
+			if _is_pose_blocked(from_position.lerp(pose[0], t), lerpf(from_rotation, pose[1], t)):
+				return false
+		from_position = pose[0]
+		from_rotation = pose[1]
+	return true
 
 func _row_to_island() -> void:
 	_state = State.ROWING

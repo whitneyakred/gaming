@@ -4,6 +4,11 @@ Ten islands sit on the sailing map. Sail into an island's yellow docking circle,
 
 There is no nearest-island text or arrow while sailing. You find islands by exploring. The yellow docking circle still appears when you are close to one.
 
+Islands are solid. The ship can't sail over land. If the hull touches a shore, the ship scrapes along it, "Ran aground! Steer away from the shore." shows, and you steer (and trim the sail) to get clear. Running aground on the dock side of an island, within **Aground Docking Distance** (330 px) of its dock point, anchors you just like the yellow circle. The anchoring move is planned so the hull never crosses land.
+
+- **Coastlines:** each island on the map (`scenes/ship.tscn`, under `Islands`) has a `Land/Coast` CollisionPolygon2D, traced from the island art and shown as a blue outline in the 2D view. If you move or rescale an island's `Sprite2D`, select `Coast` and drag its points to match. `Land` takes no part in physics (collision layer and mask are 0); only the ship reads it.
+- **Hull:** the ship's outline is **Hull Outline** on the `Ship` node (Collision group). An empty outline turns land collision off.
+
 ## What you collect goes into your bag
 
 Everything you pick up or win goes into the crew member's inventory (`PlayerInventory`). The bag is shown along the bottom of the island HUD, with a short "+N Item" note each time something is added. The inventory lives in the `VoyageState` autoload ([`voyage_state.gd`](../scripts/voyage_state.gd)), so it is the same bag on the ship and on every island. It is no longer reset by each scene change.
@@ -40,6 +45,9 @@ The new islands' scripts and scenes are in `scripts/islands/` and `scenes/island
 
 ```text
 godot --headless --path . --script res://tests/island_minigames.gd
+godot --headless --path . --script res://tests/island_collision.gd
 ```
+
+`island_collision.gd` sails into every island from both sides and checks that the hull never overlaps land on any frame (including the anchoring move). It also checks that the far side blocks without docking, that the dock side anchors, that a glancing course scrapes along the shore, and that you can turn and sail off after running aground.
 
 The test loads every island, walks to the rowboat, and plays each game: it herds, dodges, steps tiles, chops, pushes boulders, gets spotted, finds the compass, and fills parrot orders. It checks that rewards land in the inventory, that treasure gives 5–30 coins, and that the bag is still full back on the ship. It does not replace playing them for feel.
