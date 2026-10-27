@@ -2,8 +2,8 @@ class_name WorldIsland
 extends Node2D
 
 ## An island placed on the sailing map (child of Ship/Islands in ship.tscn).
-## Sail into the yellow circle at its dock point to anchor, then take the
-## rowboat over to play its scene. Move the node in the 2D view to place the
+## Lower the ship's anchor near its shore, then take the rowboat over to play
+## its scene. Move the node in the 2D view to place the
 ## island anywhere on the map.
 ##
 ## The ship can't sail over the island. Its coastline is the Land/Coast

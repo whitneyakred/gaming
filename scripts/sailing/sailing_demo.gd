@@ -5,13 +5,16 @@ extends Node2D
 @export var helm: HelmStation
 @export var camera: Camera2D
 @export var draw_ocean_marks: bool = true
+## Global shift of the camera away from the ship, e.g. to keep the rowboat
+## on screen while it rows to an island.
+var view_offset: Vector2 = Vector2.ZERO
 @onready var wind_arrow: Label = $HUD/Wind/Arrow
 @onready var helm_wheel: HelmWheelWidget = $HUD/HelmWheel
 
 func _process(_delta: float) -> void:
 	if not is_instance_valid(ship):
 		return
-	camera.global_position = ship.global_position
+	camera.global_position = ship.global_position + view_offset
 	# Show the actual smoothed wind, not its next random target. The camera does not rotate.
 	wind_arrow.rotation = ship.wind_velocity.angle() + PI / 2.0
 	wind_arrow.visible = not ship.wind_velocity.is_zero_approx()

@@ -61,16 +61,19 @@ func _run() -> void:
 	_check(not ship.anchor_deployed and anchor.artwork.visible and not player.using_station, "E must raise the anchor and release the crew")
 	ship._physics_process(0.5)
 	_check(ship.speed > 0 and ship.global_position != stopped_position, "Raising must restore sailing with the existing sail setting")
-	ship.anchor_deployed = true
+	# Near an island the ship no longer docks by itself: the anchor decides.
+	var coconut := ship.get_island(&"CoconutIsland")
+	ship.set_sail_level(0)
 	ship.speed = 0
-	ship.global_position = ship.get_island(&"CoconutIsland").get_dock_position()
+	ship.global_position = coconut.get_dock_position()
 	ship._physics_process(0.1)
-	_check(ship._state == Ship.State.SAILING, "Manual anchoring must prevent automatic docking")
-	ship.anchor_deployed = false
-	ship._physics_process(0.01)
-	_check(ship._state == Ship.State.DOCKING and ship.anchor_deployed, "Raising near an island must allow docking to lower the anchor automatically")
-	await create_timer(1.0).timeout
-	_check(ship._state == Ship.State.ANCHORED and ship.speed == 0, "Docking must finish with the ship stopped")
-	_check(not anchor.try_take_control(player), "A docked ship must not allow manual raising")
+	_check(ship._state == Ship.State.SAILING and not ship.anchor_deployed, "Sailing near an island must not anchor on its own")
+	var near_island := ship.global_position
+	await _press_interact()
+	_check(ship._state == Ship.State.ANCHORED and ship._docked_island == coconut, "Lowering the anchor near an island must anchor there")
+	ship._physics_process(0.1)
+	_check(ship.global_position == near_island and ship.speed == 0, "Anchoring must keep the ship where it stopped")
+	await _press_interact()
+	_check(ship._state == Ship.State.SAILING and not ship.anchor_deployed and ship._docked_island == null, "Raising the anchor at an island must let the ship sail on")
 	print("Anchor integration: %d failure(s)" % failures)
 	quit(0 if failures == 0 else 1)

@@ -4,8 +4,9 @@ extends IslandGame
 ## Smuggler's Den: sneak in, steal the loot, sneak out.
 ## Pirate guards walk set routes. Stay out of their yellow vision cones;
 ## crates block their view, so hide behind them. If a guard spots you,
-## you're thrown back to the dock and lose time. Reach the loot chest to take
-## 5-30 gold coins, then get back to the rowboat.
+## you're thrown back to the dock and lose time. Grab the loot from the chest,
+## then sneak back to the rowboat: get spotted while carrying it and the
+## guards take it back to the chest. Escaping with it pays 5-30 gold coins.
 ##
 ## Scene setup:
 ## - Each child of Guards is one guard's route; its Marker2D children are the
@@ -98,7 +99,7 @@ func _game_process(delta: float) -> void:
 		loot_taken = true
 		_loot.queue_redraw()
 		refresh_hud()
-		give_treasure("You swiped the smugglers' loot!")
+		show_message("You grabbed the loot! Sneak back to the rowboat.", 2.0)
 	_cones.queue_redraw()
 
 
@@ -153,7 +154,26 @@ func _spotted() -> void:
 	player.global_position = _start_position
 	player.velocity = Vector2.ZERO
 	add_time(-spotted_penalty_seconds)
-	show_message("Spotted! Back to the dock. (-%ds)" % int(spotted_penalty_seconds), 1.4)
+	if loot_taken:
+		# Caught carrying it: the guards put the loot back in the chest.
+		loot_taken = false
+		if _loot:
+			_loot.queue_redraw()
+		refresh_hud()
+		show_message("Spotted! The guards took the loot back. (-%ds)" % int(spotted_penalty_seconds), 1.8)
+	else:
+		show_message("Spotted! Back to the dock. (-%ds)" % int(spotted_penalty_seconds), 1.4)
+
+
+## Reaching the rowboat with the loot pays out the coins.
+func try_escape() -> void:
+	if not is_running() or not loot_taken:
+		super.try_escape()
+		return
+	var coins := give_treasure()
+	var payout := "%d coins collected!" % coins if coins > 0 \
+			else "Your bag is full! The coins stay behind."
+	win("You escaped with the smugglers' loot!\n" + payout)
 
 
 func _make_crate() -> StaticBody2D:

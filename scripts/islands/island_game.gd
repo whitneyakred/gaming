@@ -5,7 +5,8 @@ extends Node2D
 ##
 ## It owns what all islands have in common: the countdown timer, the
 ## pirate-ship HUD track, pop-up messages, the rowboat exit, and the
-## win/lose flow (win rows you back to the ship, lose reloads the island).
+## win/lose flow. Either way you row back to the ship; losing takes away
+## everything picked up on the island and leaves it unfinished.
 ##
 ## To make a new island game, write a script that `extends IslandGame`
 ## and override only the hooks you need (see "Hooks" below). Leave the
@@ -54,6 +55,9 @@ var time_remaining: float = 0.0
 var _run_ended: bool = false
 var _timer_paused: bool = false
 var _bag_full_warned_at: int = -100000
+# The bag as it was when you landed, so a game over can take back the prize.
+var _bag_on_arrival: Array[ItemData] = []
+var _quantities_on_arrival: Dictionary[StringName, int] = {}
 
 const COIN_ITEM_ID: StringName = &"gold_coin"
 
@@ -68,6 +72,11 @@ func _ready() -> void:
 		hud.set_timer_visible(has_time_limit())
 		hud.set_threat_label(threat_label)
 		hud.set_inventory(get_inventory())
+
+	var bag := get_inventory()
+	if bag:
+		_bag_on_arrival = bag.inventory.duplicate()
+		_quantities_on_arrival = bag.quantities.duplicate()
 
 	_setup_game()
 	refresh_hud()
@@ -208,18 +217,17 @@ func win(message: String = "") -> void:
 	show_message(message if not message.is_empty() else win_message, 0.0)
 	run_won.emit()
 	await get_tree().create_timer(win_delay_seconds).timeout
-	# Tells the ship scene to play the "row back to the ship" sequence.
-	Ship.returning_from_island = true
-	get_tree().change_scene_to_file(return_scene)
+	_row_back(true)
 
 func lose(reason: String) -> void:
 	if _run_ended:
 		return
 	_end_run()
-	show_message(reason + " Game Over!", 0.0)
+	_take_back_prizes()
+	show_message(reason + " Game Over!\nRow back to the ship empty-handed.", 0.0)
 	run_lost.emit(reason)
 	await get_tree().create_timer(lose_delay_seconds).timeout
-	get_tree().reload_current_scene()
+	_row_back(false)
 
 
 # --- Internals ----------------------------------------------------------------
@@ -233,6 +241,22 @@ func _warn_bag_full(item: ItemData) -> void:
 	_bag_full_warned_at = now
 	if hud:
 		hud.show_toast("Bag full! No room for %s" % item.display_name)
+
+# Tells the ship scene to play the "row back to the ship" sequence. Only a
+# win marks the island as finished.
+func _row_back(won: bool) -> void:
+	Ship.returning_from_island = true
+	Ship.last_visit_won = won
+	get_tree().change_scene_to_file(return_scene)
+
+# Puts the bag back the way it was when you landed: no prize for a game over.
+func _take_back_prizes() -> void:
+	var bag := get_inventory()
+	if bag == null:
+		return
+	bag.inventory = _bag_on_arrival.duplicate()
+	bag.quantities = _quantities_on_arrival.duplicate()
+	bag.emit_changed()
 
 func _end_run() -> void:
 	_run_ended = true

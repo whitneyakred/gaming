@@ -123,7 +123,9 @@ func _run() -> void:
 	_check(aground_frames > 0, "The glancing course must touch the shore")
 	_check(moved_while_aground > 20.0, "The ship must scrape along the shore (moved %.0f px)" % moved_while_aground)
 
-	# 4. Bow-first at the dock side of every island: running aground there anchors.
+	# 4. Bow-first at the dock side of every island: sailing in never docks by
+	# itself, and lowering the anchor at the shore anchors there without the
+	# hull ever touching land.
 	for name in names:
 		current_test = "dock side of %s" % name
 		ship = await _fresh_ship()
@@ -134,11 +136,41 @@ func _run() -> void:
 			await physics_frame
 			if _hull_on_land(ship):
 				overlap_frames += 1
-			if ship._state == Ship.State.ANCHORED:
+			if ship.aground or ship.global_position.distance_to(island.get_dock_position()) < 30.0:
 				break
-		_check(ship._state == Ship.State.ANCHORED, "Sailing at the dock side must anchor")
-		_check(overlap_frames == 0, "Hull overlapped land on %d frames (including the docking move)" % overlap_frames)
-		_check(ship.global_position.distance_to(island.get_dock_position()) < 1.0, "The ship must end at the dock spot")
+		_check(ship._state == Ship.State.SAILING, "Reaching the shore must not anchor on its own")
+		ship.anchor_deployed = true
+		_check(ship._state == Ship.State.ANCHORED and ship._docked_island == island, "Lowering the anchor at the shore must anchor there")
+		for i in int(4.0 * 60.0 / Engine.time_scale):
+			await physics_frame
+			if _hull_on_land(ship):
+				overlap_frames += 1
+		_check(ship.speed == 0, "The anchor must stop the ship")
+		_check(overlap_frames == 0, "Hull overlapped land on %d frames" % overlap_frames)
+
+	# 5. The rowboat rows around each island to its dock without crossing land
+	# or the ship, even when the ship anchors on the far side.
+	for name in names:
+		current_test = "rowing route around %s" % name
+		ship = await _fresh_ship()
+		var island := ship.get_island(name)
+		var landing := Transform2D(island.global_rotation, island.get_dock_position()) * Ship.DOCK_LANDING
+		var away := (island.global_position - landing).normalized()
+		var spot := island.global_position
+		while ship._is_pose_blocked(spot, 0.0) or Geometry2D.is_point_in_polygon(spot, island.get_coast()):
+			spot += away * 20.0
+		ship.global_position = spot + away * 60.0
+		ship.global_rotation = 0.0
+		var route: Array[Vector2] = []
+		for point in ship._rowing_route(island):
+			route.append(ship.to_global(point))
+		var hull := ship.get_hull_polygon(ship.global_position, ship.global_rotation)
+		_check(route.size() > 3 and route[route.size() - 1].is_equal_approx(landing), "The route must go around the island and end at the dock")
+		for i in route.size() - 1:
+			var leg := PackedVector2Array([route[i], route[i + 1]])
+			_check(Geometry2D.intersect_polyline_with_polygon(leg, hull).is_empty(), "Rowing leg %d must not cross the ship" % i)
+			if i < route.size() - 2:
+				_check(Geometry2D.intersect_polyline_with_polygon(leg, island.get_coast()).is_empty(), "Rowing leg %d must stay off the land" % i)
 
 	print("Island collision: %d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

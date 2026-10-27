@@ -104,6 +104,7 @@ func _run() -> void:
 	await _test_smugglers_den()
 	await _test_overgrown_isle()
 	await _test_parrot_point()
+	await _test_game_over_rows_back()
 	await _test_inventory_survives_ship()
 
 	print("Island minigames: %d failure(s)" % failures)
@@ -349,8 +350,25 @@ func _test_smugglers_den() -> void:
 		info.facing = Vector2.UP
 	game.player.global_position = game._loot.global_position
 	await _frames(3)
+	_check(game.loot_taken, "Reaching the chest must take the loot")
+	_check(_inventory().get_quantity(&"gold_coin") == before, "No coins until you escape with the loot")
+	# Caught on the way out: the loot goes back in the chest.
+	game._spotted()
+	_check(not game.loot_taken, "Being spotted with the loot must return it to the chest")
+	_check(game.player.global_position.distance_to(game._start_position) < 40.0, "Being spotted with the loot must send you back to the dock")
+	game.try_escape()
+	await _frames(2)
+	_check(game.is_running(), "The rowboat must refuse to leave without the loot")
+	# Take it again and reach the rowboat unseen.
+	game.player.global_position = game._loot.global_position
+	await _frames(3)
+	_check(game.loot_taken, "The loot must be takeable again")
+	game.win_delay_seconds = 0.0
+	game.try_escape()
 	var gained := _inventory().get_quantity(&"gold_coin") - before
-	_check(game.loot_taken and gained >= 5 and gained <= 30, "The loot must give 5-30 coins (got %d)" % gained)
+	_check(not game.is_running() and gained >= 5 and gained <= 30, "Escaping with the loot must win and give 5-30 coins (got %d)" % gained)
+	await get_tree().scene_changed
+	Ship.returning_from_island = false
 
 
 func _test_overgrown_isle() -> void:
@@ -393,6 +411,25 @@ func _test_parrot_point() -> void:
 		await _press("interact")
 	_check(game.orders_done == game.orders_needed and game._is_objective_complete(), "Filling every order must complete the island")
 	_check(inventory.get_quantity(&"fresh_water") == water_before + 2, "The parrot must reward fresh water")
+
+
+func _test_game_over_rows_back() -> void:
+	current_test = "game over"
+	var game := await _load("res://scenes/island.tscn")
+	var coins := _inventory().get_quantity(&"gold_coin")
+	var coconuts := _inventory().get_quantity(&"coconut")
+	game.give_item(&"coconut", 2)
+	game.give_item(&"gold_coin", 3)
+	_check(_inventory().get_quantity(&"coconut") == coconuts + 2, "Pickups must go into the bag during the run")
+	game.lose_delay_seconds = 0.0
+	game.lose("Test loss.")
+	_check(_inventory().get_quantity(&"coconut") == coconuts and _inventory().get_quantity(&"gold_coin") == coins,
+		"A game over must take back everything picked up on the island")
+	await get_tree().scene_changed
+	_check(get_tree().current_scene is Ship, "A game over must row back to the ship")
+	Ship.returning_from_island = false
+	Ship.last_visit_won = true
+	await _frames(2)
 
 
 func _test_inventory_survives_ship() -> void:
