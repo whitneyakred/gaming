@@ -225,7 +225,7 @@ Existing identifiers are retained; status does not imply implementation.
 | **FEAT-ship-stations** | Operate ship duties at interactive locations | Helm, sail, cooking, and fishing exist; common station lifecycle and other stations are planned |
 | **FEAT-sailing-control** | Steer and trim sails in relation to wind | Prototype implemented; planned NAV extensions and tuning remain open |
 | **FEAT-ocean-travel** | Travel through a continuing ocean | Moving ship and repeating ocean exist; deterministic/recycled world chunks remain planned |
-| **FEAT-food-water-management** | Obtain and consume supplies for hunger and thirst | SURV use cases specified with TBD tuning; survival system not implemented |
+| **FEAT-food-water-management** | Gather/catch food, experiment with recipes and replenish hunger/health | Connected cooking/SURV/FTG use cases are planned, with tuning open; water/thirst deferred from this slice |
 | **FEAT-island-exploration** | Visit islands and gather supplies or complete challenges | Rowboat trips and two timed island games exist; persistent voyage resources and wreck salvage remain planned |
 | **FEAT-stamina-movement** | Earlier proposal for sprinting/swimming stamina | Historical feature ID retained; no separate stamina system approved. FTG specifies fatigue; DECK/ISLE describe planned overboard alternatives |
 | **FEAT-ship-repair** | Repair open hull leaks | SHIP rules and design exist; code and tuning remain pending |
@@ -239,7 +239,7 @@ Existing identifiers are retained; status does not imply implementation.
 | **FEAT-overboard-rescue** | Help a crew member return to safety | Earlier rescue idea; planned plank/ladder movement is not a rescue subsystem |
 | **FEAT-role-attributes** | Give roles distinct gameplay attributes | Earlier idea; not approved current scope |
 
-Fatigue/rest, hunger/thirst, capsize, and pass-out recovery are specified planned behavior in the current use cases. Stamina is an older idea, not a synonym for fatigue. Bathroom mechanics and permanent starvation death are not active requirements. MAP and SYS provide supporting chart, inventory, and world-state behavior; see traceability.
+The connected cooking/survival slice uses food from islands/fishing, recipe experimentation, separate hunger/health and progressive fatigue affecting cooking. Hunger below 40% and low health at the 10% threshold cause fatigue; zero hunger damages health and zero health ends the voyage in game over. Horrible recipes damage rather than heal, even at three preparation stars. Ship motion continues during cooking/rest unless anchored. Thirst/raw-food illness are deferred; automatic pass-out recovery is retired for this slice. Exact rates, boundary comparisons, recipe values and rest benefits remain open. Other feature scope is unchanged.
 
 ### 4.3 MVP Scope
 
