@@ -41,7 +41,7 @@ func _run() -> void:
 	player.leave_station(ship.get_node("Sail"))
 	await _press_interact()
 	_check(ship.anchor_deployed and not player.using_station, "E must lower the anchor once and immediately release the crew")
-	_check(not anchor.artwork.visible and anchor.prompt.text == "E: Raise anchor", "Artwork and prompt must follow the lowered anchor")
+	_check(not anchor.artwork.visible and not anchor.prompt.visible, "Lowered anchor artwork must update without a text popup")
 	ship.set_sail_level(3)
 	ship.set_wheel_angle(360)
 	ship.speed = ship.maximum_speed

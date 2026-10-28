@@ -5,12 +5,14 @@ extends Node2D
 @export var helm: HelmStation
 @export var camera: Camera2D
 @export var draw_ocean_marks: bool = true
-@export_range(1.0, 3.0) var station_zoom_multiplier: float = 1.7
+@export_range(1.0, 3.0) var station_zoom_multiplier: float = 1.2
+@export_range(0.0, 0.5) var station_vignette_opacity: float = 0.22
 @export_range(1.0, 20.0) var camera_response: float = 7.0
 var _normal_zoom: Vector2 = Vector2.ONE
 var _focus_offset: Vector2 = Vector2.ZERO
 @onready var wind_arrow: Label = $HUD/Wind/Arrow
 @onready var helm_wheel: HelmWheelWidget = $HUD/HelmWheel
+@onready var vignette: ColorRect = $StationOverlay/Vignette
 
 func _ready() -> void:
 	if is_instance_valid(camera):
@@ -40,6 +42,7 @@ func _update_camera(delta: float) -> void:
 	_focus_offset = _focus_offset.lerp(target_offset, weight)
 	camera.global_position = ship.global_position + _focus_offset
 	camera.zoom = camera.zoom.lerp(target_zoom, weight)
+	vignette.modulate.a = lerpf(vignette.modulate.a, station_vignette_opacity if focused else 0.0, weight)
 
 func _draw() -> void:
 	if not draw_ocean_marks or not is_instance_valid(camera):

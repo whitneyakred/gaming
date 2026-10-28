@@ -6,6 +6,8 @@ signal sail_changed()
 signal anchor_changed(deployed: bool)
 
 @export_range(0.0, 500.0) var maximum_speed: float = 110.0
+## Minimum fraction of each sail level's speed, even in calm air or a headwind.
+@export_range(0.0, 1.0, 0.05) var minimum_sailing_factor: float = 0.25
 @export_range(0.1, 200.0) var acceleration: float = 22.0
 @export_range(0.1, 200.0) var deceleration: float = 30.0
 @export_range(1.0, 300.0) var anchor_braking: float = 65.0
@@ -86,11 +88,10 @@ func get_target_speed() -> float:
 		return 0.0
 	var sail_direction := Vector2.UP.rotated(global_rotation + deg_to_rad(sail_angle_degrees))
 	var strength := clampf(wind_velocity.length(), 0.0, 1.0)
-	# The cloth billows along sail_direction. Only wind pushing that way fills it.
-	# No artificial propulsion in calm air or with wind on the wrong side.
+	# Deployed sails provide gentle forward motion; favorable wind adds speed.
 	var alignment := clampf(sail_direction.dot(wind_velocity.normalized()), 0.0, 1.0)
 	var wind_factor := strength * alignment * alignment
-	return maximum_speed * (float(sail_level) / 3.0) * wind_factor
+	return maximum_speed * (float(sail_level) / 3.0) * lerpf(minimum_sailing_factor, 1.0, wind_factor)
 
 func _physics_process(delta: float) -> void:
 	# Wheel displacement sets rudder strength. Centering the wheel eases out of a turn.
