@@ -2,6 +2,9 @@ extends Node
 
 func _ready() -> void:
 	ItemDatabase.register_item(make_item(
+		&"potato", "Potato", "A filling galley ingredient.", 20
+	))
+	ItemDatabase.register_item(make_item(
 		&"fish_cod",
 		"Cod",
 		"A common ocean fish.",
