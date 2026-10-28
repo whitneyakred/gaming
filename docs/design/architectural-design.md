@@ -199,9 +199,10 @@ Godot tools, Placeholder Assets, and GitHub support all areas through section 5.
 | [world_island.gd](../../scripts/islands/world_island.gd) | An island on the sailing map: name, island scene, and dock point. |
 | [island_game.gd](../../scripts/islands/island_game.gd), [collect_island.gd](../../scripts/islands/collect_island.gd), [treasure_island.gd](../../scripts/islands/treasure_island.gd), [island_hud.gd](../../scripts/islands/island_hud.gd) | Shared island challenge flow (timer, win, lose, rowboat exit), the two challenge types, and their HUD. |
 | [rowboat.gd](../../scripts/rowboat.gd), [coconut.gd](../../scripts/coconut.gd) | The island's rowboat exit and the walk-over item pickup. |
+| [pause_menu.gd](../../scripts/pause_menu.gd), [pause_menu.tscn](../../scenes/pause_menu.tscn) | `PauseMenu` autoload (process mode Always): the `pause` action on P and the Resume button set `SceneTree.paused` and show or hide the pause screen ([PROG.md](PROG.md), single-player slice). |
 | [tests/sailing_integration.gd](../../tests/sailing_integration.gd) | Headless integration test of stations, sailing, docking, and the island round trip. |
 
-**Designed, not yet built** (paths from [deck.md](deck.md) and [isle.md](isle.md)): `scripts/stations/station.gd`, `scripts/stations/station_interactor.gd`, `scripts/stations/overboard_zone.gd`, `scripts/islands/resource_node.gd`, and `scripts/voyage_state.gd`, which is registered as the `VoyageState` autoload next to `ItemDatabase` and `Items` in project.godot. From [PROG.md](PROG.md): `scripts/pause_menu.gd` and `scenes/pause_menu.tscn`, registered as the `PauseMenu` autoload, with a `pause` input action on P.
+**Designed, not yet built** (paths from [deck.md](deck.md) and [isle.md](isle.md)): `scripts/stations/station.gd`, `scripts/stations/station_interactor.gd`, `scripts/stations/overboard_zone.gd`, `scripts/islands/resource_node.gd`, and `scripts/voyage_state.gd`, which is registered as the `VoyageState` autoload next to `ItemDatabase` and `Items` in project.godot.
 
 ## 6. Runtime View
 
