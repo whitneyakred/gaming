@@ -216,7 +216,7 @@ func win(message: String = "") -> void:
 	_end_run()
 	show_message(message if not message.is_empty() else win_message, 0.0)
 	run_won.emit()
-	await get_tree().create_timer(win_delay_seconds).timeout
+	await get_tree().create_timer(win_delay_seconds, false).timeout
 	_row_back(true)
 
 func lose(reason: String) -> void:
@@ -226,7 +226,7 @@ func lose(reason: String) -> void:
 	_take_back_prizes()
 	show_message(reason + " Game Over!\nRow back to the ship empty-handed.", 0.0)
 	run_lost.emit(reason)
-	await get_tree().create_timer(lose_delay_seconds).timeout
+	await get_tree().create_timer(lose_delay_seconds, false).timeout
 	_row_back(false)
 
 
