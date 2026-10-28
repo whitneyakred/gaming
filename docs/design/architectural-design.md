@@ -201,7 +201,7 @@ Godot tools, Placeholder Assets, and GitHub support all areas through section 5.
 | [rowboat.gd](../../scripts/rowboat.gd), [coconut.gd](../../scripts/coconut.gd) | The island's rowboat exit and the walk-over item pickup. |
 | [tests/sailing_integration.gd](../../tests/sailing_integration.gd) | Headless integration test of stations, sailing, docking, and the island round trip. |
 
-**Designed, not yet built** (paths from [deck.md](deck.md) and [isle.md](isle.md)): `scripts/stations/station.gd`, `scripts/stations/station_interactor.gd`, `scripts/stations/overboard_zone.gd`, `scripts/islands/resource_node.gd`, and `scripts/voyage_state.gd`, which is registered as the `VoyageState` autoload next to `ItemDatabase` and `Items` in project.godot.
+**Designed, not yet built** (paths from [deck.md](deck.md) and [isle.md](isle.md)): `scripts/stations/station.gd`, `scripts/stations/station_interactor.gd`, `scripts/stations/overboard_zone.gd`, `scripts/islands/resource_node.gd`, and `scripts/voyage_state.gd`, which is registered as the `VoyageState` autoload next to `ItemDatabase` and `Items` in project.godot. From [PROG.md](PROG.md): `scripts/pause_menu.gd` and `scenes/pause_menu.tscn`, registered as the `PauseMenu` autoload, with a `pause` input action on P.
 
 ## 6. Runtime View
 
@@ -312,7 +312,7 @@ Shape of a rejection: a `StringName` reason code, where `&""` means success and 
 
 #### 8.2.2 Time and time zones
 
-Use simulation time for movement and future gameplay durations, keeping wall-clock time out of steering/survival rules. player.gd sets velocity in _physics_process; move_and_slide handles physics-step movement. Proposed timers should use elapsed simulation time for reproducibility. There are no civil-time deadlines or stored time zones; `BR-host-controls-session` freezes simulation timers while paused; multiplayer transport/timing details remain deferred.
+Use simulation time for movement and future gameplay durations, keeping wall-clock time out of steering/survival rules. player.gd sets velocity in _physics_process; move_and_slide handles physics-step movement. Proposed timers should use elapsed simulation time for reproducibility. There are no civil-time deadlines or stored time zones; `BR-host-controls-session` freezes simulation timers while paused; multiplayer transport/timing details remain deferred. The shared pause gate is `SceneTree.paused`, set by the `PauseMenu` autoload ([PROG.md](PROG.md)); gameplay nodes stay on the default pausable process mode and get no pause hook of their own. Presentation that must keep animating during pause (`BR-pause-fatigue-presentation`) uses its own process mode and must not change gameplay state.
 
 #### 8.2.3 API conventions
 

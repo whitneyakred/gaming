@@ -68,6 +68,7 @@ These questions identify unresolved gameplay and integration decisions.
 | OI-15 | Which cross-area contracts govern world-item retention, Voyage State ownership, inventory handoff, and capsize reset ordering? | ISLE scene-local drop loss conflicts with SYS lifetime proposals; existing static scene handoffs are not the proposed shared state component. | SYS, ISLE, WAVE, SHIP, and PROG owners | 2026-10-20 |
 | OI-17 | What world-grid origin, tile size, placement, and update cadence satisfy indefinite travel and notify every crossed tile? | SYS/MAP positive-only, fixed-route, and coarse-sampling proposals are not approved world constraints. | SYS, MAP, NAV, EVT, and PROG owners | 2026-10-20 |
 | OI-18 | Is map access a station or menu, and is discovery retained or reset after capsize? | The use cases leave both open. Capsize continues the voyage regardless; MAP must not end the session or silently choose retention. | MAP, WAVE, and PROG owners with team | 2026-10-20 |
+| OI-21 | What should Quit on the pause screen do before `UC-PROG-quit-voyage` and a main menu exist? | Pause-game 4a hands off to quit-voyage, which isn't built. The single-player pause screen ships with Resume only until then. | PROG owner and team | 2026-10-28 |
 
 ### Cooking, survival and fatigue decisions
 
