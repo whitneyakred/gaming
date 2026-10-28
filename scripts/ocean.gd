@@ -37,14 +37,22 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	var half := cover_size / 2.0
-	draw_rect(Rect2(-half, cover_size), water_color)
-	var tiles_x := int(ceil(cover_size.x / TILE)) + 2
-	var tiles_y := int(ceil(cover_size.y / TILE)) + 2
+	var area := cover_size
+	var center := Vector2.ZERO
+	var camera := get_viewport().get_camera_2d()
+	if world_anchored and is_instance_valid(camera):
+		center = to_local(camera.get_screen_center_position())
+		area = area.max(get_viewport_rect().size / camera.zoom + Vector2.ONE * TILE * 2)
+	draw_set_transform(center)
+	var half := area / 2.0
+	draw_rect(Rect2(-half, area), water_color)
+	var tiles_x := int(ceil(area.x / TILE)) + 2
+	var tiles_y := int(ceil(area.y / TILE)) + 2
 	var start := Vector2(-tiles_x / 2 * TILE, -tiles_y / 2 * TILE)
 	var offset := Vector2(0, scroll_offset)
 	if world_anchored:
-		offset = Vector2(fposmod(-global_position.x, TILE), fposmod(-global_position.y, TILE))
+		var world_center := to_global(center)
+		offset = Vector2(fposmod(-world_center.x, TILE), fposmod(-world_center.y, TILE))
 	for ty in tiles_y:
 		for tx in tiles_x:
 			var origin := start + Vector2(tx * TILE, ty * TILE) + offset
