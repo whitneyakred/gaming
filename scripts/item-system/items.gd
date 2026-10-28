@@ -30,6 +30,55 @@ func _ready() -> void:
 		ItemData.Category.FOOD
 	))
 
+	# --- Island rewards ---
+	ItemDatabase.register_item(make_item(
+		&"gold_coin",
+		"Gold Coin",
+		"Pirate gold from an island treasure.",
+		999
+	))
+	ItemDatabase.register_item(make_item(
+		&"wood",
+		"Wood",
+		"Chopped timber. Used to patch leaks in the hull.",
+		30
+	))
+	ItemDatabase.register_item(make_item(
+		&"crab_meat",
+		"Crab Meat",
+		"Sweet meat from a beach crab.",
+		10
+	))
+	ItemDatabase.register_item(make_item(
+		&"mango",
+		"Mango",
+		"A ripe island mango.",
+		10
+	))
+	ItemDatabase.register_item(make_item(
+		&"banana",
+		"Banana",
+		"A bunch-fresh banana.",
+		10
+	))
+	ItemDatabase.register_item(make_item(
+		&"papaya",
+		"Papaya",
+		"A soft, sweet papaya.",
+		10
+	))
+	ItemDatabase.register_item(make_item(
+		&"fresh_water",
+		"Fresh Water",
+		"A flask of drinkable spring water.",
+		10
+	))
+	ItemDatabase.register_item(make_item(
+		&"compass",
+		"Lost Compass",
+		"An old brass compass recovered from the jungle."
+	))
+
 func make_item(
 	item_id: StringName,
 	item_display_name: String,

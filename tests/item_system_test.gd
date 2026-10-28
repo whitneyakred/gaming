@@ -100,13 +100,16 @@ func _test_registered_catalog() -> void:
 	_check(missing_item == null, "Unknown item lookup", "null", var_to_str(missing_item))
 
 	var all_items: Array = item_database.call(&"get_all_items")
-	_check_equal(all_items.size(), expected_items.size(), "Catalog enumeration returns the expected item count")
+	var island_ids: Array[StringName] = [&"gold_coin", &"wood", &"crab_meat", &"mango", &"banana", &"papaya", &"fresh_water", &"compass"]
+	_check_equal(all_items.size(), expected_items.size() + island_ids.size(), "Catalog enumeration includes the island rewards")
 	var found_ids: Dictionary[StringName, int] = {}
 	for item in all_items:
 		_check(item != null, "Catalog enumeration contains no null entries", "An ItemData instance", var_to_str(item))
 		if item == null:
 			continue
 		found_ids[item.id] = found_ids.get(item.id, 0) + 1
+	for item_id in island_ids:
+		_check_equal(found_ids.get(item_id, 0), 1, "Island reward %s is registered exactly once" % item_id)
 
 	for expected_item in expected_items:
 		var item_id: StringName = expected_item["id"]

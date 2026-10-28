@@ -53,7 +53,21 @@ func _run() -> void:
 	ship.set_sail_angle(0.0)
 	_check(is_equal_approx(ship.get_target_speed(), ship.maximum_speed), "Following wind must still fill the sail")
 	ship.wind_velocity = Vector2.DOWN
-	_check(is_zero_approx(ship.get_target_speed()), "Headwind must not propel the ship")
+	for wind in [Vector2.DOWN, Vector2.RIGHT, Vector2.ZERO, Vector2.UP]:
+		ship.wind_velocity = wind
+		var previous_speed := 0.0
+		for level in range(1, 4):
+			ship.set_sail_level(level)
+			var target := ship.get_target_speed()
+			_check(target > previous_speed and target <= ship.maximum_speed, "Sail levels must give three distinct bounded forward speeds")
+			if wind != Vector2.UP:
+				_check(is_equal_approx(target, ship.maximum_speed * level / 3.0 * 0.25), "Unfavorable wind must use the slower minimum speeds")
+			previous_speed = target
+		ship.anchor_deployed = true
+		_check(is_zero_approx(ship.get_target_speed()), "Anchor must override minimum propulsion")
+		ship.anchor_deployed = false
+		ship.set_sail_level(0)
+		_check(is_zero_approx(ship.get_target_speed()), "Raised sails must stop propulsion")
 	ship.changing_wind_enabled = true
 	ship.wind_velocity = Vector2.ZERO
 	ship._process(1.0)

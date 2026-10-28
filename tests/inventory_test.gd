@@ -101,6 +101,9 @@ func _run() -> void:
 	_check(not unassigned_usage.move_item(&"fish_cod", 0), "InventoryUsage.move_item safely rejects a missing inventory")
 	unassigned_usage.clear()
 	_check(true, "InventoryUsage.clear safely handles a missing inventory")
+	# These helpers are Nodes created outside the scene tree; release them explicitly.
+	usage.free()
+	unassigned_usage.free()
 
 	print("Inventory tests complete: %d passed, %d failed" % [passed, failures])
 	quit(failures)
