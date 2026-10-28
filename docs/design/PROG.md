@@ -5,7 +5,7 @@
 **Project:** Holy Ship
 **Team:** Team 13 (Gaming)
 **Area:** `UC-PROG` (Progress & Session)
-**Status:** Proposed future design; questions test answered; requirement decisions remain blocked; no PROG code exists. `UC-PROG-pause-game` has a single-player slice ready to build (2026-10-28).
+**Status:** Proposed future design; questions test answered; requirement decisions remain blocked; `UC-PROG-pause-game`'s single-player slice is built (2026-10-28); no other PROG code exists.
 **Draft date:** 2026-10-14
 
 > **Realizes:** `UC-PROG-track-progress`, `UC-PROG-reach-paradise`, `UC-PROG-quit-voyage`, `UC-PROG-start-voyage`, `UC-PROG-host-join`, `UC-PROG-pause-game`, `UC-PROG-choose-character`. No supplied `FR-PROG-*` identifiers.
