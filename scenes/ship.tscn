@@ -17,6 +17,7 @@
 [ext_resource type="Script" path="res://scripts/islands/world_island.gd" id="14"]
 [ext_resource type="Texture2D" path="res://assets/island_large.png" id="15"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/anchor_station.tscn" id="16"]
+[ext_resource type="PackedScene" path="res://scenes/ui/inventory_hotbar.tscn" id="17_hotbar"]
 
 [sub_resource type="RectangleShape2D" id="SternShape"]
 size = Vector2(44, 40)
@@ -146,6 +147,8 @@ camera = NodePath("../Camera2D")
 draw_ocean_marks = false
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1647158824]
+
+[node name="InventoryHotbar" parent="HUD" instance=ExtResource("17_hotbar")]
 
 [node name="StatusLabel" type="Label" parent="HUD" unique_id=1710473860]
 offset_left = 290.0
