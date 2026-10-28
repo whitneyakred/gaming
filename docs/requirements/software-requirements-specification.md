@@ -228,7 +228,9 @@ Version 1.0 does not collect personal player data. Voyage state is held in memor
 _[The user-facing surfaces, at requirement level: which views exist, standards they must conform to, accessibility requirements. Link to wireframes or prototypes rather than describing pixel layouts.]_
 
 - `UI-main-menu`: The system shall provide a main menu with options to start a new game, access settings, and exit the game.
-- `UI-gameplay-hud`: During gameplay, the system shall display the crew member's hunger, thirst, fatigue, and relevant resources when those planned systems are implemented.
+- `UI-gameplay-hud`: When the connected survival systems are implemented, display hunger, separate character health, active fatigue causes and relevant food supplies. Fatigue warnings/dizziness/clutter continue into cooking. Thirst is deferred from this slice.
+- `UI-survival-game-over`: At zero character health, show game over once and prevent further survival/cooking actions.
+- `UI-fatigue-pause`: Existing wobble continues visually during pause; the proposed simulation contract freezes survival damage, recipe/scoring logic and counters.
 - `UI-station-feedback`: When the player uses a ship station, the system shall display feedback showing the outcome of the interaction.
 - `UI-pause-menu`: The system shall provide a pause menu during active gameplay.
 
@@ -302,7 +304,7 @@ _Example: `AVL-uptime`: The system shall be available 99% of the time during the
 _Example: `ROB-edit-loss-bound`: On an unexpected client disconnect, the system shall lose no more than 30 seconds of a student's in-progress edits._
 
 - `ROB-invalid-action`: If the player attempts an unavailable interaction, then the system shall prevent the action without terminating the game session.
-- `ROB-resource-bound`: The system shall prevent item quantities and hunger, thirst, and fatigue values from falling below zero.
+- `ROB-resource-bound`: The system shall keep item quantities nonnegative and survival hunger/health within their configured bounds. Recipe/consumption effects apply once; pending cooking/healing callbacks cannot revive a dead character.
 
 ### 9.7 Scalability, interoperability, maintainability
 

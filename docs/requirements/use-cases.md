@@ -36,7 +36,8 @@ This document covers every item on the team's updated use case list (50 items), 
 | `DECK` | Movement & Stations |
 | `NAV` | Navigation & Sailing |
 | `WAVE` | Waves & Stability |
-| `SURV` | Hunger, Thirst & Illness |
+| `COOK` | Cooking |
+| `SURV` | Hunger, Health & Survival |
 | `FTG` | Fatigue |
 | `SHIP` | Ship Damage & Repair |
 | `EVT` | Events & Encounters |
@@ -109,14 +110,16 @@ All 50 items on the team's list are accounted for: 47 are covered by 45 use case
 | `UC-WAVE-generate-waves` | Generate ocean waves | System | 10 | |
 | `UC-WAVE-balance-ship` | Balance the ship | Crew Member | 11 | |
 | `UC-WAVE-capsize-ship` | Capsize the ship | System | 12 | |
-| `UC-SURV-consume-food` | Consume food | Crew Member | 13 | |
-| `UC-SURV-consume-water` | Consume water | Crew Member | 14 | |
-| `UC-SURV-deplete-hunger-thirst` | Deplete hunger and thirst over time | System | 15 | |
-| `UC-SURV-pass-out` | Pass out from starvation, dehydration, or exhaustion | System | 16, 19 | Renamed from "Die of starvation or dehydration"; crew members pass out rather than die. Also covers the exhaustion penalty. |
-| `UC-SURV-recover-from-illness` | Recover from illness | System | 28 | Renamed from "Treat a crew illness" (it is waited out); moved from Events |
-| `UC-FTG-rest` | Rest to recover fatigue | Crew Member | 17 | |
-| `UC-FTG-deplete-fatigue` | Deplete fatigue over time | System | 18 | |
-| `UC-FTG-warn-exhaustion` | Warn of exhaustion | System | 19 | Renamed from "Apply exhaustion penalty"; the only effect is a red bar before passing out |
+| `UC-COOK-prepare-meal` | Experiment with ingredients and prepare a meal | Player | — | Connected cooking |
+| `UC-SURV-die` | End the voyage at zero health | System | — | Terminal survival failure |
+| `UC-SURV-consume-food` | Eat food to restore hunger and health | Player | 13 | Includes harmful meals |
+| `UC-SURV-consume-water` | Consume water | Player | 14 | Deferred; no water requirement in this slice |
+| `UC-SURV-deplete-hunger-thirst` | Spend hunger and apply starvation damage | System | 15 | Historical ID retained; thirst deferred |
+| `UC-SURV-pass-out` | Pass out and recover | System | 16, 19 | Superseded by UC-SURV-die for this slice |
+| `UC-SURV-recover-from-illness` | Recover from illness | System | 28 | Deferred raw-food illness |
+| `UC-FTG-rest` | Use the rest station | Player | 17 | Recovery benefit remains open |
+| `UC-FTG-deplete-fatigue` | Evaluate hunger and health fatigue | System | 18 | Historical ID retained; no steady-drain requirement |
+| `UC-FTG-warn-exhaustion` | Warn the player to cook or eat | System | 19 | Progressive effects also affect cooking |
 | `UC-SHIP-take-damage` | Spring a leak or take damage | System | 20 | |
 | `UC-SHIP-repair-damage` | Repair ship damage | Crew Member | 21, 22 | "Jointly repair major damage" merged in as an extension; there is only one damage type |
 | `UC-EVT-generate-event` | Generate a random ocean event | System | 23, 40 | "Event generation / picking per tile" merged in |
@@ -1031,596 +1034,228 @@ Failure behavior: This use case makes durable changes to the ship's position, in
 
 ---
 
-## Area: Hunger, Thirst & Illness (`SURV`)
+## Area: Cooking (`COOK`)
 
-### UC-SURV-consume-food: Consume food
+**Status:** Planned connected single-player behavior; the existing cooking activity is a prototype. Recipes and preparation details live in [Cooking content](recipes-and-preparation.md). Cooking, SURV and FTG are designed together; no gameplay implementation is claimed.
 
-**UC ID and Name:** `UC-SURV-consume-food`: Consume food
+### UC-COOK-prepare-meal: Experiment with ingredients and prepare a meal
 
-**Created By:**
+**Actor:** Player
 
-**Date Created:** 2026-09-30
+**Goal:** Make a meal from food gathered on islands or caught while fishing.
 
-**Primary Actor:** Crew Member
+**Trigger:** The player interacts with the cooking station.
 
-**Secondary Actors:** none
+**Preconditions:** The character is alive and able to act; station and owned ingredient quantities are available.
 
-**Trigger:** A crew member selects a food item in their inventory and uses it.
+**Main flow:**
+1. Show available food and let the player select a supported combination without first knowing its recipe name.
+2. Resolve a predetermined recipe and ingredient compatibility; reserve selected inputs against duplicate spending.
+3. Run only preparation steps relevant to the ingredients: fish cutting, potato slicing, transfer and heat are the initial reusable steps. No water item, bucket or water-gathering requirement is included.
+4. Keep fatigue feedback and movement/action-based hunger costs active during cooking. The boat keeps sailing unless the player has anchored.
+5. Score preparation on the existing 0–3 star scale, independently from ingredient compatibility. Resolve safe or poisonous output.
+6. Spend ingredients once and leave one serving ready for collection; collecting grants an owned meal once.
 
-**Description:** A crew member eats food gathered from islands to refill their hunger, which keeps them from passing out. Fruit is fine raw. Other food, like fish, can be eaten raw but makes the crew member ill. Cooking any food gives better stats.
+**Alternate/failure flows:** Missing ingredients reject entry with a clear message. An explicitly horrible combination is poisonous even at three stars. Zero-star preparation is provisionally poisonous; confirm the owner’s “under 0 stars” wording and timeout result. Cancellation/refund policy is pending. Full inventory leaves the output ready. Death releases the station and prevents delayed completion. Pause freezes recipe logic/countdown while existing wobble continues.
 
-**Preconditions:**
+**Postconditions:** Inputs and output agree; recipe identity, stars and harmful/safe outcome are retained with the serving.
 
-- PRE-1. The crew member is not passed out.
-- PRE-2. The crew member has at least one food item in their inventory.
-- PRE-3. The session is active (not paused).
+**Acceptance criteria:** An unknown recipe can be attempted. Ingredient order resolves identically (proposed matching rule). Three-star incompatible food remains poisonous. No initial recipe requires water. Opening cooking cannot clear fatigue or reset warnings. Repeated completion/collection never duplicates food.
 
-**Postconditions:**
+**Business Rules:** `BR-recipe-result`, `BR-poisonous-failed-food`, `BR-fatigue-in-cooking`, `BR-solo-station-sailing`
 
-- POST-1. The food item is removed from the crew member's inventory.
-- POST-2. The crew member's hunger has increased by the item's restore amount, up to the maximum.
+**Open decisions:** Starter recipes/quantities, compatibility table, meal values, matching precedence, cancellation, timeout and discovery retention.
 
-**Main Success Scenario:**
+---
 
-1. The crew member opens their inventory and selects a food item.
-2. The crew member uses the item.
-3. The system removes one of that food item from the crew member's inventory.
-4. The system increases the crew member's hunger by the item's restore amount, capped at the maximum.
-5. The system updates the crew member's hunger bar.
-6. Use case ends.
+## Area: Survival (`SURV`)
 
-**Extensions:**
+Hunger and separate character health drive the connected survival loop. Food comes from existing island/fishing interactions, must remain available on return to the boat, and is prepared at cooking. Those source systems are dependencies, not rewritten use cases here. Minecraft is the owner's conceptual reference for activity spending hunger and eating restoring visible health/hearts; exact Minecraft mechanics are not imported. Thirst and raw-food illness are deferred from this slice.
 
-- **2a. The food item is raw and is not fruit (e.g. raw fish):**
-    - 2a1. The system removes the item and restores its raw hunger amount.
-    - 2a2. The system makes the crew member ill (`UC-SURV-recover-from-illness`).
-    - 2a3. Flow rejoins the main scenario at step 5.
-- **4a. The crew member's hunger is already full:**
-    - 4a1. [TBD] The system either blocks the action or allows it with no benefit.
-    - 4a2. Use case ends.
+### UC-SURV-consume-food: Eat food to restore hunger and health
 
-**Priority:** High
+**Actor:** Player
 
-**Frequency of Use:** Frequent. Several times per session per crew member.
+**Goal:** Recover from hunger and low health using an owned meal.
 
-**Business Rules:** `BR-stat-max`
+**Trigger:** The player chooses to consume food.
 
-**Associated Information:**
+**Preconditions:** Character alive and able to act; serving owned.
 
-| Property name | Data type | Validation rule | Security or access concerns | Glossary reference |
-|---|---|---|---|---|
-| hunger | Float | 0 to max (TBD) | Per crew member; changed only by the Host's instance | Hunger |
-| food item | Item ID | Must be a food-type item in the crew member's inventory | N/A | Item |
-| restore amount | Float | Set per food type; cooked items restore more than their raw version; values TBD | N/A | Item |
+**Main flow:**
+1. Show dish identity, preparation stars and defined food effects.
+2. Consume one serving and apply its effects together. Safe meals restore their defined hunger and health amounts, each capped at maximum.
+3. For a poisonous/horrible meal, apply health damage instead of healing; the poison hunger effect is still undecided.
+4. Stop starvation damage when hunger rises above zero and re-evaluate hunger and health fatigue causes separately.
+5. If health reaches zero from poison, invoke UC-SURV-die; otherwise show the resulting bars and remaining servings.
 
-Failure behavior: This use case makes a durable change to the crew member's inventory and hunger. The Host removes the item and adds the hunger together; if either fails, neither is applied.
+**Alternate/failure flows:** Missing/repeated input cannot grant effects twice. Full hunger still allows healing if health is low. Proposed full-stat policy rejects safe food only if all its beneficial stats are full. Poison can kill regardless of its star score. Dead characters cannot consume or heal.
 
-**Related Use Cases:** `UC-SURV-deplete-hunger-thirst`, `UC-SURV-recover-from-illness`, `UC-SYS-player-inventory`, `UC-ISLE-collect-island-items`
+**Postconditions:** One serving is removed once; hunger/health match its effects; remaining fatigue causes stay visible.
 
-**Assumptions:** Food comes from islands. Crew members eat from their own inventory, not directly from the deck chest. Fruit can be eaten raw or cooked; other food eaten raw causes illness.
+**Acceptance criteria:** A healing meal works at full hunger and low health. A poisonous meal never heals and damages once. Under the proposed maximum-health denominator, poison deals at least 30 points when maximum health is 100. Eating above 40% clears hunger-related effects but does not conceal an active low-health contribution.
 
-**Open Issues:**
+**Business Rules:** `BR-stat-max`, `BR-character-health-death`, `BR-poisonous-failed-food`, `BR-hunger-fatigue-threshold`
 
-- Can a crew member eat when their hunger is full?
-- Cooking has no use case yet (see Section 3).
+**Open decisions:** Food restoration values; poison percentage denominator, severity tiers, timing and hunger effect; poison labeling; raw food policy.
+
+---
+
+### UC-SURV-deplete-hunger-thirst: Spend hunger and apply starvation damage
+
+**Actor:** Local simulation; player experiences the result
+
+**Goal:** Create survival pressure from movement/actions and give time to obtain/cook food.
+
+**Trigger:** An eligible movement/action spends hunger, or active play advances starvation at zero hunger.
+
+**Preconditions:** Active voyage; alive; unpaused. The historical ID is retained for links; thirst is deferred.
+
+**Main flow:**
+1. Spend hunger using the configured movement/action cost; cooking also spends hunger.
+2. Notify FTG when hunger changes so progressive fatigue begins below 40%.
+3. At zero hunger, begin health loss at the configured starvation rate/interval. Do not automatically pass out or restore stats.
+4. Continue health loss during active simulation until hunger becomes positive or health reaches zero.
+5. At zero health invoke UC-SURV-die; eating positive hunger ends starvation but may leave low-hunger fatigue active.
+
+**Alternate/failure flows:** Anchor stops ship motion, not hunger costs. Idle/rest cost, passive ship travel and island activity costs require explicit tuning. Rejected actions are not charged (proposed). Pause freezes hunger and damage progression with no catch-up; visual wobble remains animated.
+
+**Postconditions:** Stats stay bounded. Starvation is active only at zero hunger while alive/unpaused.
+
+**Acceptance criteria:** Equivalent movement/actions have equivalent costs across frame rates; input spam cannot charge an action twice. Zero hunger loses health, positive hunger stops starvation, and zero health ends the voyage once. No automatic 25% recovery occurs. Cooking remains possible after the initial fatigue warning with reasonable tuning.
+
+**Business Rules:** `BR-stat-depletion-rate`, `BR-starvation-health-loss`, `BR-health-loss-sources`, `BR-pause-fatigue-presentation`
+
+**Open decisions:** Costs, starvation rate, idle/rest drain, passive ship movement, warning-counter semantics and initial stat tuning.
+
+---
+
+### UC-SURV-die: End the voyage at zero health
+
+**Actor:** Local simulation; player sees game over
+
+**Goal:** Resolve terminal survival failure consistently from any activity.
+
+**Trigger:** Character health reaches zero.
+
+**Preconditions:** Active voyage; separate character health has reached zero.
+
+**Main flow:**
+1. Latch death once and stop accepting gameplay actions.
+2. Release cooking/rest station control and close its activity UI.
+3. Prevent pending food, recovery or completion callbacks from reviving the character or granting new results.
+4. Stop ordinary voyage survival progression and show game over.
+
+**Alternate/failure flows:** Simultaneous starvation/poison callbacks cannot trigger multiple endings. Pause visuals never apply damage. Restart/menu options and same-update damage/healing precedence remain open. Existing capsize or challenge-retry flows do not override this death transition within these survival cases.
+
+**Postconditions:** The current voyage has ended; health remains zero until a separately defined new-voyage action.
+
+**Acceptance criteria:** Death works during cooking, walking and rest; game over occurs once; no automatic pass-out recovery or late meal callback revives the character.
+
+**Business Rules:** `BR-character-health-death`, `BR-health-loss-sources`
+
+**Open decisions:** Game-over actions, station input reservation cleanup at death and damage/healing ordering.
 
 ---
 
 ### UC-SURV-consume-water: Consume water
 
-**UC ID and Name:** `UC-SURV-consume-water`: Consume water
+**Status:** Deferred from this connected food/survival slice. No bottle, bucket, water stock, hydration drain or drinking step is required for the initial recipes. Retain this identifier for existing references; a later water feature needs its own agreed flows and tuning.
 
-**Created By:**
+### UC-SURV-pass-out: Pass out and recover
 
-**Date Created:** 2026-09-30
-
-**Primary Actor:** Crew Member
-
-**Secondary Actors:** none
-
-**Trigger:** A crew member selects their water bottle in their inventory and drinks.
-
-**Description:** A crew member drinks from a bottle they fill at the ship's water barrel, which slowly collects clean water over time. Carrying a bottle lets crew members stay hydrated away from the barrel, for example on islands.
-
-**Preconditions:**
-
-- PRE-1. The crew member is not passed out.
-- PRE-2. The crew member has a water bottle in their inventory.
-- PRE-3. The session is active (not paused).
-
-**Postconditions:**
-
-- POST-1. The bottle's water level has decreased by one serving.
-- POST-2. The crew member's thirst has increased by one serving's restore amount, up to the maximum.
-
-**Main Success Scenario:**
-
-1. The crew member selects their water bottle and drinks.
-2. The system checks that the bottle holds at least one serving.
-3. The system removes one serving from the bottle.
-4. The system increases the crew member's thirst by the serving's restore amount, capped at the maximum.
-5. The system updates the crew member's thirst bar and the bottle's water level.
-6. Use case ends.
-
-**Extensions:**
-
-- **2a. The bottle is empty:**
-    - 2a1. The system tells the crew member the bottle is empty.
-    - 2a2. The crew member interacts with the water barrel.
-    - 2a3. The system moves servings from the barrel into the bottle, up to the bottle's capacity or whatever the barrel holds.
-    - 2a4. Flow rejoins the main scenario at step 1.
-- **2a3a. The barrel is also empty:**
-    - 2a3a1. The system tells the crew member the barrel is empty.
-    - 2a3a2. Use case ends.
-- **4a. The crew member's thirst is already full:**
-    - 4a1. [TBD] The system either blocks the action or allows it with no benefit.
-    - 4a2. Use case ends.
-
-**Priority:** High
-
-**Frequency of Use:** Frequent. Several times per session per crew member.
-
-**Business Rules:** `BR-stat-max`, `BR-barrel-fill-rate`
-
-**Associated Information:**
-
-| Property name | Data type | Validation rule | Security or access concerns | Glossary reference |
-|---|---|---|---|---|
-| thirst | Float | 0 to max (TBD) | Per crew member; changed only by the Host's instance | Thirst |
-| bottle water level | Integer (servings) | 0 to bottle capacity (TBD) | Per crew member | Water Bottle |
-| barrel water level | Integer (servings) | 0 to barrel capacity (TBD) | Shared by the crew; changed only by the Host's instance | Water Barrel |
-| barrel fill rate | Servings per minute | Steady; TBD | N/A | Water Barrel |
-| restore amount | Float | Per serving; TBD | N/A | Water Bottle |
-
-Failure behavior: This use case makes durable changes to the bottle's water level, the barrel's water level, and the crew member's thirst. Each transfer (barrel to bottle, bottle to thirst) is applied fully or not at all by the Host.
-
-**Related Use Cases:** `UC-SURV-deplete-hunger-thirst`, `UC-SYS-player-inventory`, `UC-WAVE-capsize-ship`
-
-**Assumptions:** The barrel is the only water source, and its water is always drinkable. Each crew member starts with one bottle. The barrel is an instant-use object, not a claimed station.
-
-**Open Issues:**
-
-- A capsize clears all inventory. How does a crew member get a new bottle afterward?
-- Does a capsize empty the barrel?
-- Can a crew member drink when their thirst is full?
-
----
-
-### UC-SURV-deplete-hunger-thirst: Deplete hunger and thirst over time
-
-**UC ID and Name:** `UC-SURV-deplete-hunger-thirst`: Deplete hunger and thirst over time
-
-**Created By:**
-
-**Date Created:** 2026-09-30
-
-**Primary Actor:** System
-
-**Secondary Actors:** Crew Member (affected)
-
-**Trigger:** A crew member joins an active voyage and is not passed out.
-
-**Description:** The system steadily drains each crew member's own hunger and thirst over time, so the crew has to keep finding food and water to survive.
-
-**Preconditions:**
-
-- PRE-1. The session is active (not paused).
-- PRE-2. The crew member is not passed out.
-
-**Postconditions:**
-
-- POST-1. Each crew member's hunger and thirst reflect the time elapsed and are shown on that crew member's screen.
-
-**Main Success Scenario:**
-
-1. The system decreases the crew member's hunger and thirst at a steady rate.
-2. The system updates the crew member's hunger and thirst bars on their screen.
-3. The system repeats steps 1–2 for as long as the session is active.
-4. Use case ends when the session ends.
-
-**Extensions:**
-
-- **1a. The crew member's hunger or thirst reaches zero:**
-    - 1a1. The system triggers `UC-SURV-pass-out`.
-    - 1a2. The system stops depleting that crew member's stats until they recover.
-    - 1a3. Flow rejoins the main scenario at step 1 once the crew member recovers.
-- **1b. The session is paused (`UC-PROG-pause-game`):**
-    - 1b1. The system stops depleting until the session resumes.
-    - 1b2. Flow rejoins the main scenario at step 1.
-- **2a. The crew member's client misses an update due to lag:**
-    - 2a1. The system corrects the bars on the next session state sync.
-    - 2a2. Flow rejoins the main scenario at step 3.
-
-**Priority:** High
-
-**Frequency of Use:** Continuous. Runs for every crew member for the whole session.
-
-**Business Rules:** `BR-stat-depletion-rate`
-
-**Associated Information:**
-
-| Property name | Data type | Validation rule | Security or access concerns | Glossary reference |
-|---|---|---|---|---|
-| hunger depletion rate | Float (per second) | Constant; TBD | N/A | Hunger |
-| thirst depletion rate | Float (per second) | Constant; TBD | N/A | Thirst |
-
-Failure behavior: Hunger and thirst are session state owned by the Host. A client that desyncs receives the Host's values on the next sync.
-
-**Related Use Cases:** `UC-SURV-consume-food`, `UC-SURV-consume-water`, `UC-SURV-pass-out`, `UC-PROG-pause-game`
-
-**Assumptions:** Each crew member has their own hunger and thirst bars. The depletion rate is steady and doesn't change with activity. Hunger and thirst may drain at different rates.
-
-**Open Issues:**
-
-- Should thirst drain faster than hunger?
-
----
-
-### UC-SURV-pass-out: Pass out from starvation, dehydration, or exhaustion
-
-**UC ID and Name:** `UC-SURV-pass-out`: Pass out from starvation, dehydration, or exhaustion
-
-**Created By:**
-
-**Date Created:** 2026-09-30
-
-**Primary Actor:** System
-
-**Secondary Actors:** Crew Member (affected)
-
-**Trigger:** A crew member's hunger, thirst, or fatigue reaches zero.
-
-**Description:** A crew member who runs out of food, water, or energy passes out and can't act for a cooldown. They then get back up with their stats partly restored. This punishes neglect without removing the player from the game.
-
-**Preconditions:**
-
-- PRE-1. The session is active.
-- PRE-2. The crew member's hunger, thirst, or fatigue is zero.
-
-**Postconditions:**
-
-- POST-1. The crew member is conscious and can act again.
-- POST-2. The crew member's hunger, thirst, and fatigue are each at one quarter of maximum.
-
-**Main Success Scenario:**
-
-1. The system detects that the crew member's hunger, thirst, or fatigue has reached zero.
-2. The system puts the crew member into a passed-out state. They can't move, interact, or use items.
-3. The system releases any station the crew member was using (`UC-DECK-claim-station`).
-4. The system starts the pass-out cooldown and shows the remaining time on the crew member's screen.
-5. The cooldown ends.
-6. The system restores the crew member's hunger, thirst, and fatigue to one quarter of maximum.
-7. The system returns control to the crew member.
-8. Use case ends.
-
-**Extensions:**
-
-- **2a. Every crew member in the session is passed out at the same time:**
-    - 2a1. The system keeps each crew member's cooldown running as normal; the voyage does not end.
-    - 2a2. Flow rejoins the main scenario at step 3.
-- **4a. The ship capsizes while the crew member is passed out:**
-    - 4a1. The system applies the capsize reset (`UC-WAVE-capsize-ship`) with the crew member still passed out.
-    - 4a2. Flow rejoins the main scenario at step 5.
-- **4b. The crew member disconnects while passed out:**
-    - 4b1. The system keeps the cooldown running on the Host.
-    - 4b2. When they reconnect, the crew member rejoins in whatever state the cooldown has reached.
-    - 4b3. Flow rejoins the main scenario at step 5.
-
-**Priority:** High
-
-**Frequency of Use:** Occasional. Only when a crew member neglects food, water, or rest.
-
-**Business Rules:** `BR-pass-out-recovery`
-
-**Associated Information:**
-
-| Property name | Data type | Validation rule | Security or access concerns | Glossary reference |
-|---|---|---|---|---|
-| passed-out state | Boolean | True only while the cooldown is running | Set only by the Host's instance | Crew Member |
-| pass-out cooldown | Duration | TBD | N/A | Crew Member |
-| recovery stat level | Float (fraction) | 0.25 of maximum, for hunger, thirst, and fatigue | N/A | — |
-
-Failure behavior: The crew member's state and stats are session state owned by the Host. The restore to one quarter is applied only when the cooldown completes.
-
-**Related Use Cases:** `UC-SURV-deplete-hunger-thirst`, `UC-FTG-deplete-fatigue`, `UC-FTG-warn-exhaustion`, `UC-DECK-claim-station`, `UC-WAVE-capsize-ship`, `UC-SURV-recover-from-illness`
-
-**Assumptions:** Crew members never permanently die. The quarter restore applies to all three stats, even if only one hit zero. Teammates cannot speed up another crew member's recovery.
-
-**Open Issues:**
-
-- What is the pass-out cooldown duration?
-
----
+**Status:** Superseded for this slice by [UC-SURV-die](#uc-surv-die-end-the-voyage-at-zero-health). Zero hunger causes starvation damage, not automatic pass-out/25% restoration. Fatigue does not independently restore stats through collapse.
 
 ### UC-SURV-recover-from-illness: Recover from illness
 
-**UC ID and Name:** `UC-SURV-recover-from-illness`: Recover from illness
-
-**Created By:**
-
-**Date Created:** 2026-09-30
-
-**Primary Actor:** System
-
-**Secondary Actors:** Crew Member (affected)
-
-**Trigger:** A crew member eats raw food that isn't fruit (`UC-SURV-consume-food`, extension 2a).
-
-**Description:** Eating raw food like fish makes a crew member sick. While ill, their fatigue drains extra, usually down to about half, until the illness wears off on its own. This makes cooking worth the effort.
-
-**Preconditions:**
-
-- PRE-1. The session is active.
-- PRE-2. The crew member has just eaten raw food that isn't fruit.
-
-**Postconditions:**
-
-- POST-1. The crew member is no longer ill.
-- POST-2. Any fatigue lost to illness is not refunded; it has to be recovered by resting (`UC-FTG-rest`).
-
-**Main Success Scenario:**
-
-1. The system marks the crew member as ill and shows an illness indicator on their screen.
-2. The system starts the illness timer.
-3. The system drains the crew member's fatigue at the illness rate, on top of normal depletion (`UC-FTG-deplete-fatigue`).
-4. The crew member's fatigue reaches the illness floor (about half of maximum).
-5. The system stops the extra illness drain; normal depletion continues.
-6. The illness timer ends.
-7. The system clears the ill state and removes the indicator.
-8. Use case ends.
-
-**Extensions:**
-
-- **1a. The crew member is already ill when they eat raw food again:**
-    - 1a1. [TBD] The system restarts the illness timer, or extends it.
-    - 1a2. Flow rejoins the main scenario at step 3.
-- **3a. The crew member's fatigue is already below the illness floor:**
-    - 3a1. The system applies no extra illness drain.
-    - 3a2. Flow rejoins the main scenario at step 6.
-- **3b. The illness timer ends before fatigue reaches the floor:**
-    - 3b1. The system stops the extra drain.
-    - 3b2. Flow rejoins the main scenario at step 7.
-- **5a. Normal depletion takes fatigue to zero while ill:**
-    - 5a1. The system triggers `UC-SURV-pass-out`; the illness timer keeps running.
-    - 5a2. Flow rejoins the main scenario at step 6.
-
-**Priority:** Medium
-
-**Frequency of Use:** Occasional. Only when a crew member eats raw food that isn't fruit.
-
-**Business Rules:** `BR-illness-fatigue-floor`
-
-**Associated Information:**
-
-| Property name | Data type | Validation rule | Security or access concerns | Glossary reference |
-|---|---|---|---|---|
-| ill state | Boolean | True from eating raw food until the timer ends | Set only by the Host's instance | Illness |
-| illness duration | Duration | TBD | N/A | Illness |
-| illness drain rate | Float (fatigue per second) | TBD | N/A | Illness |
-| illness fatigue floor | Float (fraction of max) | About 0.5; exact value or variation TBD | N/A | Illness |
-
-Failure behavior: The ill state and fatigue are session state owned by the Host. A client that desyncs receives the Host's values on the next sync.
-
-**Related Use Cases:** `UC-SURV-consume-food`, `UC-FTG-deplete-fatigue`, `UC-FTG-rest`, `UC-SURV-pass-out`
-
-**Assumptions:** There is no cure item; illness only wears off with time. Resting in the hammock still recovers fatigue while ill.
-
-**Open Issues:**
-
-- Does the illness floor vary (e.g. between 40% and 60%), or is it always half?
-- What happens if a crew member eats raw food again while already ill?
-
----
+**Status:** Raw-food illness and its fatigue-floor timer are deferred. Harmful cooked food is handled by UC-SURV-consume-food and the poisonous-food rule. Do not implement the older illness drain/floor alongside the current model without a separate decision.
 
 ## Area: Fatigue (`FTG`)
 
-### UC-FTG-rest: Rest to recover fatigue
+Fatigue communicates low hunger and low health through escalating tiredness, visual clutter and dizziness, including inside cooking. A separate energy reserve, baseline fatigue drain and recovery curve have not been agreed.
 
-**UC ID and Name:** `UC-FTG-rest`: Rest to recover fatigue
+### UC-FTG-deplete-fatigue: Evaluate hunger and health fatigue
 
-**Created By:**
+**Actor:** Local simulation; player experiences fatigue
 
-**Date Created:** 2026-09-30
+**Goal:** Make low needs visibly affect sailing and cooking.
 
-**Primary Actor:** Crew Member
+**Trigger:** Hunger/health changes or active play updates feedback.
 
-**Secondary Actors:** none
+**Preconditions:** Character alive; survival state available.
 
-**Trigger:** A crew member claims a slot at the Hammock station.
+**Main flow:**
+1. Below 40% hunger, activate its fatigue contribution; intensify it as hunger falls.
+2. At the 10% low-health threshold, evaluate a separate health contribution; the exact inclusive boundary is proposed as ≤10%.
+3. Combine active contributions using the agreed capped severity rule (still TBD).
+4. Apply the same current tiredness to deck and cooking presentation.
+5. Above 40% hunger, remove the hunger contribution and retain any active low-health contribution. Meals can heal health and clear its contribution independently.
 
-**Description:** A crew member lies in a hammock to recover fatigue. While resting they can't work any other station, so the crew has to take turns and balance rest against keeping the ship running.
+**Alternate/failure flows:** Exactly 40% hunger remains a boundary decision: proposed enter <40%, exit >40%, preserve prior state at equality. Values above 50% are comfortably healthy, not a second exit threshold. Pause retains frozen severity while its wobble animates. Death ends gameplay; no fatigue-only pass-out/reset.
 
-**Preconditions:**
+**Postconditions:** Presentation reflects active hunger/health causes without an invented independent energy drain.
 
-- PRE-1. The crew member has claimed a free hammock slot at the Hammock station (`UC-DECK-claim-station`).
-- PRE-2. The crew member is not passed out.
+**Acceptance criteria:** 39% hunger triggers feedback; 20% is more severe; 41% clears hunger feedback. High hunger/low health can still cause fatigue. Cooking/anchoring does not clear effects. Test equality and combined severity once agreed.
 
-**Postconditions:**
+**Business Rules:** `BR-hunger-fatigue-threshold`, `BR-fatigue-in-cooking`, `BR-pause-fatigue-presentation`
 
-- POST-1. The crew member's fatigue has increased by the time spent resting, up to the maximum.
-
-**Main Success Scenario:**
-
-1. The system places the crew member in the hammock and shows the resting state.
-2. The system increases the crew member's fatigue at the rest recovery rate.
-3. The system updates the crew member's fatigue bar.
-4. The crew member leaves the station (`UC-DECK-use-station`, step 7).
-5. The system stops fatigue recovery.
-6. Use case ends.
-
-**Extensions:**
-
-- **1a. Every hammock slot is occupied:**
-    - 1a1. The system denies the request and tells the crew member the hammocks are full.
-    - 1a2. Use case ends.
-- **2a. The crew member's fatigue reaches the maximum:**
-    - 2a1. [TBD] The system either keeps the crew member in the hammock at full fatigue or releases them automatically.
-    - 2a2. Flow rejoins the main scenario at step 4, or at step 5 if released automatically.
-- **2b. Hunger or thirst reaches zero while resting:**
-    - 2b1. The system releases the hammock slot and triggers `UC-SURV-pass-out`.
-    - 2b2. Use case ends.
-- **2c. The ship capsizes while the crew member is resting:**
-    - 2c1. The system releases the hammock slot as part of the capsize reset (`UC-WAVE-capsize-ship`).
-    - 2c2. Use case ends.
-
-**Priority:** Medium
-
-**Frequency of Use:** Frequent. Each crew member rests several times per session.
-
-**Business Rules:** `BR-station-slots`, `BR-stat-max`
-
-**Associated Information:**
-
-| Property name | Data type | Validation rule | Security or access concerns | Glossary reference |
-|---|---|---|---|---|
-| fatigue | Float | 0 to max (TBD) | Per crew member; changed only by the Host's instance | Fatigue |
-| hammock slots | Integer | 2 (stacked bunks) | N/A | Hammock |
-| rest recovery rate | Float (per second) | TBD | N/A | Hammock |
-
-Failure behavior: Fatigue is session state owned by the Host. A client that desyncs receives the Host's values on the next sync.
-
-**Related Use Cases:** `UC-DECK-use-station`, `UC-DECK-claim-station`, `UC-FTG-deplete-fatigue`, `UC-SURV-pass-out`, `UC-SURV-recover-from-illness`
-
-**Assumptions:** The Hammock station has 2 slots (stacked bunks), so two crew members can rest at once. Hunger and thirst keep draining while resting.
-
-**Open Issues:**
-
-- Does a crew member get kicked out of the hammock at full fatigue?
+**Open decisions:** 40% equality, health comparison, combined severity, screen curve, optional speed penalty and whether an energy reserve is needed.
 
 ---
 
-### UC-FTG-deplete-fatigue: Deplete fatigue over time
+### UC-FTG-warn-exhaustion: Warn the player to cook or eat
 
-**UC ID and Name:** `UC-FTG-deplete-fatigue`: Deplete fatigue over time
+**Actor:** Local presentation; player responds
 
-**Created By:**
+**Goal:** Explain fatigue and escalating danger without hiding cooking.
 
-**Date Created:** 2026-09-30
+**Trigger:** A fatigue contribution activates or starvation begins.
 
-**Primary Actor:** System
+**Preconditions:** Character alive; fatigue state available.
 
-**Secondary Actors:** Crew Member (affected)
+**Main flow:**
+1. Show the responsible low-resource bar plus a readable cook/eat warning.
+2. Increase dizziness/clutter/tiredness as hunger falls; carry those effects into the square cooking overlay.
+3. If a warning counter is selected, display its agreed meaning and update only in unpaused simulation.
+4. Re-evaluate after eating/healing and reduce/clear feedback when its causes clear.
 
-**Trigger:** A crew member joins an active voyage and is not passed out or resting.
+**Alternate/failure flows:** Counter start/duration/expiry are undecided; do not invent an extra instant-death timer. No hidden accuracy subtraction is authorized. Proposed reduced-motion presentation conveys urgency without camera sway. When paused, existing wobble continues but counters, logical cooking targets and scoring freeze.
 
-**Description:** The system steadily drains each crew member's own fatigue over time, so the crew has to take turns resting in the hammock.
+**Postconditions:** Current risks remain readable; effects do not disappear just because cooking or pause opens.
 
-**Preconditions:**
+**Acceptance criteria:** Low hunger affects the cooking experience. Same survival state gives consistent intensity across deck/overlay. Pause animation changes no stats, input scores or timers. Success must remain achievable despite effects.
 
-- PRE-1. The session is active (not paused).
-- PRE-2. The crew member is not passed out.
-- PRE-3. The crew member is not resting in the hammock.
+**Business Rules:** `BR-fatigue-in-cooking`, `BR-pause-fatigue-presentation`
 
-**Postconditions:**
-
-- POST-1. Each crew member's fatigue reflects the time elapsed and is shown on that crew member's screen.
-
-**Main Success Scenario:**
-
-1. The system decreases the crew member's fatigue at a steady rate.
-2. The system updates the crew member's fatigue bar.
-3. The system repeats steps 1–2 for as long as the session is active.
-4. Use case ends when the session ends.
-
-**Extensions:**
-
-- **1a. The crew member's fatigue falls below the exhaustion threshold:**
-    - 1a1. The system triggers `UC-FTG-warn-exhaustion`.
-    - 1a2. Flow rejoins the main scenario at step 2.
-- **1b. The crew member's fatigue reaches zero:**
-    - 1b1. The system triggers `UC-SURV-pass-out`.
-    - 1b2. The system stops depleting fatigue until the crew member recovers.
-    - 1b3. Flow rejoins the main scenario at step 1 once the crew member recovers.
-- **1c. The crew member starts resting, or the session is paused:**
-    - 1c1. The system stops depleting fatigue until the crew member leaves the hammock or the session resumes.
-    - 1c2. Flow rejoins the main scenario at step 1.
-- **1d. The crew member is ill:**
-    - 1d1. The system also applies the extra illness drain (`UC-SURV-recover-from-illness`).
-    - 1d2. Flow rejoins the main scenario at step 2.
-
-**Priority:** High
-
-**Frequency of Use:** Continuous. Runs for every crew member for the whole session.
-
-**Business Rules:** `BR-stat-depletion-rate`
-
-**Associated Information:**
-
-| Property name | Data type | Validation rule | Security or access concerns | Glossary reference |
-|---|---|---|---|---|
-| fatigue depletion rate | Float (per second) | Constant; TBD | N/A | Fatigue |
-
-Failure behavior: Fatigue is session state owned by the Host. A client that desyncs receives the Host's values on the next sync.
-
-**Related Use Cases:** `UC-FTG-rest`, `UC-FTG-warn-exhaustion`, `UC-SURV-pass-out`, `UC-SURV-recover-from-illness`, `UC-PROG-pause-game`
-
-**Assumptions:** Fatigue drains at a steady rate, whatever the crew member is doing.
-
-**Open Issues:** none
+**Open decisions:** Exact effects, reduced-motion option, counter semantics and movement penalty.
 
 ---
 
-### UC-FTG-warn-exhaustion: Warn of exhaustion
+### UC-FTG-rest: Use the rest station
 
-**UC ID and Name:** `UC-FTG-warn-exhaustion`: Warn of exhaustion
+**Actor:** Player
 
-**Created By:**
+**Goal:** Rest on the moving home without replacing food/healing.
 
-**Date Created:** 2026-09-30
+**Trigger:** The player interacts with a hammock/rest station.
 
-**Primary Actor:** System
+**Preconditions:** Alive, in range and able to claim the station; stopping/docking is not required.
 
-**Secondary Actors:** Crew Member (affected)
+**Main flow:**
+1. Claim rest participation and show an explicit leave action.
+2. Keep the ship moving unless anchored. Rest does not refill hunger or heal health by assumption.
+3. Preserve low-hunger/health fatigue causes. Apply any additional rest-recovery benefit only after its model is agreed.
+4. On leave, release participation and restore ordinary controls.
 
-**Trigger:** A crew member's fatigue falls below the exhaustion threshold.
+**Alternate/failure flows:** Unavailable station grants no participation. Hunger costs during idle/rest are still TBD. Zero hunger can continue starvation during active play. Death releases rest and shows game over. Pause freezes gameplay while wobble remains animated.
 
-**Description:** When a crew member is close to passing out from fatigue, the system turns their fatigue bar red to warn them to rest. Being exhausted has no other penalty.
+**Postconditions:** Station claim is released on leave/death; rest cannot erase hunger/health consequences for free.
 
-**Preconditions:**
+**Acceptance criteria:** Rest can start while sailing. Rest alone does not clear hunger/health warnings or revive death. Controls return on leave. No new recovery numbers or two-player behavior is required for single-player.
 
-- PRE-1. The session is active.
-- PRE-2. The crew member's fatigue is below the exhaustion threshold.
+**Business Rules:** `BR-solo-station-sailing`, `BR-hunger-fatigue-threshold`, `BR-character-health-death`
 
-**Postconditions:**
-
-- POST-1. The crew member's fatigue bar is shown in red for as long as fatigue stays below the threshold.
-
-**Main Success Scenario:**
-
-1. The system detects that the crew member's fatigue has fallen below the exhaustion threshold.
-2. The system turns the crew member's fatigue bar red.
-3. The crew member rests (`UC-FTG-rest`) and fatigue rises above the threshold.
-4. The system returns the fatigue bar to its normal color.
-5. Use case ends.
-
-**Extensions:**
-
-- **3a. Fatigue reaches zero before the crew member rests:**
-    - 3a1. The system triggers `UC-SURV-pass-out`.
-    - 3a2. When the crew member recovers at one quarter fatigue, the system rechecks the threshold.
-    - 3a3. Flow rejoins the main scenario at step 4 if they're above the threshold, or at step 2 if they're below.
-
-**Priority:** Low
-
-**Frequency of Use:** Occasional.
-
-**Business Rules:** none
-
-**Associated Information:**
-
-| Property name | Data type | Validation rule | Security or access concerns | Glossary reference |
-|---|---|---|---|---|
-| exhaustion threshold | Float | Below maximum fatigue; TBD | N/A | Fatigue |
-
-Failure behavior: This use case makes no durable change. It's a display state only.
-
-**Related Use Cases:** `UC-FTG-deplete-fatigue`, `UC-FTG-rest`, `UC-SURV-pass-out`
-
-**Assumptions:** Being exhausted has no gameplay effect besides the red bar.
-
-**Open Issues:**
-
-- Should hunger and thirst bars also turn red when low, for consistency? If so, this could become one "warn of low stat" use case.
+**Open decisions:** Useful rest benefit and any independent energy/recovery model; idle hunger costs.
 
 ---
 

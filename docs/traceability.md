@@ -17,7 +17,7 @@ The vision's two proposed objectives are `BO-independent-play` and `BO-player-en
 | `FEAT-ship-stations` | DECK, NAV, FTG |
 | `FEAT-sailing-control` | NAV |
 | `FEAT-ocean-travel` | SYS, MAP, NAV |
-| `FEAT-food-water-management` | SURV, SYS, ISLE |
+| `FEAT-food-water-management` | COOK, SURV (food/health active; water deferred), SYS, ISLE |
 | `FEAT-island-exploration` | ISLE, MAP |
 | `FEAT-stamina-movement` | Historical idea; no separate stamina requirement |
 | `FEAT-ship-repair` | SHIP |
@@ -49,11 +49,22 @@ These are requirement-level citations, not evidence that code enforces a rule. S
 | `BR-capsize-reset` | [Use cases](requirements/use-cases.md) | `UC-WAVE-capsize-ship` |
 | `BR-damage-interval` | [Use cases](requirements/use-cases.md) | `UC-SHIP-take-damage`, `UC-EVT-weather-storm` |
 | `BR-repair-cost` | [Use cases](requirements/use-cases.md) | `UC-SHIP-repair-damage` |
-| `BR-stat-max` | [Use cases](requirements/use-cases.md) | `UC-SURV-consume-food`, `UC-SURV-consume-water`, `UC-FTG-rest` |
-| `BR-barrel-fill-rate` | [Use cases](requirements/use-cases.md) | `UC-SURV-consume-water` |
+| `BR-stat-max` | [Use cases](requirements/use-cases.md) | `UC-COOK-prepare-meal` | [SURV cooking integration](design/SURV.md), [Cooking content](requirements/recipes-and-preparation.md) |
+| `UC-SURV-die` | [SURV](design/SURV.md) |
+| `UC-SURV-consume-food`, `UC-SURV-deplete-hunger-thirst` |
+| `BR-barrel-fill-rate` | Deferred | `UC-SURV-consume-water` |
 | `BR-stat-depletion-rate` | [Use cases](requirements/use-cases.md) | `UC-SURV-deplete-hunger-thirst`, `UC-FTG-deplete-fatigue` |
-| `BR-pass-out-recovery` | [Use cases](requirements/use-cases.md) | `UC-SURV-pass-out` |
-| `BR-illness-fatigue-floor` | [Use cases](requirements/use-cases.md) | `UC-SURV-recover-from-illness` |
+| `BR-pass-out-recovery` | Retired for current survival slice | `UC-SURV-pass-out` (superseded by `UC-SURV-die`) |
+| `BR-illness-fatigue-floor` | Deferred | `UC-SURV-recover-from-illness` |
+| `BR-recipe-result` | [Use cases](requirements/use-cases.md) | `UC-COOK-prepare-meal` |
+| `BR-poisonous-failed-food` | [Use cases](requirements/use-cases.md) | `UC-COOK-prepare-meal`, `UC-SURV-consume-food` |
+| `BR-character-health-death` | [Use cases](requirements/use-cases.md) | `UC-SURV-die`, `UC-SURV-consume-food` |
+| `BR-health-loss-sources` | [Use cases](requirements/use-cases.md) | `UC-SURV-deplete-hunger-thirst`, `UC-SURV-consume-food` |
+| `BR-starvation-health-loss` | [Use cases](requirements/use-cases.md) | `UC-SURV-deplete-hunger-thirst` |
+| `BR-hunger-fatigue-threshold` | [Use cases](requirements/use-cases.md) | `UC-FTG-deplete-fatigue`, `UC-SURV-consume-food` |
+| `BR-fatigue-in-cooking` | [Use cases](requirements/use-cases.md) | `UC-COOK-prepare-meal`, `UC-FTG-warn-exhaustion` |
+| `BR-solo-station-sailing` | [Use cases](requirements/use-cases.md) | `UC-COOK-prepare-meal`, `UC-FTG-rest` |
+| `BR-pause-fatigue-presentation` | [Use cases](requirements/use-cases.md) | `UC-COOK-prepare-meal`, `UC-FTG-warn-exhaustion`, `UC-SURV-deplete-hunger-thirst` |
 | `BR-event-roll-once-per-tile` | [Use cases](requirements/use-cases.md) | `UC-EVT-generate-event` |
 | `BR-merchant-pricing` | [Use cases](requirements/use-cases.md) | `UC-EVT-trade-with-merchant` |
 | `BR-host-ends-session` | [Use cases](requirements/use-cases.md) | `UC-PROG-quit-voyage` |
