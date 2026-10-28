@@ -21,14 +21,14 @@ func _update_artwork() -> void:
 	artwork.visible = sail_textures.size() == 4
 	if sail_textures.size() == 4:
 		artwork.texture = sail_textures[ship.sail_level]
-	# Face the artwork toward the stern, preserving the existing trim controls.
-	artwork.rotation = deg_to_rad(90.0 + ship.sail_angle_degrees)
+	# Face the artwork toward the bow, preserving the existing trim controls.
+	artwork.rotation = deg_to_rad(-90.0 + ship.sail_angle_degrees)
 	queue_redraw()
 
 func _draw() -> void:
 	if sail_textures.size() == 4 or not is_instance_valid(ship):
 		return
-	draw_set_transform(Vector2.ZERO, deg_to_rad(180.0 + ship.sail_angle_degrees))
+	draw_set_transform(Vector2.ZERO, deg_to_rad(ship.sail_angle_degrees))
 	var cloth_height := 6.0 + float(ship.sail_level) * 12.0
 	var cloth := Rect2(-52, -cloth_height, 104, cloth_height)
 	draw_rect(cloth.grow(2), Color("594737"))
