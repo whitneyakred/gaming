@@ -30,7 +30,10 @@ func _run() -> void:
 		view._process(0.016)
 		_check(camera.zoom.x > normal.x and camera.zoom.x < normal.x * view.station_zoom_multiplier, "Zoom must ease in")
 		_settle(view)
-		_check(camera.global_position.distance_to(station.global_position) < 0.1, "Camera must focus on station")
+		var expected_zoom: float = view.helm_zoom_multiplier if name == "Helm" else view.station_zoom_multiplier
+		_check(absf(camera.zoom.x - normal.x * expected_zoom) < 0.001, "Helm must use its own smaller zoom")
+		var expected_center := ship.global_position if name == "Helm" else station.global_position
+		_check(camera.global_position.distance_to(expected_center) < 0.1, "Helm must keep ship framing; other stations must be centered")
 		_check(absf(view.vignette.modulate.a - view.station_vignette_opacity) < 0.001, "Station vignette must fade in")
 		station.release_control()
 		_settle(view)

@@ -32,11 +32,13 @@ static func find_path(start: Vector2, goal: Vector2, obstacles: Array[PackedVect
 	var exit_goal := _step_out(goal, walls, rings)
 	var nodes := PackedVector2Array([exit_start, exit_goal])
 	for ring in rings:
-		var last := Vector2.INF
-		for point in ring:
-			if last == Vector2.INF or point.distance_to(last) >= spacing:
-				nodes.append(point)
-				last = point
+		# Keep every corner: skipping nearby vertices can cut across a concave shore.
+		for i in ring.size():
+			var a := ring[i]
+			var b := ring[(i + 1) % ring.size()]
+			var steps := maxi(1, ceili(a.distance_to(b) / maxf(spacing, 1.0)))
+			for step in steps:
+				nodes.append(a.lerp(b, float(step) / steps))
 	# Waypoints that ended up inside another obstacle can't be reached.
 	var usable := PackedVector2Array([exit_start, exit_goal])
 	for i in range(2, nodes.size()):

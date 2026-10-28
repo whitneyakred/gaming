@@ -251,8 +251,24 @@ func _rowing_route(island: WorldIsland) -> Array[Vector2]:
 	var landing := Transform2D(island.global_rotation, island.get_dock_position()) * DOCK_LANDING
 	var obstacles: Array[PackedVector2Array] = [island.get_coast(), get_hull_polygon(global_position, global_rotation)]
 	var margins: Array[float] = [ROW_SHORE_MARGIN, ROW_HULL_MARGIN]
-	var path: Array[Vector2] = [ROW_LAUNCH]
-	for point in RowPlanner.find_path(to_global(ROW_LAUNCH), landing, obstacles, margins):
+	# The usual stern launch may be on land when anchored beside a curved shore.
+	# Launch from the nearest clear point around the hull instead.
+	var launch := to_global(ROW_LAUNCH)
+	var shore := RowPlanner._grow(island.get_coast(), ROW_SHORE_MARGIN)
+	if Geometry2D.is_point_in_polygon(launch, shore):
+		var ring := RowPlanner._grow(obstacles[1], ROW_HULL_MARGIN)
+		var best_distance := INF
+		for i in ring.size():
+			var a := ring[i]
+			var b := ring[(i + 1) % ring.size()]
+			var steps := maxi(1, ceili(a.distance_to(b) / 15.0))
+			for step in steps:
+				var candidate := a.lerp(b, float(step) / steps)
+				if not Geometry2D.is_point_in_polygon(candidate, shore) and candidate.distance_squared_to(to_global(ROW_LAUNCH)) < best_distance:
+					best_distance = candidate.distance_squared_to(to_global(ROW_LAUNCH))
+					launch = candidate
+	var path: Array[Vector2] = [to_local(launch)]
+	for point in RowPlanner.find_path(launch, landing, obstacles, margins):
 		path.append(to_local(point))
 	return path
 
@@ -263,7 +279,10 @@ func _row_to_island() -> void:
 	anchored_rotation = global_rotation
 	_set_status("Rowing to %s..." % _docked_island.display_name)
 	_board_rowboat()
-	await _row_along(_rowing_route(_docked_island))
+	var path := _rowing_route(_docked_island)
+	# Lower the boat directly into clear water before beginning the rowing route.
+	rowboat.position = path.pop_front()
+	await _row_along(path)
 	visited_island_name = _docked_island.name
 	get_tree().change_scene_to_file(_docked_island.scene)
 
@@ -284,9 +303,9 @@ func _row_back_from_island(from_island: WorldIsland) -> void:
 		_view.view_offset = _view_offset_showing(rowboat.global_position, Vector2.ZERO)
 	_board_rowboat()
 	_set_status("Rowing back to the ship...")
-	path.append(_rowboat_home)
 	await _row_along(path)
 	# Back aboard: hang the rowboat up, put the player at the stern, set sail.
+	rowboat.position = _rowboat_home
 	rowboat.rotation = 0.0
 	rider.visible = false
 	player.position = stern_zone.position + Vector2(0, -24)

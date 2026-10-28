@@ -6,6 +6,7 @@ extends Node2D
 @export var camera: Camera2D
 @export var draw_ocean_marks: bool = true
 @export_range(1.0, 3.0) var station_zoom_multiplier: float = 1.2
+@export_range(1.0, 3.0) var helm_zoom_multiplier: float = 1.05
 @export_range(0.0, 0.5) var station_vignette_opacity: float = 0.22
 @export_range(1.0, 20.0) var camera_response: float = 7.0
 var _normal_zoom: Vector2 = Vector2.ONE
@@ -38,8 +39,9 @@ func _update_camera(delta: float) -> void:
 		station = helm.local_player.get("active_station") as Node2D
 	# Rowboat travel also claims the player; only focus on actual deck stations.
 	var focused := is_instance_valid(station) and station != ship and ship.stations_enabled
-	var target_offset := station.global_position - ship.global_position if focused else Vector2.ZERO
-	var target_zoom := _normal_zoom * station_zoom_multiplier if focused else _normal_zoom
+	var target_offset := station.global_position - ship.global_position if focused and station != helm else Vector2.ZERO
+	var multiplier := helm_zoom_multiplier if station == helm else station_zoom_multiplier
+	var target_zoom := _normal_zoom * multiplier if focused else _normal_zoom
 	var weight := 1.0 - exp(-camera_response * delta)
 	_focus_offset = _focus_offset.lerp(target_offset, weight)
 	camera.global_position = ship.global_position + _focus_offset + view_offset
