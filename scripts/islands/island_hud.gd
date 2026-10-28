@@ -55,7 +55,7 @@ func show_message(text: String, seconds: float = 1.5) -> void:
 	message_label.text = text
 	message_label.visible = true
 	if seconds > 0.0:
-		await get_tree().create_timer(seconds).timeout
+		await get_tree().create_timer(seconds, false).timeout
 		if token == _message_token:
 			message_label.visible = false
 
@@ -83,7 +83,7 @@ func show_toast(text: String, seconds: float = 1.6) -> void:
 	var token := _toast_token
 	toast_label.text = text
 	toast_label.visible = true
-	await get_tree().create_timer(seconds).timeout
+	await get_tree().create_timer(seconds, false).timeout
 	if token == _toast_token:
 		toast_label.visible = false
 

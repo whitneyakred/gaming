@@ -50,7 +50,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			else:
 				result_label.text = "Missed! (%d/3)" % attempts
 
-			await get_tree().create_timer(1.0).timeout
+			await get_tree().create_timer(1.0, false).timeout
 
 			if attempts >= 3:
 				show_final_result()

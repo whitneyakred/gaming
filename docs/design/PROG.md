@@ -5,7 +5,7 @@
 **Project:** Holy Ship
 **Team:** Team 13 (Gaming)
 **Area:** `UC-PROG` (Progress & Session)
-**Status:** Proposed future design; questions test answered; requirement decisions remain blocked; no PROG code exists. `UC-PROG-pause-game` has a single-player slice ready to build (2026-10-28).
+**Status:** Proposed future design; questions test answered; requirement decisions remain blocked; `UC-PROG-pause-game`'s single-player slice is built (2026-10-28); no other PROG code exists.
 **Draft date:** 2026-10-14
 
 > **Realizes:** `UC-PROG-track-progress`, `UC-PROG-reach-paradise`, `UC-PROG-quit-voyage`, `UC-PROG-start-voyage`, `UC-PROG-host-join`, `UC-PROG-pause-game`, `UC-PROG-choose-character`. No supplied `FR-PROG-*` identifiers.
@@ -397,7 +397,7 @@ _A decision that affects the whole system rather than this area is an architectu
 
 **Freeze simulation, retain session controls.** Separate pausable simulation processing from always-available UI and connection processing. Rejected: stopping the entire application event loop, because Resume, Quit, and paused disconnect handling must work. Exact Godot process modes must be verified against implementation.
 
-**Pause with `SceneTree.paused`** (single-player slice). The `PauseMenu` autoload runs with process mode Always and everything else stays pausable. Rejected: a pause flag that every owner checks, because every existing and future timer would need wiring and one missed check breaks `BR-host-controls-session`. Paused nodes receive no input, so gameplay input is dropped rather than queued, as the pause contract below requires.
+**Pause with `SceneTree.paused`** (single-player slice). The `PauseMenu` autoload runs with process mode Always and everything else stays pausable. Rejected: a pause flag that every owner checks, because every existing and future timer would need wiring and one missed check breaks `BR-host-controls-session`. Paused nodes receive no input, so gameplay input is dropped rather than queued, as the pause contract below requires. `get_tree().create_timer()` is the one gameplay clock that ignores the tree pause by default, so every gameplay or HUD timer passes `process_always = false` (`create_timer(seconds, false)`); found in the build and fixed in `island_game.gd`, `island_hud.gd`, `tiki_totems.gd`, and `cooking_minigame.gd`. Node-bound tweens (`create_tween()`) already follow their node's pause.
 
 **One autoload for pause, not a menu per scene.** Rejected: a pause node in `main.tscn`, because island and cooking scenes replace it and pause must work in all of them.
 
