@@ -41,6 +41,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			complete_attempt()
 
 func start_attempt() -> void:
+	if VoyageSurvival.dead or not is_instance_valid(interacting_player) or interacting_player.using_station:
+		return
 	if not interacting_player_has_fishing_rod():
 		status_label.text = "Fishing rod required"
 		status_label.show()
@@ -50,6 +52,8 @@ func start_attempt() -> void:
 		push_warning("Fishing station has no loot IDs configured.")
 		return
 
+	if not interacting_player.try_use_station(self):
+		return
 	var hold_duration := randf_range(minimum_hold_seconds, maximum_hold_seconds)
 	hold_timer.start(hold_duration)
 	progress_bar.max_value = hold_duration
@@ -79,12 +83,19 @@ func complete_attempt() -> void:
 		reset_attempt()
 		return
 
-	if not player_inventory.add_item(item):
-		print("Could not keep %s: inventory or item stack is full." % item.display_name)
+	if VoyageSurvival.dead:
 		reset_attempt()
 		return
 
-	print("Caught: %s" % item.display_name)
+	if not player_inventory.add_item(item):
+		VoyageSurvival.notice.emit("Pack full â€” could not keep " + item.display_name)
+		reset_attempt()
+		return
+
+	VoyageSurvival.notice.emit("Caught: " + item.display_name)
+	VoyageSurvival.changed.emit()
+	if interacting_player:
+		interacting_player.leave_station(self)
 	item_caught.emit(item_id)
 	if interacting_player != null and interacting_player.has_method("play_fishing_animation"):
 		interacting_player.call(&"play_fishing_animation")
@@ -95,6 +106,8 @@ func cancel_attempt() -> void:
 	reset_attempt()
 
 func reset_attempt() -> void:
+	if is_instance_valid(interacting_player):
+		interacting_player.leave_station(self)
 	state = State.IDLE
 	hold_timer.stop()
 	progress_bar.hide()
@@ -126,9 +139,14 @@ func _on_body_entered(body: Node2D) -> void:
 
 func _on_body_exited(body: Node2D) -> void:
 	if body is CharacterBody2D:
+		reset_attempt()
 		is_player_in_range = false
 		interacting_player = null
 		if state != State.IDLE:
 			cancel_attempt()
 		else:
 			status_label.hide()
+
+
+func cancel_for_death() -> void:
+	reset_attempt()

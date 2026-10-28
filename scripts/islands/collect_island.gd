@@ -39,3 +39,21 @@ func _get_objective_text() -> String:
 
 func _is_objective_complete() -> bool:
 	return collected_count >= total_count
+
+
+func win(message: String = "") -> void:
+	if not is_running() or VoyageSurvival.dead:
+		return
+	var reward_key := "pantry:" + scene_file_path
+	var previous: int = int(VoyageSurvival.gathered_pickups.get(reward_key, 0))
+	if previous < 3:
+		var granted := 0
+		for _i in range(3 - previous):
+			if VoyageSurvival.inventory.add_item(ItemDatabase.get_item(&"potato")):
+				granted += 1
+		# Record only granted units, so a full pack cannot silently erase the reward.
+		if granted > 0:
+			VoyageSurvival.gathered_pickups[reward_key] = previous + granted
+			VoyageSurvival.notice.emit("Island supplies: %d potatoes" % granted)
+			VoyageSurvival.changed.emit()
+	super.win(message)

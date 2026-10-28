@@ -67,15 +67,19 @@ func _run() -> void:
 	cooking.interact()
 	_check(player.active_station == cooking, "Cooking must claim the shared station lock")
 	_check(not sail.try_take_control(player), "Sailing must not steal control from cooking")
-	cooking._on_preparation_cancelled()
+	var survival := root.get_node("VoyageSurvival")
+	var fish_before: int = player.player_inventory.get_quantity(&"fish_cod")
+	cooking._cancel()
 	await process_frame
-	_check(not player.using_station and cooking.raw_fish == 3, "Cancelling cooking must release movement and preserve stock")
+	_check(not player.using_station and player.player_inventory.get_quantity(&"fish_cod") == fish_before, "Cancelling cooking must release movement and preserve owned ingredients")
 	cooking.interact()
+	cooking._select(true)
+	cooking._start_preparation()
 	cooking._on_preparation_completed(2)
 	await process_frame
-	_check(cooking.state == cooking.State.READY and cooking.raw_fish == 2, "Cooking completion must preserve the meal flow")
+	_check(cooking.state == cooking.State.READY and player.player_inventory.get_quantity(&"fish_cod") == fish_before - 1, "Cooking completion spends one owned batch")
 	cooking.interact()
-	_check(cooking.cooked_fish == 1 and not player.using_station, "Meal collection must still work")
+	_check(survival.meals.size() == 1 and not player.using_station, "Meal collection must grant an owned serving")
 	# Remove the synthetic overlapping reach used to exercise exclusive ownership.
 	cooking.crew_nearby.erase(player)
 	player.position = helm.position

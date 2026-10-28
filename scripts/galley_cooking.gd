@@ -3,6 +3,9 @@ extends Control
 signal completed(stars: int)
 signal cancelled
 
+var use_potato: bool = true
+var use_fish: bool = true
+
 enum Stage { POTATO, ADD_POTATO, FISH, ADD_FISH, WATER, HEAT, DONE }
 @export_range(3, 8) var cuts_per_food: int = 5
 @export_range(1.0, 10.0) var fill_seconds: float = 3.0
@@ -11,6 +14,16 @@ enum Stage { POTATO, ADD_POTATO, FISH, ADD_FISH, WATER, HEAT, DONE }
 @export_range(20.0, 180.0) var recipe_seconds: float = 90.0
 ## Fraction of the viewport available to the centered task panel.
 @export_range(0.5, 0.95, 0.05) var overlay_size: float = 0.8
+@export var potato_texture: Texture2D = preload("res://assets/cooking/potato.svg")
+@export var fish_texture: Texture2D = preload("res://assets/cooking/fish.svg")
+@export var knife_texture: Texture2D = preload("res://assets/cooking/knife.svg")
+@export var jug_texture: Texture2D = preload("res://assets/cooking/jug.svg")
+var feedback: String = ""
+var feedback_life: float = 0.0
+var feedback_color := Color("a6dfb0")
+var splash: float = 0.0
+var cut_pulse: float = 0.0
+var result_age: float = 0.0
 var time_left: float
 var timed_out: bool = false
 var stars: int = 0
@@ -42,9 +55,11 @@ var closed: bool = false
 const POT_CENTER := Vector2(550, 350)
 const FOOD_CENTER := Vector2(220, 345)
 const TITLES := ["Slice the potato", "Potato into the pot", "Cut the fish", "Fish into the pot", "Add fresh water", "Turn up the heat", "Supper is ready"]
-const HELP := ["Hold above the bright line. Slice downward and release below the potato.", "Drag each potato piece from the board into the open pot.", "Hold above the bright line. Slice downward through the fish.", "Drag every piece of fish into the pot.", "Hold the pitcher over the pot. Release at the 75% water target.", "Set heat in the green target zone and wait for the pot to boil.", "Stars: 90% = 3, 70% = 2, 40% = 1. Click Serve to finish."]
+const HELP := ["Hold above the bright line. Slice downward and release below the potato.", "Drag each potato piece from the board into the open pot.", "Hold above the bright line. Slice downward through the fish.", "Drag every piece of fish into the pot.", "Hold the pitcher over the pot. Release at the 75% water target.", "Set heat in the green target zone and wait for the food to cook.", "Stars: 90% = 3, 70% = 2, 40% = 1. Click Serve to finish."]
 
 func _ready() -> void:
+	add_to_group("cooking_activity")
+	stage = Stage.POTATO if use_potato else Stage.FISH
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	time_left = recipe_seconds
 
@@ -52,9 +67,11 @@ func _scale_factor() -> float:
 	return maxf(0.001, minf(size.x, size.y) / 720.0 * overlay_size)
 
 func _origin() -> Vector2:
-	return (size - Vector2(720, 720) * _scale_factor()) * 0.5
+	return (size - Vector2(720, 720) * _scale_factor()) * 0.5 + VoyageSurvival.visual_offset * 1.5
 
 func _input(event: InputEvent) -> void:
+	if get_tree().paused or VoyageSurvival.dead:
+		return
 	if event.is_action_pressed("ui_cancel") and not closed:
 		closed = true
 		cancelled.emit()
@@ -62,26 +79,35 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _gui_input(event: InputEvent) -> void:
-	if transitioning or closed:
+	if get_tree().paused or VoyageSurvival.dead or transitioning or closed:
 		return
 	if event is InputEventMouse:
 		pointer = (event.position - _origin()) / _scale_factor()
-	if stage == Stage.POTATO or stage == Stage.FISH:
-		if pointer.y > 130:
-			pointer.x -= 140
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			_press(pointer)
+			_press(_gesture_point(pointer))
 		else:
-			_release(pointer)
+			_release(_gesture_point(pointer))
 	elif event is InputEventMouseMotion:
-		_move(pointer)
+		_move(_gesture_point(pointer))
 	accept_event()
+
+func _gesture_point(point: Vector2) -> Vector2:
+	if (stage == Stage.POTATO or stage == Stage.FISH) and point.y > 130:
+		return point - Vector2(140, 0)
+	return point
+
+func _respond(message: String, good: bool = true) -> void:
+	feedback = message
+	feedback_life = 1.0
+	feedback_color = Color("a6dfb0") if good else Color("f3ab8c")
 
 func _cut_x() -> float:
 	return 100.0 + 240.0 * float(cuts + 1) / float(cuts_per_food + 1)
 
 func _press(point: Vector2) -> void:
+	if get_tree().paused or VoyageSurvival.dead or transitioning or closed:
+		return
 	if Rect2(620, 20, 75, 40).has_point(point):
 		closed = true
 		cancelled.emit()
@@ -106,14 +132,13 @@ func _press(point: Vector2) -> void:
 				heat = clampf((point.x - 140) / 440.0, 0, 1)
 		Stage.DONE:
 			if Rect2(240, 530, 240, 65).has_point(point):
-				if timed_out:
-					_retry()
-					return
 				closed = true
 				completed.emit(stars)
 				queue_free()
 
 func _move(point: Vector2) -> void:
+	if get_tree().paused or VoyageSurvival.dead or transitioning or closed:
+		return
 	if not dragging:
 		return
 	match stage:
@@ -129,6 +154,8 @@ func _move(point: Vector2) -> void:
 			heat = clampf((point.x - 140) / 440.0, 0, 1)
 
 func _release(point: Vector2) -> void:
+	if get_tree().paused or VoyageSurvival.dead or transitioning or closed:
+		return
 	if not dragging:
 		return
 	dragging = false
@@ -137,11 +164,14 @@ func _release(point: Vector2) -> void:
 			if valid_stroke and absf(point.x - _cut_x()) <= slice_tolerance and point.y >= 470:
 				cut_error = maxf(cut_error, absf(point.x - _cut_x()))
 				cut_scores.append(clampf(1.0 - cut_error / slice_tolerance, 0, 1))
+				cut_pulse = 1.0
+				_respond("Clean cut!" if cut_error < 8 else "Sliced!")
 				cuts += 1
 				if cuts >= cuts_per_food:
 					_next_stage()
 			else:
 				cut_scores.append(0.0)
+				_respond("Follow the line", false)
 			hint = "Start at the dot and pull straight down past the food."
 		Stage.ADD_POTATO, Stage.ADD_FISH:
 			if selected_piece >= 0:
@@ -149,16 +179,25 @@ func _release(point: Vector2) -> void:
 					drop_scores.append(clampf(1.0 - point.distance_to(POT_CENTER) / 125.0, 0, 1))
 					pieces.remove_at(selected_piece)
 					added += 1
+					splash = 1.0
+					_respond("Perfect drop!" if point.distance_to(POT_CENTER) < 25 else "In the pot!")
 				else:
 					drop_scores.append(0.0)
-					pieces[selected_piece] = _piece_home(selected_piece)
+					_respond("Aim inside the rim", false)
+					var index := selected_piece
+					var start := pieces[index]
+					transitioning = true
+					var settle := create_tween()
+					settle.tween_method(func(t: float) -> void: pieces[index] = start.lerp(_piece_home(index), t), 0.0, 1.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+					settle.tween_callback(func() -> void: transitioning = false)
 				selected_piece = -1
 				if pieces.is_empty():
 					_next_stage()
 		Stage.WATER:
-			jug = Vector2(180, 350)
+			create_tween().tween_property(self, "jug", Vector2(180, 350), 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 			if water >= 0.2:
 				water_score = clampf(1.0 - absf(water - 0.75) / 0.25, 0, 1)
+				_respond("Perfect pour!" if water_score > 0.9 else "Water added")
 				_next_stage()
 			else:
 				hint = "Add more water, then release near the 75% line."
@@ -176,6 +215,10 @@ func _next_stage() -> void:
 
 func _advance() -> void:
 	stage = (int(stage) + 1) as Stage
+	if stage == Stage.FISH and not use_fish:
+		stage = Stage.HEAT
+	if stage == Stage.WATER:
+		stage = Stage.HEAT
 	if stage == Stage.DONE:
 		_score_result()
 	cuts = 0
@@ -198,14 +241,19 @@ func _average(values: Array[float]) -> float:
 	return total / values.size()
 
 func _score_result() -> void:
+	result_age = 0.0
 	var heat_score := heat_score_sum / maxf(heat_scored_seconds, 0.001)
-	accuracy = (_average(cut_scores) + _average(drop_scores) + water_score + heat_score) / 4.0
+	accuracy = (_average(cut_scores) + _average(drop_scores) + heat_score) / 3.0
 	stars = 3 if accuracy >= 0.9 else (2 if accuracy >= 0.7 else (1 if accuracy >= 0.4 else 0))
 	if timed_out:
 		stars = 0
 
 func _retry() -> void:
-	stage = Stage.POTATO
+	feedback_life = 0
+	splash = 0
+	cut_pulse = 0
+	result_age = 0
+	stage = Stage.POTATO if use_potato else Stage.FISH
 	cuts = 0
 	pieces.clear()
 	added = 0
@@ -229,13 +277,18 @@ func _retry() -> void:
 
 func _process(delta: float) -> void:
 	elapsed += delta
+	feedback_life = maxf(0, feedback_life - delta)
+	splash = maxf(0, splash - delta * 2.0)
+	cut_pulse = maxf(0, cut_pulse - delta * 5.0)
+	if stage == Stage.DONE:
+		result_age += delta
 	if not transitioning and stage != Stage.DONE and not closed:
 		time_left = maxf(0, time_left - delta)
 		if time_left <= 0:
 			timed_out = true
 			stage = Stage.DONE
 			dragging = false
-			hint = "Time ran out. No meal awarded. Retry or press Escape to leave."
+			hint = "Time ran out. This batch is poisonous. Serve or leave without spending ingredients."
 			_score_result()
 		elif stage == Stage.WATER and dragging and jug.distance_to(Vector2(550, 200)) < 110:
 			water = minf(1.0, water + delta / fill_seconds)
@@ -257,39 +310,50 @@ func _text(point: Vector2, text: String, font_size: int = 22) -> void:
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.3))
 	draw_set_transform(_origin(), 0, Vector2.ONE * _scale_factor())
-	draw_rect(Rect2(0, 0, 720, 720), Color(0.15, 0.15, 0.17))
-	draw_rect(Rect2(0, 0, 720, 720), Color.GRAY, false, 3)
-	_text(Vector2(25, 48), "Time's up" if timed_out else TITLES[stage], 28)
+	_panel(Rect2(0, 0, 720, 720), Color("26333c"), 18)
+	_panel(Rect2(18, 125, 684, 490), Color("1c2931"), 12)
+	_text(Vector2(25, 48), "Time's up" if timed_out else ("Meal is ready" if stage == Stage.DONE else TITLES[stage]), 28)
 	draw_rect(Rect2(620, 20, 75, 40), Color.DIM_GRAY)
 	_text(Vector2(630, 48), "X / Esc", 18)
-	_text(Vector2(25, 95), "Step %d / 6" % mini(int(stage) + 1, 6))
+	_text(Vector2(25, 95), "No water required • fish / potato galley")
 	_text(Vector2(500, 95), "Time: %d s" % ceili(time_left), 24)
 	if stage == Stage.POTATO or stage == Stage.FISH:
-		draw_rect(Rect2(55, 160, 610, 385), Color(0.4, 0.35, 0.28))
+		_board(Rect2(55, 160, 610, 385))
 		# The cutting board uses the whole work area; pot appears for transfer steps.
 		draw_set_transform(_origin() + Vector2(140, 0) * _scale_factor(), 0, Vector2.ONE * _scale_factor())
-		draw_rect(Rect2(85, 245, 270, 200), Color.KHAKI if stage == Stage.POTATO else Color.SALMON)
+		var food: Texture2D = fish_texture if stage == Stage.FISH else potato_texture
+		var left := 65.0
+		for i in range(cuts + 1):
+			var right := 100.0 + 240.0 * float(i + 1) / float(cuts_per_food + 1) if i < cuts else 375.0
+			var separation := float(cuts - i) * 5.0
+			var source := Rect2((left - 65) / 310 * food.get_width(), 0, (right - left) / 310 * food.get_width(), food.get_height())
+			draw_texture_rect_region(food, Rect2(left - separation, 230 + cut_pulse * 5, right - left, 245), source)
+			left = right
 		for i in range(cuts):
 			var x := 100.0 + 240.0 * float(i + 1) / float(cuts_per_food + 1)
-			draw_line(Vector2(x, 245), Vector2(x, 445), Color.DIM_GRAY, 5)
+			draw_line(Vector2(x, 265), Vector2(x, 420), Color("b18b5d"), 6)
 		if not transitioning:
 			draw_dashed_line(Vector2(_cut_x(), 230), Vector2(_cut_x(), 485), Color.WHITE, 3, 9)
 			draw_circle(Vector2(_cut_x(), 215), 9, Color.WHITE)
 		draw_set_transform(_origin(), 0, Vector2.ONE * _scale_factor())
 		_text(Vector2(80, 525), "Cut %d / %d" % [mini(cuts + 1, cuts_per_food), cuts_per_food])
 	elif stage == Stage.ADD_POTATO or stage == Stage.ADD_FISH:
-		draw_rect(Rect2(45, 190, 315, 330), Color(0.4, 0.35, 0.28))
+		_board(Rect2(45, 190, 315, 330))
 		_draw_pot()
 		for point in pieces:
-			draw_rect(Rect2(point - Vector2(28, 35), Vector2(56, 70)), Color.KHAKI if stage == Stage.ADD_POTATO else Color.SALMON)
+			var lift := 1.15 if dragging and pieces.find(point) == selected_piece else 1.0
+			draw_circle(point + Vector2(3, 20), 25, Color(0, 0, 0, 0.2))
+			draw_texture_rect(potato_texture if stage == Stage.ADD_POTATO else fish_texture, Rect2(point - Vector2(40, 35) * lift, Vector2(80, 70) * lift), false)
 		_text(Vector2(50, 555), "%d pieces left" % pieces.size())
 	elif stage == Stage.WATER:
 		_draw_pot()
-		draw_rect(Rect2(jug - Vector2(40, 50), Vector2(80, 100)), Color.STEEL_BLUE)
-		_text(jug + Vector2(-25, 0), "JUG")
+		draw_texture_rect(jug_texture, Rect2(jug - Vector2(65, 65), Vector2(130, 130)), false)
 		draw_arc(Vector2(550, 200), 50, 0, TAU, 24, Color.LIGHT_BLUE, 2)
 		if dragging and jug.distance_to(Vector2(550, 200)) < 110:
-			draw_line(jug, POT_CENTER, Color.LIGHT_BLUE, 7)
+			draw_line(jug + Vector2(-35, -20), POT_CENTER, Color.LIGHT_BLUE, 7)
+			for i in range(6):
+				var t := fmod(elapsed * 1.8 + i / 6.0, 1.0)
+				draw_circle((jug + Vector2(-35, -20)).lerp(POT_CENTER, t), 4, Color("deeff1"))
 		draw_rect(Rect2(65, 540, 560, 24), Color.DIM_GRAY)
 		draw_rect(Rect2(65, 540, water * 560, 24), Color.STEEL_BLUE)
 		draw_line(Vector2(485, 530), Vector2(485, 575), Color.GREEN, 4)
@@ -298,18 +362,24 @@ func _draw() -> void:
 	elif stage == Stage.HEAT:
 		_draw_pot()
 		_text(Vector2(40, 280), "Temperature: %d C" % int(20 + temperature * 80))
-		_text(Vector2(40, 330), "Boiling..." if temperature >= 1 else "Waiting for boil...", 20)
+		_text(Vector2(40, 330), "Finishing..." if temperature >= 1 else "Cooking...", 20)
 		draw_line(Vector2(140, 540), Vector2(580, 540), Color.GRAY, 8)
 		draw_line(Vector2(426, 540), Vector2(470, 540), Color.GREEN, 12)
 		draw_circle(Vector2(140 + heat * 440, 540), 15, Color.WHITE)
 		_text(Vector2(160, 595), "Heat: %d%%  (target 70%%)" % int(heat * 100))
 	elif stage == Stage.DONE:
-		_text(Vector2(160, 220), "Stars: %s%s   %d / 3" % ["*".repeat(stars), "-".repeat(3 - stars), stars], 32)
+		for i in range(3):
+			var pop := clampf((result_age - i * 0.18) * 5, 0, 1)
+			_star(Vector2(265 + i * 95, 205), 32 * pop, Color("f4ce77") if i < stars else Color("52616b"))
 		_text(Vector2(160, 280), "Accuracy: %d%%" % roundi(accuracy * 100), 26)
 		_text(Vector2(120, 365), "Cuts: %d%%   Drops: %d%%" % [roundi(_average(cut_scores) * 100), roundi(_average(drop_scores) * 100)])
-		_text(Vector2(120, 415), "Water: %d%%   Heat: %d%%" % [roundi(water_score * 100), roundi(heat_score_sum / maxf(heat_scored_seconds, 0.001) * 100)])
+		_text(Vector2(120, 415), "Heat control: %d%%" % roundi(heat_score_sum / maxf(heat_scored_seconds, 0.001) * 100))
 		draw_rect(Rect2(240, 530, 240, 65), Color.DIM_GRAY)
-		_text(Vector2(315, 570), "Retry" if timed_out else "Serve", 26)
+		_text(Vector2(315, 570), "Serve batch", 26)
+	if dragging and (stage == Stage.POTATO or stage == Stage.FISH):
+		draw_texture_rect(knife_texture, Rect2(pointer - Vector2(55, 110), Vector2(110, 130)), false)
+	if feedback_life > 0:
+		draw_string(ThemeDB.fallback_font, Vector2(255, 595 - (1 - feedback_life) * 12), feedback, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(feedback_color, feedback_life))
 	# Wrap instructions to the panel width instead of shrinking their font.
 	var words: PackedStringArray = (hint if not hint.is_empty() else HELP[stage]).split(" ")
 	var line := ""
@@ -324,14 +394,51 @@ func _draw() -> void:
 			line = candidate
 	_text(Vector2(30, y), line)
 	if veil > 0:
-		draw_rect(Rect2(0, 130, 720, 490), Color(0.15, 0.15, 0.17, veil))
+		draw_rect(Rect2(0, 130, 720, 490), Color(0.11, 0.16, 0.19, veil))
+
+func _panel(rect: Rect2, color: Color, radius: int = 10) -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.set_corner_radius_all(radius)
+	draw_style_box(style, rect)
+
+func _board(rect: Rect2) -> void:
+	_panel(Rect2(rect.position + Vector2(0, 7), rect.size), Color("3e3027"))
+	_panel(rect, Color("b18b5d"))
+	for i in range(1, 5):
+		var y := rect.position.y + rect.size.y * i / 5.0
+		draw_line(Vector2(rect.position.x + 12, y), Vector2(rect.end.x - 12, y), Color("a57f53"), 2)
+
+func _star(center: Vector2, radius: float, color: Color) -> void:
+	if radius <= 0:
+		return
+	var points := PackedVector2Array()
+	for i in range(10):
+		var angle := -PI / 2 + i * TAU / 10
+		points.append(center + Vector2(cos(angle), sin(angle)) * radius * (1.0 if i % 2 == 0 else 0.45))
+	draw_colored_polygon(points, color)
 
 func _draw_pot() -> void:
-	draw_circle(POT_CENTER, 125, Color(0.3, 0.33, 0.36))
-	draw_arc(POT_CENTER, 125, 0, TAU, 48, Color.WHITE, 3)
-	draw_line(POT_CENTER - Vector2(14, 0), POT_CENTER + Vector2(14, 0), Color.WHITE, 2)
-	draw_line(POT_CENTER - Vector2(0, 14), POT_CENTER + Vector2(0, 14), Color.WHITE, 2)
-	_text(POT_CENTER + Vector2(-75, 160), "POT: aim here", 20)
+	var center := POT_CENTER
+	_panel(Rect2(center + Vector2(-145, -15), Vector2(290, 30)), Color("7d9297"))
+	draw_circle(center + Vector2(0, 8), 130, Color("121d24"))
+	draw_circle(center, 125, Color("9cacac"))
+	draw_circle(center, 113, Color("344b55") if water <= 0 else Color("5993aa").lerp(Color("b39157"), temperature))
+	draw_arc(center, 119, PI, TAU, 40, Color("d3dfd7"), 4)
+	if stage == Stage.ADD_POTATO or stage == Stage.ADD_FISH:
+		draw_arc(center, 30 + sin(elapsed * 4) * 3, 0, TAU, 32, Color("accabb"), 2)
 	for i in range(added):
-		draw_rect(Rect2(POT_CENTER + Vector2(-80 + (i % 6) * 28, 25 + floori(i / 6.0) * 20), Vector2(15, 15)), Color.KHAKI if i < cuts_per_food + 1 else Color.SALMON)
-
+		var point := center + Vector2(-65 + (i % 5) * 30, -30 + floori(i / 5.0) * 25)
+		draw_circle(point + Vector2(0, sin(elapsed * 2 + i) * temperature * 3), 9, Color.KHAKI if i < cuts_per_food + 1 else Color.SALMON)
+	if splash > 0:
+		draw_arc(center, 25 + (1 - splash) * 75, 0, TAU, 40, Color(0.8, 0.95, 1, splash), 3)
+		for i in range(8):
+			var angle := i * TAU / 8
+			draw_circle(center + Vector2(cos(angle), sin(angle)) * (35 + (1 - splash) * 65), 4 * splash, Color("bce3e4"))
+	if stage == Stage.HEAT or stage == Stage.DONE:
+		for i in range(int(temperature * 14)):
+			var point := center + Vector2(sin(i * 3.7), cos(i * 2.4)) * 75
+			draw_arc(point, 3 + fmod(elapsed * 8 + i, 8), 0, TAU, 16, Color(1, 0.94, 0.75, 0.6), 2)
+		for i in range(4):
+			var rise := fmod(elapsed * 35 + i * 24, 95)
+			draw_circle(center + Vector2(-60 + i * 40 + sin(elapsed + i) * 8, -100 - rise), 10, Color(0.85, 0.94, 0.92, temperature * (1 - rise / 95) * 0.35))

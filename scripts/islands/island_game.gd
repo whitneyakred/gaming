@@ -158,8 +158,10 @@ func win(message: String = "") -> void:
 	_end_run()
 	show_message(message if not message.is_empty() else win_message, 0.0)
 	run_won.emit()
-	await get_tree().create_timer(win_delay_seconds).timeout
+	await get_tree().create_timer(win_delay_seconds, false).timeout
 	# Tells the ship scene to play the "row back to the ship" sequence.
+	if VoyageSurvival.dead:
+		return
 	Ship.returning_from_island = true
 	get_tree().change_scene_to_file(return_scene)
 
@@ -169,8 +171,9 @@ func lose(reason: String) -> void:
 	_end_run()
 	show_message(reason + " Game Over!", 0.0)
 	run_lost.emit(reason)
-	await get_tree().create_timer(lose_delay_seconds).timeout
-	get_tree().reload_current_scene()
+	await get_tree().create_timer(lose_delay_seconds, false).timeout
+	if not VoyageSurvival.dead:
+		get_tree().reload_current_scene()
 
 
 # --- Internals ----------------------------------------------------------------
