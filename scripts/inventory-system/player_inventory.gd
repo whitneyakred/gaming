@@ -29,6 +29,14 @@ func try_add(item_id: StringName, amount: int = 1) -> bool:
 
 	return _try_add_item(item, amount)
 
+## Adds up to `amount` of one item. Returns how many were actually stored
+## (fewer when the stack limit or the distinct-item space runs out).
+func add_items(item: ItemData, amount: int) -> int:
+	var added := 0
+	while added < amount and add_item(item):
+		added += 1
+	return added
+
 func get_quantity(item_id: StringName) -> int:
 	return quantities.get(item_id, 0)
 
@@ -64,6 +72,7 @@ func try_remove(item_id: StringName, amount: int = 1) -> bool:
 		quantities[item_id] = current_quantity - amount
 
 	inventory_changed.emit()
+	emit_changed()
 	return true
 
 ## Moves one owned item type to another occupied-space index. This preserves the
@@ -80,6 +89,7 @@ func move_item(item_id: StringName, target_index: int) -> bool:
 	inventory.remove_at(item_index)
 	inventory.insert(target_index, item)
 	inventory_changed.emit()
+	emit_changed()
 	return true
 
 ## Removes every owned item type and quantity. Used by reset flows such as a
@@ -91,6 +101,7 @@ func clear() -> void:
 	inventory.clear()
 	quantities.clear()
 	inventory_changed.emit()
+	emit_changed()
 
 func _try_add_item(item: ItemData, amount: int) -> bool:
 	var current_quantity := get_quantity(item.id)
@@ -99,6 +110,7 @@ func _try_add_item(item: ItemData, amount: int) -> bool:
 			return false
 		quantities[item.id] = current_quantity + amount
 		inventory_changed.emit()
+		emit_changed()
 		return true
 
 	if inventory.size() >= max_inv_space or amount > item.max_stack:
@@ -107,6 +119,7 @@ func _try_add_item(item: ItemData, amount: int) -> bool:
 	inventory.append(item)
 	quantities[item.id] = amount
 	inventory_changed.emit()
+	emit_changed()
 	return true
 
 func _get_item_index(item_id: StringName) -> int:

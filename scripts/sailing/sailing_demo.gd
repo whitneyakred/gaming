@@ -10,6 +10,8 @@ extends Node2D
 @export_range(1.0, 20.0) var camera_response: float = 7.0
 var _normal_zoom: Vector2 = Vector2.ONE
 var _focus_offset: Vector2 = Vector2.ZERO
+## Rowboat framing is controlled by the ship during island travel.
+var view_offset: Vector2 = Vector2.ZERO
 @onready var wind_arrow: Label = $HUD/Wind/Arrow
 @onready var helm_wheel: HelmWheelWidget = $HUD/HelmWheel
 @onready var vignette: ColorRect = $StationOverlay/Vignette
@@ -40,7 +42,7 @@ func _update_camera(delta: float) -> void:
 	var target_zoom := _normal_zoom * station_zoom_multiplier if focused else _normal_zoom
 	var weight := 1.0 - exp(-camera_response * delta)
 	_focus_offset = _focus_offset.lerp(target_offset, weight)
-	camera.global_position = ship.global_position + _focus_offset
+	camera.global_position = ship.global_position + _focus_offset + view_offset
 	camera.zoom = camera.zoom.lerp(target_zoom, weight)
 	vignette.modulate.a = lerpf(vignette.modulate.a, station_vignette_opacity if focused else 0.0, weight)
 

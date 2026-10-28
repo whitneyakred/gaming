@@ -1,7 +1,11 @@
 extends Area2D
 
-# Emitted when the player walks over this coconut.
-# The island's CollectIsland script listens for this to update the on-screen count.
+# A pickup lying on the ground. Walking over it puts the item in that crew
+# member's voyage inventory. If the bag is full, it stays on the ground.
+# The island's CollectIsland script listens for `collected` to update the
+# on-screen count.
+
+# Emitted only after the item was stored in the inventory.
 signal collected(item_id: StringName)
 
 # Which catalog item this pickup gives (see scripts/item-system/items.gd).
@@ -13,6 +17,21 @@ func _ready() -> void:
 	assert(ItemDatabase.get_item(item_id) != null, "Unknown item id: %s" % item_id)
 
 func _on_body_entered(body: Node2D) -> void:
-	if body is CharacterBody2D:
+	if not body.is_in_group("crew"):
+		return
+	var stored := false
+	var game := _find_island_game()
+	if game:
+		stored = game.give_item(item_id, 1, body) > 0
+	else:
+		var inventory := body.get("player_inventory") as PlayerInventory
+		stored = inventory != null and inventory.add_item(ItemDatabase.get_item(item_id))
+	if stored:
 		collected.emit(item_id)
 		queue_free()
+
+func _find_island_game() -> IslandGame:
+	var node := get_parent()
+	while node != null and not (node is IslandGame):
+		node = node.get_parent()
+	return node as IslandGame

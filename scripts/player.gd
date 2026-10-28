@@ -29,8 +29,12 @@ func leave_station(station: Node) -> void:
 
 
 func _ready() -> void:
-	if player_inventory == null:
-		player_inventory = PlayerInventory.new()
+	# The voyage keeps one inventory per crew member, so what you collect on
+	# an island is still in your bag back on the ship (scripts/voyage_state.gd).
+	var player_id: StringName = &"player_1"
+	if player_inventory != null and not player_inventory.player_id.is_empty():
+		player_id = player_inventory.player_id
+	player_inventory = VoyageState.get_inventory(player_id)
 
 	# The prototype starts each crew member with the tool needed for its only
 	# available station. Other acquisition systems can add this item later.

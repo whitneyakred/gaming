@@ -23,6 +23,13 @@ signal anchor_changed(deployed: bool)
 @export_range(0.1, 60.0, 0.1, "suffix:s") var wind_change_interval: float = 7.0
 ## Larger values make the wind settle toward its new direction faster.
 @export_range(0.01, 5.0, 0.01) var wind_response: float = 0.32
+@export_group("Collision")
+## The hull's outline in ship-local coordinates (bow pointing up). The ship
+## can't move or turn so that this overlaps land (see _is_pose_blocked).
+## Leave empty for a ship that ignores land.
+@export var hull_outline: PackedVector2Array = PackedVector2Array()
+## Share of speed kept while scraping sideways along a shore.
+@export_range(0.0, 1.0) var shore_slide_factor: float = 0.6
 
 var _wind_change_left: float = 0.0
 var _target_wind_angle: float = 0.0
@@ -34,6 +41,8 @@ var sail_angle_degrees: float = 0.0
 var wheel_angle_degrees: float = 0.0
 var turn_rate: float = 0.0
 var stations_enabled: bool = true
+## True on frames when the hull pressed against land instead of moving freely.
+var aground: bool = false
 var anchor_deployed: bool = false:
 	set(value):
 		if anchor_deployed == value:
@@ -83,6 +92,20 @@ func set_sail_angle(degrees: float) -> void:
 		sail_angle_degrees = bounded_angle
 		sail_changed.emit()
 
+## The hull outline placed at a position and rotation, in global coordinates.
+func get_hull_polygon(at: Vector2, angle: float) -> PackedVector2Array:
+	return Transform2D(angle, at) * hull_outline
+
+## Override to stop the ship sailing through things: return true when the
+## hull at this position and rotation would overlap land.
+func _is_pose_blocked(_at: Vector2, _angle: float) -> bool:
+	return false
+
+## Override with the direction pointing away from the shore the ship touched
+## (used to slide along it). ZERO means "just stop".
+func _get_shore_normal(_at: Vector2) -> Vector2:
+	return Vector2.ZERO
+
 func get_target_speed() -> float:
 	if anchor_deployed:
 		return 0.0
@@ -100,13 +123,32 @@ func _physics_process(delta: float) -> void:
 	turn_rate = move_toward(turn_rate, rudder * maximum_turn_rate * steerage, turn_acceleration * delta)
 	if anchor_deployed:
 		turn_rate = 0.0
-	global_rotation += turn_rate * delta
+	var old_position := global_position
+	var old_rotation := global_rotation
+	var new_rotation := old_rotation + turn_rate * delta
 	var target_speed := get_target_speed()
 	var rate := acceleration if target_speed > speed else deceleration
 	if anchor_deployed:
 		rate = anchor_braking
 	speed = move_toward(speed, target_speed, rate * delta)
-	global_position += Vector2.UP.rotated(global_rotation) * speed * delta
+	var step := Vector2.UP.rotated(new_rotation) * speed * delta
+	var new_position := old_position + step
+	aground = false
+	if _is_pose_blocked(new_position, new_rotation):
+		aground = true
+		# The hull can't swing into land: keep the old heading if turning is what hits.
+		if _is_pose_blocked(old_position, new_rotation):
+			new_rotation = old_rotation
+			turn_rate = 0.0
+		# Scrape along the shore: drop the part of the move that goes into land.
+		# Speed is kept so the rudder still works and you can steer away.
+		var normal := _get_shore_normal(old_position)
+		var slide := step - normal * minf(step.dot(normal), 0.0)
+		new_position = old_position + slide * shore_slide_factor
+		if _is_pose_blocked(new_position, new_rotation):
+			new_position = old_position
+	global_rotation = new_rotation
+	global_position = new_position
 	# Deck and crew inherit the same transform. Do not also add ship velocity to crew.
 	force_update_transform()
 	for child in get_children():
