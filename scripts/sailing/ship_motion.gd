@@ -20,9 +20,9 @@ signal anchor_changed(deployed: bool)
 @export_group("Changing Wind")
 @export var changing_wind_enabled: bool = true
 ## Time between new targets varies from 75% to 125% of this interval.
-@export_range(0.1, 60.0, 0.1, "suffix:s") var wind_change_interval: float = 7.0
+@export_range(0.1, 60.0, 0.1, "suffix:s") var wind_change_interval: float = 20.0
 ## Larger values make the wind settle toward its new direction faster.
-@export_range(0.01, 5.0, 0.01) var wind_response: float = 0.32
+@export_range(0.01, 5.0, 0.01) var wind_response: float = 0.10
 @export_group("Collision")
 ## The hull's outline in ship-local coordinates (bow pointing up). The ship
 ## can't move or turn so that this overlaps land (see _is_pose_blocked).
