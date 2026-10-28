@@ -62,12 +62,19 @@ These questions identify unresolved gameplay and integration decisions.
 |---|---|---|---|---|
 | OI-10 | Which NAV prototype differences should be retained: four sail levels, rudder controls, narrower sail arc, zero drift, direction-only wind display, and speed-dependent turning? | NAV currently records code-first departures from use cases. Decide whether each changes the requirement or needs a code fix; exact tuning remains TBD. | NAV owner and team | 2026-10-20 |
 | OI-11 | When should the prototype’s four distinct-item spaces and per-item caps be replaced by six quick slots, expanded slots, and 30-item stacks? | BR-inventory-slots is planned behavior, not current inventory implementation. Wood ID/cost also remain unresolved under OI-6. | SYS owner and team | 2026-10-20 |
-| OI-12 | Does illness drain resume after rest raises fatigue above its floor; what are threshold equality and same-tick recovery rules? | SURV/FTG designs identify ambiguity. Preserve display-only exhaustion until any slowdown/wobble proposal is explicitly approved. | SURV and FTG owners with team | 2026-10-20 |
+| OI-12 | How should hunger/health fatigue combine, and what benefit should rest provide? | Raw-food illness/floor is deferred. Current feedback affects cooking; threshold boundaries, severity and rest model remain open. See [FTG](../design/FTG.md). | SURV/FTG owners with team | — |
 | OI-13 | Should future island swimming be supported, and how should general island challenges relate to the prototype’s timed retries? | Current DECK/ISLE designs use rowboat-only island access. Retained swimming flows are deferred alternatives; generic rewards and retry policies remain TBD. | DECK and ISLE owners with team | 2026-10-20 |
 | OI-14 | Which communication channel and response windows govern: the signed contract’s Slack/6-hour/3-hour entries or the interview/Discord record? | The team must confirm which communication agreement governs. | Development team | 2026-10-20 |
 | OI-15 | Which cross-area contracts govern world-item retention, Voyage State ownership, inventory handoff, and capsize reset ordering? | ISLE scene-local drop loss conflicts with SYS lifetime proposals; existing static scene handoffs are not the proposed shared state component. | SYS, ISLE, WAVE, SHIP, and PROG owners | 2026-10-20 |
 | OI-17 | What world-grid origin, tile size, placement, and update cadence satisfy indefinite travel and notify every crossed tile? | SYS/MAP positive-only, fixed-route, and coarse-sampling proposals are not approved world constraints. | SYS, MAP, NAV, EVT, and PROG owners | 2026-10-20 |
 | OI-18 | Is map access a station or menu, and is discovery retained or reset after capsize? | The use cases leave both open. Capsize continues the voyage regardless; MAP must not end the session or silently choose retention. | MAP, WAVE, and PROG owners with team | 2026-10-20 |
+
+### Cooking, survival and fatigue decisions
+
+| ID | Question | Why it matters | Who can answer | Raised |
+|---|---|---|---|---|
+| OI-19 | Confirm exact 40% boundary and ≤10% health boundary; define combined fatigue/rest, starvation rate, action hunger costs and warning-counter semantics. | Health-loss sources settled for this slice: zero-hunger starvation and horrible recipes. Fatigue below 40% hunger and at low health, death at zero health, action hunger costs and paused visual wobble remain recorded. See [revised cases](food-survival-use-cases.md). | Owner and SURV/FTG team | — |
+| OI-20 | Confirm zero-star interpretation of “under 0,” timeout result, incompatible recipes, ≥30% poison denominator/timing/hunger effect, food restoration and cancellation. | First slice uses existing assets without water. Three-star incompatible meals can poison; action hunger costs continue during cooking. See [recipes](recipes-and-preparation.md). | Owner and cooking/ISLE/SYS/SURV team | — |
 
 ### Detailed use-case questions
 
@@ -83,12 +90,14 @@ Detailed numeric and behavioral questions remain in each use case's **Open Issue
 - [UC-WAVE-generate-waves](use-cases.md#uc-wave-generate-waves-generate-ocean-waves)
 - [UC-WAVE-balance-ship](use-cases.md#uc-wave-balance-ship-balance-the-ship)
 - [UC-WAVE-capsize-ship](use-cases.md#uc-wave-capsize-ship-capsize-the-ship)
+- [UC-COOK-prepare-meal](use-cases.md#uc-cook-prepare-meal-experiment-with-ingredients-and-prepare-a-meal)
+- [UC-SURV-die](use-cases.md#uc-surv-die-end-the-voyage-at-zero-health)
 - [UC-SURV-consume-food](use-cases.md#uc-surv-consume-food-consume-food)
 - [UC-SURV-consume-water](use-cases.md#uc-surv-consume-water-consume-water)
-- [UC-SURV-deplete-hunger-thirst](use-cases.md#uc-surv-deplete-hunger-thirst-deplete-hunger-and-thirst-over-time)
-- [UC-SURV-pass-out](use-cases.md#uc-surv-pass-out-pass-out-from-starvation-dehydration-or-exhaustion)
+- [UC-SURV-deplete-hunger-thirst](use-cases.md#uc-surv-deplete-hunger-thirst-spend-hunger-and-apply-starvation-damage)
+- [UC-SURV-pass-out](use-cases.md#uc-surv-pass-out-pass-out-and-recover)
 - [UC-SURV-recover-from-illness](use-cases.md#uc-surv-recover-from-illness-recover-from-illness)
-- [UC-FTG-rest](use-cases.md#uc-ftg-rest-rest-to-recover-fatigue)
+- [UC-FTG-rest](use-cases.md#uc-ftg-rest-use-the-rest-station)
 - [UC-FTG-warn-exhaustion](use-cases.md#uc-ftg-warn-exhaustion-warn-of-exhaustion)
 - [UC-SHIP-take-damage](use-cases.md#uc-ship-take-damage-spring-a-leak-or-take-damage)
 - [UC-SHIP-repair-damage](use-cases.md#uc-ship-repair-damage-repair-ship-damage)

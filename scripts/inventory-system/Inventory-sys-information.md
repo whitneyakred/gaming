@@ -1,9 +1,10 @@
 # Player inventory system
 
 This folder holds a small, per-player inventory model. It is deliberately
-data-only: it supports adding, counting, and removing items, but has no UI,
-saving, networking, or world-drop behavior yet. Gameplay features should use this API instead of editing the
-exported arrays and dictionary directly.
+data-only: it supports adding, counting, removing, reordering, and clearing
+items, but has no UI, saving, networking, or world-drop behavior yet. Gameplay
+features should use this API instead of editing the exported arrays and
+dictionary directly.
 
 ## Runtime pieces
 
@@ -24,8 +25,9 @@ This is starter equipment, not a general-purpose item grant pattern.
 
 This section describes current code. The planned contract in
 [BR-inventory-slots](../../docs/requirements/business-rules.md#27-inventory-map-and-island-travel)
-has six quick slots plus TBD expanded slots and 30-item stacks. It is not
-implemented by this distinct-item model; see `OI-11` in the open-issues register.
+has six quick slots plus TBD expanded slots and 30-item stacks. This prototype
+intentionally retains its four distinct-item spaces and per-item stack limits;
+see `OI-11` in the open-issues register.
 
 `max_inv_space` is the maximum number of *distinct item types*, not the total
 number of individual items. Its default is `4`.
@@ -44,8 +46,10 @@ sync.
 
 ```gdscript
 var added: bool = player_inventory.add_item(item)
+var added_many: bool = player_inventory.try_add(&"fish_cod", 2)
 var cod_count: int = player_inventory.get_quantity(&"fish_cod")
 var removed: bool = player_inventory.remove_item(&"fish_cod", 2)
+var removed_many: bool = player_inventory.try_remove(&"fish_cod", 2)
 ```
 
 `add_item(item)` returns `true` only when it stored one item. It returns
@@ -69,6 +73,49 @@ the requested amount is larger than the held quantity.
 
 Use `remove_item()` for consumption, repairs, and future transfers. Never
 edit `inventory` or `quantities` directly to remove an item.
+
+`try_add(item_id, amount = 1)` and `try_remove(item_id, amount = 1)` are the
+explicit multi-item APIs. They return `false` without changing either exported
+collection when the amount is invalid, the catalog item is missing, the stack
+would exceed that item's configured limit, or the quantity is unavailable.
+`add_item()` and `remove_item()` remain compatibility helpers for existing
+gameplay callers.
+
+`move_item(item_id, target_index)` reorders an owned distinct item type within
+the occupied `inventory` entries. `clear()` empties the inventory for a reset
+flow. `inventory_changed` emits once after each successful add, remove, reorder, or
+clear operation, so a future inventory view can refresh without owning a
+second copy of the data.
+
+## Running the inventory tests
+
+From the repository root, run the Bash test runner:
+
+```bash
+bash ./test-inv-system.sh
+```
+
+The runner starts Godot in headless mode and runs
+`tests/inventory_test.gd`. It prints a `PASS:` or `FAIL:` line for every named
+test, prints a final total, and exits with a nonzero status when any test
+fails. The default executable name is `Godot`. If Godot is installed elsewhere,
+provide its path with `GODOT_BIN`:
+
+```bash
+GODOT_BIN="/path/to/Godot" bash ./test-inv-system.sh
+```
+
+The suite covers:
+
+- `PlayerInventory`'s four-space prototype capacity, `add_item`, `try_add`,
+  `get_quantity`, `remove_item`, `try_remove`, `move_item`, and `clear`.
+- Accepted and rejected changes, including unknown IDs, zero amounts, full
+  stacks, full inventory, invalid moves, and checks that rejected add/remove
+  operations do not partially change stored quantities.
+- `inventory_changed`, including one emission for each successful mutation and
+  no emission for no-op or refused operations.
+- Every `InventoryUsage` forwarding method, both with an assigned inventory
+  and with no assigned inventory.
 
 ## Adding rewards from a station or interaction
 
@@ -118,8 +165,8 @@ members need their own tools and rewards.
 
 An inventory UI should render the `inventory` item types and obtain each count
 with `get_quantity(item.id)`. It should not maintain a second quantity list.
-When implementing UI refreshes, add a `changed` signal to `PlayerInventory`
-and emit it after every successful mutation; connect the UI to that signal.
+Connect it to `PlayerInventory.inventory_changed` to refresh after each successful
+mutation.
 
 Before adding transactional consumption, transfers, saves, or multiplayer syncing,
 extend `PlayerInventory` with explicit methods and tests. Do not mutate

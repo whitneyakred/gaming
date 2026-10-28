@@ -3,10 +3,12 @@ extends Node2D
 ## Owns ship movement and local wind. Stations submit commands; no input is read here.
 
 signal sail_changed()
+signal anchor_changed(deployed: bool)
 
 @export_range(0.0, 500.0) var maximum_speed: float = 110.0
 @export_range(0.1, 200.0) var acceleration: float = 22.0
 @export_range(0.1, 200.0) var deceleration: float = 30.0
+@export_range(1.0, 300.0) var anchor_braking: float = 65.0
 @export_range(0.1, 3.0) var maximum_wheel_turns: float = 1.5
 ## Radians per second, matching the reference project's gradual rudder steering.
 @export_range(0.01, 1.0) var maximum_turn_rate: float = 0.16
@@ -30,6 +32,14 @@ var sail_angle_degrees: float = 0.0
 var wheel_angle_degrees: float = 0.0
 var turn_rate: float = 0.0
 var stations_enabled: bool = true
+var anchor_deployed: bool = false:
+	set(value):
+		if anchor_deployed == value:
+			return
+		anchor_deployed = value
+		if value:
+			turn_rate = 0.0
+		anchor_changed.emit(value)
 
 func _ready() -> void:
 	# Move the shared parent before crew perform their own walking/collision step.
@@ -72,6 +82,8 @@ func set_sail_angle(degrees: float) -> void:
 		sail_changed.emit()
 
 func get_target_speed() -> float:
+	if anchor_deployed:
+		return 0.0
 	var sail_direction := Vector2.UP.rotated(global_rotation + deg_to_rad(sail_angle_degrees))
 	var strength := clampf(wind_velocity.length(), 0.0, 1.0)
 	# The cloth billows along sail_direction. Only wind pushing that way fills it.
@@ -85,9 +97,13 @@ func _physics_process(delta: float) -> void:
 	var rudder := wheel_angle_degrees / (maximum_wheel_turns * 360.0)
 	var steerage := clampf(speed / 100.0, 0.08, 1.0)
 	turn_rate = move_toward(turn_rate, rudder * maximum_turn_rate * steerage, turn_acceleration * delta)
+	if anchor_deployed:
+		turn_rate = 0.0
 	global_rotation += turn_rate * delta
 	var target_speed := get_target_speed()
 	var rate := acceleration if target_speed > speed else deceleration
+	if anchor_deployed:
+		rate = anchor_braking
 	speed = move_toward(speed, target_speed, rate * delta)
 	global_position += Vector2.UP.rotated(global_rotation) * speed * delta
 	# Deck and crew inherit the same transform. Do not also add ship velocity to crew.

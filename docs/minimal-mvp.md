@@ -43,7 +43,7 @@ The earlier stationary deck prototype now includes manual sailing, ship stations
 
 ## Known limits and planned behavior
 
-- Survival stats, fatigue/rest, leaks/repair, rough-weather capsize, map discovery, merchants, and full Paradise Island voyage management remain planned.
+- Survival stats, fatigue/rest, leaks/repair, rough-weather capsize, map discovery, merchants, and full Paradise Island voyage management remain planned. Cooking currently uses separate fish/meal counters; fishing inventory and island challenge collection are not yet connected to meal hunger/healing effects. See [planned cooking/survival use cases](requirements/use-cases.md#area-cooking-cook); this documentation does not claim the loop is implemented.
 - Two placed islands and a repeating ocean visual do not fulfill indefinite deterministic/recycled world-chunk travel.
 - Ship/island transitions use limited static handoff state in `Ship`; general inventory/resource retention across scenes is not implemented. The proposed Voyage State component is in memory, not a save system.
 - The prototype inventory defaults to four distinct item types with per-item stack limits. The planned six quick slots and 30-item stacks in `BR-inventory-slots` are not implemented.

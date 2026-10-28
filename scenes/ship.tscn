@@ -16,6 +16,7 @@
 [ext_resource type="Script" uid="uid://cx41u6oa2ga7r" path="res://scripts/inventory-system/player_inventory.gd" id="13_mx31c"]
 [ext_resource type="Script" path="res://scripts/islands/world_island.gd" id="14"]
 [ext_resource type="Texture2D" path="res://assets/island_large.png" id="15"]
+[ext_resource type="PackedScene" path="res://scenes/sailing/anchor_station.tscn" id="16"]
 
 [sub_resource type="RectangleShape2D" id="SternShape"]
 size = Vector2(44, 40)
@@ -124,6 +125,11 @@ local_player = NodePath("../Player")
 interaction_distance = 32.0
 
 [node name="Sail" parent="." unique_id=1300635341 node_paths=PackedStringArray("ship", "local_player") instance=ExtResource("10")]
+ship = NodePath("..")
+local_player = NodePath("../Player")
+
+[node name="Anchor" parent="." node_paths=PackedStringArray("ship", "local_player") instance=ExtResource("16")]
+position = Vector2(-45, 65)
 ship = NodePath("..")
 local_player = NodePath("../Player")
 

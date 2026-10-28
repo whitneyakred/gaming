@@ -72,7 +72,7 @@ An earlier open idea for securing loot. It is not a separate approved extraction
 
 ### Fatigue
 
-The planned remaining energy stat: higher values mean more energy, normal activity depletes it, and rest restores it. FTG owns this stat; zero invokes SURV pass-out recovery. Do not substitute the older term Stamina or add sprint costs without a requirement.
+Progressive tiredness, dizziness and visual clutter caused by low Hunger and low Health, including inside cooking. Thresholds and clearing rules are in BR-hunger-fatigue-threshold. An independent energy reserve is not yet agreed; this is not sprint Stamina.
 
 ### Floating Chest
 
@@ -80,7 +80,7 @@ An earlier proposed ocean loot encounter. Collection and loot behavior lack an a
 
 ### Food and Water
 
-Supplies used to restore Hunger and Thirst. Planned consumption is specified by `UC-SURV-consume-food` and `UC-SURV-consume-water`; exact amounts remain TBD.
+Food gathered on islands or caught while fishing supplies cooking and restores Hunger/Health according to its result. Horrible/poisonous recipes damage Health instead of healing. Water/thirst is deferred from this connected slice; initial recipes need no water.
 
 ### Game Loop
 
@@ -92,7 +92,7 @@ The planned shared voyage currency used for merchant purchases and sales. Prices
 
 ### Hammock
 
-The planned resting Station. Deferred co-op capacity is two; rest restores Fatigue while Hunger and Thirst continue depleting. See `UC-FTG-rest`.
+The reusable rest Station. The ship keeps moving unless anchored. Rest does not automatically refill Hunger/Health or erase their fatigue effects. Any additional recovery benefit remains open; see UC-FTG-rest.
 
 ### Heading
 
@@ -110,17 +110,21 @@ The player who owns a deferred LAN co-op Session. Applicable single-player sessi
 
 Damage represented in the planned SHIP system by open leaks and Repair Spots. Integrity and Stability are separate values; see `BR-capsize-conditions`.
 
+### Health
+
+Character survival stat separate from Hunger and ship Integrity, restored by safe food/recipes and damaged by starvation or horrible meals. Low health causes fatigue at the 10% threshold; zero means death/game over.
+
 ### Hunger
 
-The planned remaining nourishment stat, restored by food and depleted during conscious, unpaused play. Zero triggers Pass Out; see `BR-stat-depletion-rate` and `BR-pass-out-recovery`.
+Remaining nourishment spent through movement/actions, including cooking. Below 40% causes progressive fatigue; above 40% clears its contribution. Zero starts starvation Health loss. Exact equality/action costs are pending; see BR-stat-depletion-rate and BR-starvation-health-loss.
 
 ### Hunger and Thirst
 
-The two planned survival needs maintained by SURV. See the individual Hunger and Thirst entries; Fatigue is owned by FTG.
+Hunger is active in the planned connected cooking/survival slice. Thirst and drinking supplies are deferred; they do not introduce a water requirement for initial recipes.
 
 ### Illness
 
-The planned temporary effect of eating raw non-fruit food. It adds fatigue drain subject to a provisional floor and duration; exact tuning and resumption after rest remain TBD (`OI-12`).
+Raw-food illness and its old fatigue-floor timer are deferred. Poisonous cooked food is a distinct harmful recipe result handled by UC-SURV-consume-food.
 
 ### Integrity
 
@@ -172,7 +176,7 @@ The planned voyage destination in `UC-PROG-reach-paradise`. Arrival behavior has
 
 ### Pass Out
 
-Temporary inability to act when Hunger, Thirst, or Fatigue reaches zero. It releases station claims and recovers under `BR-pass-out-recovery`; it is not permanent death.
+The former automatic zero-stat/25% recovery concept is retired for this survival slice. Zero Hunger damages Health; zero Health ends the voyage in death/game over. See UC-SURV-die.
 
 ### Pin
 
@@ -256,7 +260,7 @@ Planned movement while Overboard. DECK/ISLE designs defer swimming to islands in
 
 ### Thirst
 
-The planned remaining hydration stat, restored by water and depleted during conscious, unpaused play. Zero triggers Pass Out.
+A deferred hydration need, outside the initial connected food/cooking/survival slice. No bottle, bucket or water stock is required by initial recipes.
 
 ### Tile
 

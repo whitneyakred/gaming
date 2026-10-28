@@ -1,5 +1,7 @@
 # Business Rules
 
+
+
 **Project:** Holy Ship
 **Team:** Team 13
 **Client:** None — student-led project; product decisions belong to the development team.
@@ -132,17 +134,26 @@ The source for Section 2 is the repository [use cases](use-cases.md), originally
 
 - **`BR-repair-cost`:** A completed leak repair consumes a TBD amount of wood from the deck chest once per repair regardless of participant count and restores 5 percentage points of integrity; insufficient wood prevents the repair. **Source:** [Use Cases](use-cases.md), UC-SHIP-repair-damage.
 
-### 2.4 Survival and Fatigue
+### 2.4 Cooking, Survival and Fatigue
 
-- **`BR-stat-max`:** Each crew member’s hunger, thirst, and fatigue is bounded between zero and its respective maximum, and food, water, or rest cannot restore a stat beyond that maximum; maximum values are TBD. **Source:** [Use Cases](use-cases.md), UC-SURV-consume-food; UC-SURV-consume-water; UC-FTG-rest, Associated Information.
+These rules describe planned single-player behavior. [Use cases](use-cases.md#area-cooking-cook) define flows; [Cooking content](recipes-and-preparation.md) contains proposed recipes and unresolved values.
 
-- **`BR-barrel-fill-rate`:** The shared water barrel collects drinkable water at a steady TBD rate up to its TBD capacity, and bottle refills are limited by available barrel water and the bottle’s TBD capacity. **Source:** [Use Cases](use-cases.md), UC-SURV-consume-water.
+- **`BR-stat-max`:** Hunger and character health stay between zero and their respective maxima; food cannot overfill either. Fatigue severity is bounded by its pending presentation model.
+- **`BR-stat-depletion-rate`:** Movement/actions spend hunger, including cooking. Costs, idle/rest drain and passive ship-travel contribution remain TBD. Anchoring is not a survival pause.
+- **`BR-hunger-fatigue-threshold`:** Hunger below 40% starts fatigue that worsens as hunger falls; above 40% clears the hunger contribution. Low health independently contributes at the 10% threshold. Proposed boundary rules are prior-state retention at exactly 40% and health ≤10%; confirmation pending. Combined severity is TBD. Above 50% is comfortably healthy, not an additional recovery gate.
+- **`BR-starvation-health-loss`:** Zero hunger starts health loss at a TBD rate/interval. Positive hunger stops starvation damage but can leave hunger fatigue active. Zero hunger does not invoke automatic recovery.
+- **`BR-character-health-death`:** Meals restore their defined character-health amounts. Character health is separate from hunger and ship integrity; zero health means death/game over for this voyage. Death releases stations and blocks delayed healing/completion.
+- **`BR-health-loss-sources`:** This slice loses health through zero-hunger starvation and horrible/poisonous meals; no combat/collision damage is added.
+- **`BR-recipe-result`:** Players experiment with owned food and predetermined recipes/results. Initial recipes use existing fish/potato assets with no water item, bucket or water-gathering dependency. Ingredient compatibility is separate from 0–3 preparation stars. Exact combinations, quantities, matching and discovery rules remain proposals.
+- **`BR-poisonous-failed-food`:** Explicitly horrible combinations are poisonous even at three stars. Failed preparation also poisons food; “under 0 stars” is provisionally interpreted as zero stars on the current scale. Timeout is undecided. Poison damages health instead of healing by at least 30%, increasing with badness. Percentage of maximum health is proposed; denominator, tiers, timing and hunger effect need agreement.
+- **`BR-fatigue-in-cooking`:** Progressive tiredness, dizziness, clutter and cook/eat warnings continue into and affect cooking. Counter semantics, effect curves, combined severity and any movement penalty are TBD; do not silently alter scores.
+- **`BR-solo-station-sailing`:** Cooking/rest does not stop sailing; the player can anchor to stop. No stopped/docked rest precondition. Rest cannot silently restore hunger/health or erase their fatigue causes.
+- **`BR-pause-fatigue-presentation`:** Existing shake/wobble continues visually during pause. Proposed gameplay contract freezes hunger, health/damage, warning counters, ship/station logic and recipe timer with no catch-up; visual animation cannot progress gameplay.
+- **`BR-pass-out-recovery`:** Retired for this slice. No automatic restoration of all stats to 25%; zero health invokes death.
+- **`BR-barrel-fill-rate`:** Deferred with water/thirst; not required for cooking.
+- **`BR-illness-fatigue-floor`:** Deferred with raw-food illness. Do not add its old timer/floor on top of current fatigue without a new decision.
 
-- **`BR-stat-depletion-rate`:** Hunger and thirst decrease at their own constant TBD rates during active, unpaused play while a crew member is conscious, and normal fatigue depletion follows the same conditions except that it stops while resting; hunger and thirst continue to decrease during rest. **Source:** [Use Cases](use-cases.md), UC-SURV-deplete-hunger-thirst; UC-FTG-deplete-fatigue; UC-FTG-rest.
-
-- **`BR-pass-out-recovery`:** A crew member whose hunger, thirst, or fatigue reaches zero passes out without permanent death, loses the ability to act and any station claim for a TBD cooldown, and then recovers with all three stats at 25% of their respective maxima. **Source:** [Use Cases](use-cases.md), UC-SURV-pass-out.
-
-- **`BR-illness-fatigue-floor`:** Illness from raw non-fruit food adds fatigue drain only while fatigue is above a provisional floor of about 50% of maximum and the illness timer remains active; normal depletion can continue below that floor, whose exact value or variation is TBD. Whether illness drain resumes after rest raises fatigue above the floor is also TBD (`OI-12`). **Source:** [Use Cases](use-cases.md), UC-SURV-recover-from-illness.
+Minecraft is a conceptual owner reference for hunger/activity and food restoring visible hearts; these explicit Holy Ship rules govern behavior, without importing saturation, difficulty or regeneration systems.
 
 ### 2.5 Events and Trading
 
