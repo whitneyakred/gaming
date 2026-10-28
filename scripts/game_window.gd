@@ -2,6 +2,10 @@ extends Node
 ## Keep world pixels the same size as the window grows. F11 toggles fullscreen.
 var _previous_mode: Window.Mode = Window.MODE_MAXIMIZED
 
+func _ready() -> void:
+	# Window controls remain available while the new pause menu freezes gameplay.
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
 		var window := get_window()

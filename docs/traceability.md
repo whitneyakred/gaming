@@ -112,7 +112,7 @@ These links identify design coverage. Proposed designs, unresolved tuning, and d
 | `UC-PROG-quit-voyage` | [PROG](design/PROG.md) |
 | `UC-PROG-start-voyage` | [PROG](design/PROG.md) |
 | `UC-PROG-host-join` | [PROG](design/PROG.md) |
-| `UC-PROG-pause-game` | [PROG](design/PROG.md) |
+| `UC-PROG-pause-game` | [PROG](design/PROG.md). Build: ✅ Built, single-player slice ([pause_menu.gd](../scripts/pause_menu.gd)). Verify: 🟡 Partial, [pause_game_suite.gd](../tests/pause_game_suite.gd) covers the main flow (pause by P; resume by button and by P) and repeated calls; 1a and 4b deferred co-op, 4a deferred until quit-voyage (OI-21). |
 | `UC-PROG-choose-character` | [PROG](design/PROG.md) |
 | `UC-SYS-item-pool` | [SYS](design/SYS.md) |
 | `UC-SYS-player-inventory` | [SYS](design/SYS.md) |

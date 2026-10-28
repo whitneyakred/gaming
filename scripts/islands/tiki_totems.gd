@@ -79,12 +79,12 @@ func _play_sequence() -> void:
 	refresh_hud()
 	_show_token += 1
 	var token := _show_token
-	await get_tree().create_timer(0.9).timeout
+	await get_tree().create_timer(0.9, false).timeout
 	for tile in sequence:
 		if token != _show_token or not is_running():
 			return
 		_light(tile, tile_colors[tile % tile_colors.size()].lightened(0.45), flash_seconds)
-		await get_tree().create_timer(flash_seconds + gap_seconds).timeout
+		await get_tree().create_timer(flash_seconds + gap_seconds, false).timeout
 	if token != _show_token or not is_running():
 		return
 	phase = Phase.INPUT
@@ -124,7 +124,7 @@ func _round_won() -> void:
 func _light(tile: int, color: Color, seconds: float) -> void:
 	_lit[tile] = color
 	_tiles[tile].queue_redraw()
-	await get_tree().create_timer(seconds).timeout
+	await get_tree().create_timer(seconds, false).timeout
 	if _lit.get(tile) == color:
 		_lit.erase(tile)
 		if is_instance_valid(_tiles[tile]):
