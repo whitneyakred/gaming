@@ -17,6 +17,7 @@ var _name_nodes: Array[Label] = []
 var _quantity_nodes: Array[Label] = []
 var _selection_nodes: Array[Panel] = []
 var _selected_index: int = -1
+var _selected_item_id: StringName
 var _tooltip_token: int = 0
 
 
@@ -63,8 +64,9 @@ func refresh() -> void:
 			continue
 		_show_item(index, item, _inventory.get_quantity(item.id))
 
-	if _selected_index >= _inventory.inventory.size():
+	if _selected_index >= _inventory.inventory.size() or (_selected_index >= 0 and _inventory.inventory[_selected_index].id != _selected_item_id):
 		_selected_index = -1
+		_selected_item_id = &""
 		_tooltip_token += 1
 		tooltip_panel.hide()
 	_update_selection()
@@ -110,6 +112,7 @@ func _show_item(index: int, item: ItemData, quantity: int) -> void:
 func _select_slot(index: int) -> void:
 	if _inventory == null or index >= _inventory.inventory.size():
 		_selected_index = -1
+		_selected_item_id = &""
 		_tooltip_token += 1
 		tooltip_panel.hide()
 		_update_selection()
@@ -120,6 +123,7 @@ func _select_slot(index: int) -> void:
 		return
 
 	_selected_index = index
+	_selected_item_id = item.id
 	var quantity := _inventory.get_quantity(item.id)
 	tooltip_label.text = "%s%s\n%s" % [
 		item.display_name,

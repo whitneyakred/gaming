@@ -14,15 +14,15 @@
 [ext_resource type="PackedScene" uid="uid://ujrk5hekymxt" path="res://scenes/stations/fishing_station.tscn" id="12"]
 [ext_resource type="Script" uid="uid://ctrdifj18g6xg" path="res://scripts/item-system/item_data.gd" id="12_tbq4g"]
 [ext_resource type="Script" uid="uid://cx41u6oa2ga7r" path="res://scripts/inventory-system/player_inventory.gd" id="13_mx31c"]
-[ext_resource type="Script" path="res://scripts/islands/world_island.gd" id="14"]
-[ext_resource type="Texture2D" path="res://assets/island_large.png" id="15"]
+[ext_resource type="Script" uid="uid://dnyy7i6fapdvl" path="res://scripts/islands/world_island.gd" id="14"]
+[ext_resource type="Texture2D" uid="uid://1j6kbg87jkwv" path="res://assets/island_large.png" id="15"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/anchor_station.tscn" id="16"]
-[ext_resource type="PackedScene" path="res://scenes/ui/inventory_hotbar.tscn" id="17_hotbar"]
+[ext_resource type="PackedScene" uid="uid://cjgbshu0u7v0w" path="res://scenes/ui/inventory_hotbar.tscn" id="17_hotbar"]
 
 [sub_resource type="RectangleShape2D" id="SternShape"]
 size = Vector2(44, 40)
 
-[sub_resource type="Resource" id="Resource_fs4we"]
+[sub_resource type="Resource" id="Resource_dschd"]
 resource_local_to_scene = true
 script = ExtResource("13_mx31c")
 player_id = &"player_1"
@@ -35,31 +35,30 @@ z_index = -20
 script = ExtResource("2")
 world_anchored = true
 
-[node name="Islands" type="Node2D" parent="."]
+[node name="Islands" type="Node2D" parent="." unique_id=458453185]
 
-[node name="CoconutIsland" type="Node2D" parent="Islands"]
+[node name="CoconutIsland" type="Node2D" parent="Islands" unique_id=217667889]
 position = Vector2(-360, -2260)
 script = ExtResource("14")
 display_name = "Coconut Island"
 scene = "res://scenes/island.tscn"
 
-[node name="Sprite2D" type="Sprite2D" parent="Islands/CoconutIsland"]
+[node name="Sprite2D" type="Sprite2D" parent="Islands/CoconutIsland" unique_id=1594066392]
 texture_filter = 1
 scale = Vector2(2, 2)
 texture = ExtResource("3")
 
-[node name="TreasureIsland" type="Node2D" parent="Islands"]
+[node name="TreasureIsland" type="Node2D" parent="Islands" unique_id=257662826]
 position = Vector2(1400, -940)
 script = ExtResource("14")
 display_name = "Treasure Island"
 scene = "res://scenes/islands/treasure_island.tscn"
 
-[node name="Sprite2D" type="Sprite2D" parent="Islands/TreasureIsland"]
+[node name="Sprite2D" type="Sprite2D" parent="Islands/TreasureIsland" unique_id=1314040907]
 texture_filter = 1
 position = Vector2(-1, -47)
 scale = Vector2(0.8, 0.8)
 texture = ExtResource("15")
-
 
 [node name="ShipSprite" type="Sprite2D" parent="." unique_id=1638528428]
 texture_filter = 1
@@ -129,7 +128,7 @@ interaction_distance = 32.0
 ship = NodePath("..")
 local_player = NodePath("../Player")
 
-[node name="Anchor" parent="." node_paths=PackedStringArray("ship", "local_player") instance=ExtResource("16")]
+[node name="Anchor" parent="." unique_id=1726864904 node_paths=PackedStringArray("ship", "local_player") instance=ExtResource("16")]
 position = Vector2(-45, 65)
 ship = NodePath("..")
 local_player = NodePath("../Player")
@@ -138,7 +137,7 @@ local_player = NodePath("../Player")
 
 [node name="Player" parent="." unique_id=656477266 instance=ExtResource("5")]
 position = Vector2(-30, 90)
-player_inventory = SubResource("Resource_fs4we")
+player_inventory = SubResource("Resource_dschd")
 
 [node name="SailingDemo" parent="." unique_id=2090647486 node_paths=PackedStringArray("ship", "helm", "camera") instance=ExtResource("11")]
 ship = NodePath("..")
@@ -148,7 +147,12 @@ draw_ocean_marks = false
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1647158824]
 
-[node name="InventoryHotbar" parent="HUD" instance=ExtResource("17_hotbar")]
+[node name="InventoryHotbar" parent="HUD" unique_id=1780503792 instance=ExtResource("17_hotbar")]
+offset_left = 245.0
+offset_top = -107.0
+offset_right = 389.0
+offset_bottom = -62.0
+scale = Vector2(1.75, 1.75)
 
 [node name="StatusLabel" type="Label" parent="HUD" unique_id=1710473860]
 offset_left = 290.0
