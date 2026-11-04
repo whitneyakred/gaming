@@ -78,6 +78,8 @@ All 23 active rules have use-case citations. `BR-single-helmsman` is a supersede
 
 **Release legend.** `v0.1.0` the proving slice (Checkpoint 2); `v0.2.0` Checkpoint 3 (Nov 20); `v1.0.0` the December MVP; `Out` not planned for the MVP (deferred co-op, water, and illness per [vision 4.3](requirements/vision-and-scope.md#43-mvp-scope), or superseded). Later scope is added as new use cases after `v1.0.0`. Rows are placed risk first, then what the client needs first, then dependencies; the pull request that changes a cell says why. No `FR-*` identifiers exist in the specification yet, so every row is a use case.
 
+**Coarse estimates.** Each use case not yet designed carries its four-part coarse estimate from planning poker (2026-11-04) on its own issue ([#45–#91](https://github.com/whitneyakred/gaming/issues?q=is%3Aissue+%22coarse+estimate%22)), collected in [`estimates/coarse-estimates.csv`](estimates/coarse-estimates.csv). Totals: `v0.2.0` 15–30 h, `v1.0.0` 66–132 h.
+
 These links identify design coverage. Proposed designs, unresolved tuning, and deferred flows remain unverified until their code and relevant tests exist. The [prototype guide](minimal-mvp.md) records current code; [sailing validation](sailing-integration.md#validation) covers the existing integration test only.
 
 | Use case | Area design | Release |
