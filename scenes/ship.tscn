@@ -165,6 +165,18 @@ theme_override_font_sizes/font_size = 26
 text = "Sailing the open sea..."
 horizontal_alignment = 1
 
+[node name="ItemMessageLabel" type="Label" parent="HUD"]
+visible = false
+offset_left = 390.0
+offset_top = 74.0
+offset_right = 890.0
+offset_bottom = 110.0
+theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+
 [node name="PromptLabel" type="Label" parent="HUD" unique_id=1712215194]
 offset_left = 290.0
 offset_top = 650.0

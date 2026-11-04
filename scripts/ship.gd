@@ -42,6 +42,7 @@ const ROW_PATH: Array[Vector2] = [
 @onready var stern_zone: Area2D = $SternZone
 @onready var status_label: Label = $HUD/StatusLabel
 @onready var prompt_label: Label = $HUD/PromptLabel
+@onready var item_message_label: Label = $HUD/ItemMessageLabel
 
 var _state: State = State.SAILING
 var _player_at_stern: bool = false
@@ -64,6 +65,8 @@ func _ready() -> void:
 	stern_zone.body_entered.connect(_on_stern_entered)
 	stern_zone.body_exited.connect(_on_stern_exited)
 	prompt_label.visible = false
+	item_message_label.hide()
+	player.feedback_requested.connect(_show_item_message)
 	rider.visible = false
 
 	var visited := get_island(visited_island_name)
@@ -258,6 +261,16 @@ func _row_along(points: Array[Vector2]) -> void:
 
 func _set_status(text: String) -> void:
 	status_label.text = text
+
+
+func _show_item_message(text: String) -> void:
+	item_message_label.text = text
+	item_message_label.show()
+	var message_token: int = int(item_message_label.get_meta("message_token", 0)) + 1
+	item_message_label.set_meta("message_token", message_token)
+	await get_tree().create_timer(1.5).timeout
+	if item_message_label.get_meta("message_token", 0) == message_token:
+		item_message_label.hide()
 
 func _on_stern_entered(body: Node2D) -> void:
 	if body == player:

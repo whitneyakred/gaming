@@ -198,7 +198,7 @@ Godot tools, Placeholder Assets, and GitHub support all areas through section 5.
 | [ocean.gd](../../scripts/ocean.gd), [sailing_demo.gd](../../scripts/sailing/sailing_demo.gd) | Recycled ocean pattern, camera follow, wind arrow, and helm indicator. |
 | [world_island.gd](../../scripts/islands/world_island.gd) | An island on the sailing map: name, island scene, and dock point. |
 | [island_game.gd](../../scripts/islands/island_game.gd), [collect_island.gd](../../scripts/islands/collect_island.gd), [treasure_island.gd](../../scripts/islands/treasure_island.gd), [island_hud.gd](../../scripts/islands/island_hud.gd) | Shared island challenge flow (timer, win, lose, rowboat exit), the two challenge types, and their HUD. |
-| [rowboat.gd](../../scripts/rowboat.gd), [coconut.gd](../../scripts/coconut.gd) | The island's rowboat exit and the walk-over item pickup. |
+| [rowboat.gd](../../scripts/rowboat.gd), [world_item.gd](../../scripts/items/world_item.gd) | The island's rowboat exit and reusable walk-over item pickup. |
 | [tests/sailing_integration.gd](../../tests/sailing_integration.gd) | Headless integration test of stations, sailing, docking, and the island round trip. |
 
 **Designed, not yet built** (paths from [deck.md](deck.md) and [isle.md](isle.md)): `scripts/stations/station.gd`, `scripts/stations/station_interactor.gd`, `scripts/stations/overboard_zone.gd`, `scripts/islands/resource_node.gd`, and `scripts/voyage_state.gd`, which is registered as the `VoyageState` autoload next to `ItemDatabase` and `Items` in project.godot.

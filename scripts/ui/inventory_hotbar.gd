@@ -1,6 +1,8 @@
 class_name InventoryHotbar
 extends Control
 
+signal drop_selected_requested(item_id: StringName)
+
 ## A four-slot, signal-driven view of one PlayerInventory. The hotbar never
 ## owns item quantities; it redraws from the player's inventory whenever that
 ## resource changes.
@@ -42,6 +44,12 @@ func _exit_tree() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed(&"drop_item") and not event.is_echo():
+		if _inventory != null and _selected_index >= 0 and _selected_index < _inventory.inventory.size():
+			drop_selected_requested.emit(_selected_item_id)
+			get_viewport().set_input_as_handled()
+		return
+
 	for index in _slots.size():
 		var action := "hotbar_slot_%d" % (index + 1)
 		if event.is_action_pressed(action) and not event.is_echo():
@@ -85,6 +93,9 @@ func _bind_inventory() -> void:
 
 	if not _inventory.inventory_changed.is_connected(refresh):
 		_inventory.inventory_changed.connect(refresh)
+	var drop_callable := Callable(player, "request_drop_item")
+	if player.has_method("request_drop_item") and not drop_selected_requested.is_connected(drop_callable):
+		drop_selected_requested.connect(drop_callable)
 
 
 func _clear_slot(index: int) -> void:

@@ -89,7 +89,7 @@ classDiagram
     class ItemPickup {
         <<changed>>
         +item_id StringName
-        +collected(item_id)
+        +picked_up(item_id, quantity, picker)
     }
     class ResourceNode {
         <<new>>
@@ -124,7 +124,7 @@ classDiagram
 - [`scripts/islands/collect_island.gd`](../../scripts/islands/collect_island.gd) (changed): the total is every placed pickup in its group in the scene file. Placed pickups already collected earlier this voyage (in a failed run or before leaving early) count as collected when the run starts, so a retry continues the progress. Pickups dropped by a `ResourceNode` are not put in the group and never count.
 -  [`scripts/islands/treasure_island.gd`](../../scripts/islands/treasure_island.gd), [`scripts/islands/island_hud.gd`](../../scripts/islands/island_hud.gd) (reused): the two challenge types and the HUD.
 - [`scripts/rowboat.gd`](../../scripts/rowboat.gd) (reused, shown as `IslandRowboat`): walking into the island's rowboat calls `IslandGame.try_escape()`.
-- [`scripts/coconut.gd`](../../scripts/coconut.gd) / [`scenes/coconut.tscn`](../../scenes/coconut.tscn) (changed, shown as `ItemPickup`): already generic through `item_id`. Reacts only to bodies in the `crew` group and adds the item to `VoyageState.get_inventory(body.player_id)`. Emits `collected` only when the add succeeds, and stays on the ground when the inventory is full (collect 4a). A placed pickup that is already collected frees itself in `_ready`. Renaming it to `item_pickup` is optional.
+- [`scripts/items/world_item.gd`](../../scripts/items/world_item.gd) / [`scenes/items/world_item.tscn`](../../scenes/items/world_item.tscn) (changed, shown as `ItemPickup`): reusable through `item_id`. It reacts to a player body, adds the item to that player's inventory, emits `picked_up` only when the add succeeds, and stays on the ground when the inventory is full (collect 4a). `CollectIsland` listens to that success signal for placed challenge pickups.
 - `scripts/islands/resource_node.gd` + `scenes/islands/resource_node.tscn` (new): a fruit tree or wood pile. Pressing E in range drops one `ItemPickup` (collect step 2) at an exported offset on walkable ground, and shows itself as empty when used up (1a). It reads `get_resource_remaining` in `_ready` so a tree emptied on an earlier visit already looks empty. When several resource nodes are in range, only the nearest one acts on the press, and it marks the input handled.
 - [`scripts/item-system/items.gd`](../../scripts/item-system/items.gd) (changed): registers a `wood` item. `coconut` is the fruit.
 - [`scripts/player.gd`](../../scripts/player.gd) (changed): in `_ready`, takes its `PlayerInventory` from `VoyageState.get_inventory(player_id)` instead of a per-scene resource, so the ship's player and the island's player share one inventory. `player_id` defaults to `&"player_1"`. The fishing-rod starter grant stays: it adds the rod only if the voyage inventory doesn't have one, so it happens once per voyage.
@@ -251,7 +251,7 @@ There is no HTTP API. Following [8.2.3 API conventions](architectural-design.md#
 | `VoyageState.get_resource_remaining(island_id, resource_id, starting_amount) -> int` | `ResourceNode` (`_ready` and before each drop) | Same as below | The amount left, `starting_amount` on first touch | none |
 | `VoyageState.take_from_resource(island_id, resource_id, starting_amount) -> bool` | `ResourceNode` only | The island id, the resource node's name, its starting amount (used on first touch) | `true` and the amount left drops by one | 1a: `false` when nothing is left |
 | `VoyageState.is_pickup_collected` / `mark_pickup_collected(island_id, pickup_id)` | `ItemPickup` only (placed pickups only). It checks in `_ready` and frees itself if already collected. `CollectIsland` reads it to count earlier progress. | The island id, the pickup's node name | Collected placed pickups are removed when the island loads again | none |
-| `ItemPickup.collected(item_id)` signal | Emitted by `ItemPickup` after a successful `add_item`. Heard by `CollectIsland`. | The item id | The objective counter goes up | 4a: not emitted, the item stays on the ground |
+| `ItemPickup.picked_up(item_id, quantity, picker)` signal | Emitted by `ItemPickup` after a successful `add_item`. Heard by `CollectIsland`. | The item, quantity, and picker | The objective counter goes up | 4a: not emitted, the item stays on the ground |
 | `IslandGame.run_won`, `run_lost(reason)` signals | Emitted by `IslandGame` (existing) | n/a | n/a | n/a |
 | Scene handoff (`VoyageState.visited_island`, `returning`) | Written by `Ship` before loading an island and by `IslandGame` before loading the ship. Read by the other side. | The island id | The ship comes back anchored at the right dock and plays the return rowing cutscene | `Ship` clears `returning` and `visited_island` in `_ready` as soon as it has read them, so a later reload of the ship scene never replays the return trip. Unknown island id on return: the ship starts in `SAILING` where it is. |
 
@@ -359,7 +359,7 @@ _[Designing an area against real code is when the architecture's guesses meet re
 
 - **5.2:** add a cross-cutting **Voyage State** component (`VoyageState` autoload) that owns in-memory voyage state crossing scene changes. Island Exploration and Crew Control depend on it.
 - **5.2:** Island Exploration also depends on **Ship State** (docking, the rowboat cutscene). Change its status from "not implemented" to "implemented: docking, rowboat, two timed islands".
-- **5.3:** the implementation map is out of date. Add `ship.gd`, `world_island.gd`, `island_game.gd`, `collect_island.gd`, `treasure_island.gd`, `island_hud.gd`, `rowboat.gd`, `coconut.gd`, the inventory scripts, and the new files. Add `VoyageState` next to the `ItemDatabase` and `Items` autoloads.
+- **5.3:** the implementation map is out of date. Add `ship.gd`, `world_island.gd`, `island_game.gd`, `collect_island.gd`, `treasure_island.gd`, `island_hud.gd`, `rowboat.gd`, `world_item.gd`, the inventory scripts, and the new files. Add `VoyageState` next to the `ItemDatabase` and `Items` autoloads.
 - **6:** the runtime view should show the ship-to-island scene change and the `VoyageState` handoff.
 - **7.3 Restart behavior:** voyage state (inventories, island progress) is held in memory and lost on restart. That is consistent with "no saved voyage", but now it is real state, not just positions.
 - **9.2 `KD-world-chunks`:** note that islands are fixed `WorldIsland` nodes at map coordinates in `ship.tscn`, not chunk-generated. Record this as a deliberate interim shortcut (or as `TD-*` debt).

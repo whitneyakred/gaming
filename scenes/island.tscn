@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://cdk143q5q8kk7" path="res://scripts/ocean.gd" id="7"]
 [ext_resource type="Texture2D" uid="uid://cy726osvyr5ua" path="res://assets/island_trees.png" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/islands/island_hud.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/ui/inventory_hotbar.tscn" id="10_hotbar"]
 
 [sub_resource type="CircleShape2D" id="PalmTrunk"]
 radius = 5.0
@@ -431,3 +432,11 @@ region_enabled = true
 region_rect = Rect2(142, 187, 19, 17)
 
 [node name="IslandHUD" parent="." unique_id=492485398 instance=ExtResource("9")]
+
+[node name="InventoryHotbar" parent="IslandHUD" instance=ExtResource("10_hotbar")]
+offset_left = 245.0
+offset_top = 560.0
+offset_right = 389.0
+offset_bottom = 605.0
+scale = Vector2(1.75, 1.75)
+player_path = NodePath("../../World/Player")

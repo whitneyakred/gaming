@@ -2,9 +2,9 @@
 
 This folder holds a small, per-player inventory model. It is deliberately
 data-only: it supports adding, counting, removing, reordering, and clearing
-items, but has no UI, saving, networking, or world-drop behavior yet. Gameplay
-features should use this API instead of editing the exported arrays and
-dictionary directly.
+items. The hotbar and world-item pickup scenes use this API instead of editing
+the exported arrays and dictionary directly. Saving and networking are not
+implemented.
 
 ## Runtime pieces
 
@@ -12,6 +12,7 @@ dictionary directly.
 | --- | --- |
 | `player_inventory.gd` | `PlayerInventory`, a Resource holding one player's item types and quantities. |
 | `inventory_usage.gd` | Optional Node component that forwards calls to an assigned `PlayerInventory`. |
+| [`../items/world_item.gd`](../items/world_item.gd) | Ground-item pickup that transfers its quantity only after an inventory accepts it. |
 
 Each `Player` owns a `player_inventory` property. In `scenes/player.tscn` it
 is a scene-local Resource, so each future Player scene instance receives a
@@ -59,8 +60,10 @@ var removed_many: bool = player_inventory.try_remove(&"fish_cod", 2)
 - that item type is already at its stack limit; or
 - no distinct-item space remains for a new item type.
 
-Treat `false` as a gameplay result. Until a world-drop system exists, callers
-should leave the item ungranted and provide an appropriate message/log.
+Treat `false` as a gameplay result. `WorldItem` leaves a failed pickup on the
+ground and tells the player their inventory is full. Other reward sources must
+likewise leave an item at its source or report the refusal; they must not
+silently discard it.
 
 `get_quantity(item_id)` returns `0` for an item that is not held.
 
@@ -171,3 +174,19 @@ mutation.
 Before adding transactional consumption, transfers, saves, or multiplayer syncing,
 extend `PlayerInventory` with explicit methods and tests. Do not mutate
 `inventory` or `quantities` from outside this folder.
+
+## Dropping and picking up items
+
+The four-slot hotbar selects a visible item type with keys **1** through **4**.
+With a selected item, **B** drops one unit in front of the player. `Player`
+spawns `scenes/items/world_item.tscn` under the player's current world parent,
+then removes that one unit only after the pickup exists. A deck drop therefore
+moves with the ship, while an island drop remains on that island.
+
+Walking over a `WorldItem` automatically tries to add its full quantity. On a
+full inventory, it remains on the ground and shows `Inventory full`; on success
+it is removed. A newly dropped item ignores its dropping player until that
+player has left its pickup area, preventing an immediate re-pickup. Drops are
+blocked while `Player.is_overboard` is true and show `Can't drop items in the
+water`. When an `ItemData` has an inventory icon, `WorldItem` displays that
+same texture in the world; items without an icon retain the placeholder marker.
