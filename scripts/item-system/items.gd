@@ -2,6 +2,7 @@ extends Node
 
 const SEABASS_ICON := preload("res://assets/items/seabass_alive.png")
 const ROPE_ICON := preload("res://assets/items/rope_var1.png")
+const COCONUT_WHOLE_ICON := preload("res://assets/items/coconut_whole.png")
 
 
 func _ready() -> void:
@@ -33,7 +34,8 @@ func _ready() -> void:
 		"Coconut",
 		"A fresh coconut gathered from a tropical island.",
 		20,
-		ItemData.Category.FOOD
+		ItemData.Category.FOOD,
+		COCONUT_WHOLE_ICON
 	))
 
 func make_item(
