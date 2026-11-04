@@ -99,9 +99,11 @@ func _run() -> void:
 	_check(player.player_inventory.add_item(cod), "Inventory accepts the first hotbar item")
 	_check(player.player_inventory.try_add(&"fish_cod", 2), "Inventory can create a visible item stack")
 	_check(player.player_inventory.add_item(rope), "Inventory accepts a second hotbar item")
-	_check(_fallback_name(hotbar, 1).visible and _fallback_name(hotbar, 1).text == "Cod", "Signal refresh displays an iconless item name")
+	_check(_icon(hotbar, 1).visible and _icon(hotbar, 1).texture == cod.icon, "Signal refresh displays the fish item PNG")
+	_check(not _fallback_name(hotbar, 1).visible, "A fish icon hides the fallback item name")
 	_check(_quantity(hotbar, 1).visible and _quantity(hotbar, 1).text == "x3", "Signal refresh displays stack quantity above one")
-	_check(_fallback_name(hotbar, 2).visible and _fallback_name(hotbar, 2).text == "Rope", "Signal refresh preserves inventory ordering")
+	_check(_icon(hotbar, 2).visible and _icon(hotbar, 2).texture == rope.icon, "Signal refresh displays the rope item PNG in inventory order")
+	_check(not _fallback_name(hotbar, 2).visible, "A rope icon hides the fallback item name")
 	_check(not _quantity(hotbar, 2).visible, "A single item hides its quantity label")
 	_check(not _fallback_name(hotbar, 3).visible, "Unused slots remain empty after refresh")
 

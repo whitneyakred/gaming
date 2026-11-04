@@ -1,19 +1,25 @@
 extends Node
 
+const SEABASS_ICON := preload("res://assets/items/seabass_alive.png")
+const ROPE_ICON := preload("res://assets/items/rope_var1.png")
+
+
 func _ready() -> void:
 	ItemDatabase.register_item(make_item(
 		&"fish_cod",
-		"Cod",
-		"A common ocean fish.",
+		"Sea Bass",
+		"A common sea fish.",
 		10,
-		ItemData.Category.FOOD
+		ItemData.Category.FOOD,
+		SEABASS_ICON
 	))
 	ItemDatabase.register_item(make_item(
 		&"rope",
 		"Rope",
 		"Strong cordage for general shipboard tasks.",
 		25,
-		ItemData.Category.MATERIAL
+		ItemData.Category.MATERIAL,
+		ROPE_ICON
 	))
 	ItemDatabase.register_item(make_item(
 		&"fishing_rod",
@@ -36,6 +42,7 @@ func make_item(
 	item_description: String,
 	item_max_stack: int = 1,
 	item_category: ItemData.Category = ItemData.Category.FOOD,
+	item_icon: Texture2D = null,
 	item_draw_weight: float = 1.0,
 	item_sell_value: int = 0
 ) -> ItemData:
@@ -45,6 +52,7 @@ func make_item(
 	item.description = item_description
 	item.max_stack = item_max_stack
 	item.category = item_category
+	item.icon = item_icon
 	item.draw_weight = item_draw_weight
 	item.sell_value = item_sell_value
 	return item
