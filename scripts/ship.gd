@@ -94,7 +94,10 @@ func _ready() -> void:
 		if last_visit_won and not completed_islands.has(visited.name):
 			completed_islands.append(visited.name)
 		last_visit_won = true
-		_row_back_from_island(visited)
+		if SwimAccess.returning_by_swimming:
+			$SwimAccess.restore_swimmer()
+		else:
+			_row_back_from_island(visited)
 	else:
 		returning_from_island = false
 		_update_sailing_status()
@@ -120,6 +123,8 @@ func _process(delta: float) -> void:
 	var target := Vector2.ZERO
 	if _state == State.ROWING:
 		target = _view_offset_showing(rowboat.global_position, offset)
+	elif player.is_overboard:
+		target = player.global_position - global_position
 	_view.view_offset = offset.lerp(target, 1.0 - exp(-VIEW_FOLLOW_SPEED * delta))
 
 # The smallest change to `current` that brings `point` inside the screen,

@@ -1,8 +1,9 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/sailing/sailing_demo.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/sailing/helm_wheel_widget.gd" id="2"]
 [ext_resource type="Shader" path="res://scripts/sailing/station_vignette.gdshader" id="3"]
+[ext_resource type="Script" path="res://scripts/sailing/ship_direction.gd" id="4"]
 
 [sub_resource type="ShaderMaterial" id="VignetteMaterial"]
 shader = ExtResource("3")
@@ -25,6 +26,10 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="ShipDirection" type="Control" parent="HUD"]
+mouse_filter = 2
+script = ExtResource("4")
 
 [node name="Wind" type="Control" parent="HUD"]
 anchors_preset = 1

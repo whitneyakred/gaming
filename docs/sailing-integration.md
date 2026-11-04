@@ -6,6 +6,26 @@ the island game remain part of the same playable loop.
 
 ## Play in Godot
 
+### Swimming alternative
+
+Walk out along the wooden plank on the left side of the ship to enter the
+water; no interaction key is needed. WASD / arrow keys swim at 65 px/s
+(walking is 145 px/s). Only the character's head shows above water. The camera
+follows the swimmer, and the moving ship does not carry them along. Lower the
+anchor first if you want the ship to stay nearby.
+
+Swim to any island's shore to start its minigame. On success or failure, you
+return to the water where you arrived, with the ship anchored at its saved
+position. Swim away from shore before approaching again to retry. Swim to the
+ladder directly below the plank to climb aboard automatically. Stations cannot
+be used from the water. The rowboat remains available as a separate travel option.
+
+This implements swimming-to-island access explicitly requested for this branch,
+superseding the earlier rowboat-only milestone restriction in the design docs.
+There is no stamina or drowning mechanic in this change.
+
+### Sailing and rowing
+
 1. Open `project.godot`, then click the **Run Project** button (the play triangle
    at the top right) or press **F5**. F6 runs only the currently open scene.
 2. Walk with **WASD** or the arrow keys. Approach the sail across the center of

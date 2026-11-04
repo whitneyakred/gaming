@@ -18,6 +18,8 @@
 [ext_resource type="Texture2D" path="res://assets/island_large.png" id="15"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/anchor_station.tscn" id="16"]
 
+[ext_resource type="Script" path="res://scripts/sailing/swim_access.gd" id="swim_access"]
+
 [sub_resource type="RectangleShape2D" id="SternShape"]
 size = Vector2(44, 40)
 
@@ -240,7 +242,7 @@ texture = ExtResource("4")
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="DeckBoundary" unique_id=659407607]
 build_mode = 1
-polygon = PackedVector2Array(4, -208, 24, -188, 40, -164, 56, -128, 66, -88, 72, -38, 74, 12, 72, 72, 68, 122, 62, 156, 52, 166, 22, 166, 22, 196, -10, 196, -10, 166, -44, 166, -54, 156, -60, 122, -64, 72, -66, 12, -64, -38, -58, -88, -48, -128, -32, -164, -16, -188)
+polygon = PackedVector2Array(4, -208, 24, -188, 40, -164, 56, -128, 66, -88, 72, -38, 74, 12, 72, 72, 68, 122, 62, 156, 52, 166, 22, 166, 22, 196, -10, 196, -10, 166, -44, 166, -54, 156, -60, 122, -64, 72, -66, 12, -64, -32, -126, -32, -126, -52, -62, -52, -58, -88, -48, -128, -32, -164, -16, -188)
 
 [node name="Rowboat" type="Node2D" parent="." unique_id=1126902144]
 position = Vector2(4, 238)
@@ -319,36 +321,56 @@ draw_ocean_marks = false
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1647158824]
 
 [node name="StatusLabel" type="Label" parent="HUD" unique_id=1710473860]
-offset_left = 290.0
+anchor_left = 0.1
+anchor_right = 0.8
+offset_left = 0.0
 offset_top = 18.0
-offset_right = 990.0
+offset_right = 0.0
 offset_bottom = 58.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 26
 text = "Sailing the open sea..."
 horizontal_alignment = 1
+autowrap_mode = 3
+mouse_filter = 2
 
 [node name="PromptLabel" type="Label" parent="HUD" unique_id=1712215194]
-offset_left = 290.0
-offset_top = 650.0
-offset_right = 990.0
-offset_bottom = 690.0
+anchor_left = 0.1
+anchor_right = 0.9
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = -70.0
+offset_right = 0.0
+offset_bottom = -18.0
+grow_vertical = 0
 theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 24
 text = "Press E / Space to take the rowboat to the island"
 horizontal_alignment = 1
+autowrap_mode = 3
+mouse_filter = 2
 
 [node name="ControlsLabel" type="Label" parent="HUD" unique_id=1865941422]
+anchor_right = 0.7
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 18.0
-offset_top = 600.0
-offset_right = 620.0
-offset_bottom = 642.0
+offset_top = -120.0
+offset_right = -18.0
+offset_bottom = -78.0
+grow_vertical = 0
+autowrap_mode = 3
+mouse_filter = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 text = "E / Space: use / leave station | WASD: walk
 Sail: W/S deployment, A/D trim | Helm: A/D steer"
 
 [editable path="FishingStation"]
+
+[node name="SwimAccess" type="Node2D" parent="."]
+script = ExtResource("swim_access")
