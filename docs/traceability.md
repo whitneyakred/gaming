@@ -76,7 +76,7 @@ All 23 active rules have use-case citations. `BR-single-helmsman` is a supersede
 
 ## 3. Use cases to area designs
 
-**Release legend.** `v0.1.0` the proving slice (Checkpoint 2); `v0.2.0` Checkpoint 3 (Nov 20); `v1.0.0` the December MVP; `Spring` COSC 40993; `Out` not planned. Rows are placed risk first, then what the client needs first, then dependencies; the pull request that changes a cell says why. No `FR-*` identifiers exist in the specification yet, so every row is a use case.
+**Release legend.** `v0.1.0` the proving slice (Checkpoint 2); `v0.2.0` Checkpoint 3 (Nov 20); `v1.0.0` the December MVP; `Out` not planned for the MVP (deferred co-op, water, and illness per [vision 4.3](requirements/vision-and-scope.md#43-mvp-scope), or superseded). Later scope is added as new use cases after `v1.0.0`. Rows are placed risk first, then what the client needs first, then dependencies; the pull request that changes a cell says why. No `FR-*` identifiers exist in the specification yet, so every row is a use case.
 
 These links identify design coverage. Proposed designs, unresolved tuning, and deferred flows remain unverified until their code and relevant tests exist. The [prototype guide](minimal-mvp.md) records current code; [sailing validation](sailing-integration.md#validation) covers the existing integration test only.
 
@@ -90,43 +90,43 @@ These links identify design coverage. Proposed designs, unresolved tuning, and d
 | `UC-NAV-raise-lower-sail` | [NAV](design/NAV.md) | `v0.2.0` |
 | `UC-NAV-check-wind` | [NAV](design/NAV.md) | `v0.2.0` |
 | `UC-NAV-change-wind` | [NAV](design/NAV.md) | `v0.2.0` |
-| `UC-NAV-use-lookout` | [NAV](design/NAV.md) | `Spring` |
-| `UC-WAVE-generate-waves` | [WAVE](design/WAVE.md) | `Spring` |
-| `UC-WAVE-balance-ship` | [WAVE](design/WAVE.md) | `Spring` |
-| `UC-WAVE-capsize-ship` | [WAVE](design/WAVE.md) | `Spring` |
+| `UC-NAV-use-lookout` | [NAV](design/NAV.md) | `v1.0.0` |
+| `UC-WAVE-generate-waves` | [WAVE](design/WAVE.md) | `v1.0.0` |
+| `UC-WAVE-balance-ship` | [WAVE](design/WAVE.md) | `v1.0.0` |
+| `UC-WAVE-capsize-ship` | [WAVE](design/WAVE.md) | `v1.0.0` |
 | `UC-COOK-prepare-meal` | [SURV cooking integration](design/SURV.md), [Cooking content](requirements/recipes-and-preparation.md) | `v1.0.0` |
 | `UC-SURV-consume-food` | [SURV](design/SURV.md) | `v1.0.0` |
 | `UC-SURV-die` | [SURV](design/SURV.md) | `v1.0.0` |
-| `UC-SURV-consume-water` | [SURV](design/SURV.md) | `Spring` |
+| `UC-SURV-consume-water` | [SURV](design/SURV.md) | `Out` |
 | `UC-SURV-deplete-hunger-thirst` | [SURV](design/SURV.md) | `v1.0.0` |
 | `UC-SURV-pass-out` | [SURV](design/SURV.md) | `Out` |
-| `UC-SURV-recover-from-illness` | [SURV](design/SURV.md) | `Spring` |
-| `UC-FTG-rest` | [FTG](design/FTG.md) | `Spring` |
+| `UC-SURV-recover-from-illness` | [SURV](design/SURV.md) | `Out` |
+| `UC-FTG-rest` | [FTG](design/FTG.md) | `v1.0.0` |
 | `UC-FTG-deplete-fatigue` | [FTG](design/FTG.md) | `v1.0.0` |
 | `UC-FTG-warn-exhaustion` | [FTG](design/FTG.md) | `v1.0.0` |
-| `UC-SHIP-take-damage` | [SHIP](design/ship.md) | `Spring` |
-| `UC-SHIP-repair-damage` | [SHIP](design/ship.md) | `Spring` |
-| `UC-EVT-generate-event` | [EVT](design/EVT.md) | `Spring` |
-| `UC-EVT-trade-with-merchant` | [EVT](design/EVT.md) | `Spring` |
-| `UC-EVT-weather-storm` | [EVT](design/EVT.md) | `Spring` |
-| `UC-PROG-track-progress` | [PROG](design/PROG.md) | `Spring` |
-| `UC-PROG-reach-paradise` | [PROG](design/PROG.md) | `Spring` |
+| `UC-SHIP-take-damage` | [SHIP](design/ship.md) | `v1.0.0` |
+| `UC-SHIP-repair-damage` | [SHIP](design/ship.md) | `v1.0.0` |
+| `UC-EVT-generate-event` | [EVT](design/EVT.md) | `v1.0.0` |
+| `UC-EVT-trade-with-merchant` | [EVT](design/EVT.md) | `v1.0.0` |
+| `UC-EVT-weather-storm` | [EVT](design/EVT.md) | `v1.0.0` |
+| `UC-PROG-track-progress` | [PROG](design/PROG.md) | `v1.0.0` |
+| `UC-PROG-reach-paradise` | [PROG](design/PROG.md) | `v1.0.0` |
 | `UC-PROG-quit-voyage` | [PROG](design/PROG.md) | `v1.0.0` |
 | `UC-PROG-start-voyage` | [PROG](design/PROG.md) | `v1.0.0` |
-| `UC-PROG-host-join` | [PROG](design/PROG.md) | `Spring` |
+| `UC-PROG-host-join` | [PROG](design/PROG.md) | `Out` |
 | `UC-PROG-pause-game` | [PROG](design/PROG.md). Build: ✅ Built, single-player slice ([pause_menu.gd](../scripts/pause_menu.gd)). Verify: 🟡 Partial, [pause_game_suite.gd](../tests/pause_game_suite.gd) covers the main flow (pause by P; resume by button and by P) and repeated calls; 1a and 4b deferred co-op, 4a deferred until quit-voyage (OI-21). | `v0.1.0` |
-| `UC-PROG-choose-character` | [PROG](design/PROG.md) | `Spring` |
+| `UC-PROG-choose-character` | [PROG](design/PROG.md) | `v1.0.0` |
 | `UC-SYS-item-pool` | [SYS](design/SYS.md) | `v1.0.0` |
 | `UC-SYS-player-inventory` | [SYS](design/SYS.md) | `v1.0.0` |
-| `UC-SYS-track-boat` | [SYS](design/SYS.md) | `Spring` |
-| `UC-SYS-shared-inventory` | [SYS](design/SYS.md) | `Spring` |
-| `UC-SYS-item-drop` | [SYS](design/SYS.md) | `Spring` |
-| `UC-MAP-open-map` | [MAP](design/MAP.md) | `Spring` |
-| `UC-MAP-view-island-info` | [MAP](design/MAP.md) | `Spring` |
-| `UC-MAP-discover-map` | [MAP](design/MAP.md) | `Spring` |
-| `UC-MAP-place-pin` | [MAP](design/MAP.md) | `Spring` |
-| `UC-MAP-pin-distance` | [MAP](design/MAP.md) | `Spring` |
+| `UC-SYS-track-boat` | [SYS](design/SYS.md) | `v1.0.0` |
+| `UC-SYS-shared-inventory` | [SYS](design/SYS.md) | `v1.0.0` |
+| `UC-SYS-item-drop` | [SYS](design/SYS.md) | `v1.0.0` |
+| `UC-MAP-open-map` | [MAP](design/MAP.md) | `v1.0.0` |
+| `UC-MAP-view-island-info` | [MAP](design/MAP.md) | `v1.0.0` |
+| `UC-MAP-discover-map` | [MAP](design/MAP.md) | `v1.0.0` |
+| `UC-MAP-place-pin` | [MAP](design/MAP.md) | `v1.0.0` |
+| `UC-MAP-pin-distance` | [MAP](design/MAP.md) | `v1.0.0` |
 | `UC-ISLE-arrive-at-island` | [ISLE](design/isle.md) | `v1.0.0` |
 | `UC-ISLE-complete-challenge` | [ISLE](design/isle.md) | `v1.0.0` |
 | `UC-ISLE-collect-island-items` | [ISLE](design/isle.md) | `v1.0.0` |
-| `UC-ISLE-salvage-shipwreck` | [ISLE](design/isle.md) | `Spring` |
+| `UC-ISLE-salvage-shipwreck` | [ISLE](design/isle.md) | `v1.0.0` |
