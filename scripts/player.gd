@@ -29,8 +29,9 @@ func leave_station(station: Node) -> void:
 
 
 func _ready() -> void:
-	if player_inventory == null:
-		player_inventory = PlayerInventory.new()
+	var initial_inventory := player_inventory
+	var player_id := initial_inventory.player_id if initial_inventory != null else &"player_1"
+	player_inventory = VoyageState.get_player_inventory(player_id, initial_inventory)
 
 	# The prototype starts each crew member with the tool needed for its only
 	# available station. Other acquisition systems can add this item later.

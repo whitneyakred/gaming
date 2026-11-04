@@ -52,8 +52,8 @@ func _test_registered_catalog() -> void:
 	var expected_items: Array[Dictionary] = [
 		{
 			"id": &"fish_cod",
-			"display_name": "Cod",
-			"description": "A common ocean fish.",
+			"display_name": "Sea Bass",
+			"description": "A common sea fish.",
 			"max_stack": 10,
 			"category": ItemData.Category.FOOD,
 			"icon_path": "res://assets/items/seabass_alive.png",
@@ -80,7 +80,7 @@ func _test_registered_catalog() -> void:
 			"description": "A fresh coconut gathered from a tropical island.",
 			"max_stack": 20,
 			"category": ItemData.Category.FOOD,
-			"icon_path": "",
+			"icon_path": "res://assets/items/coconut_whole.png",
 		},
 	]
 
