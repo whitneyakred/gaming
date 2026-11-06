@@ -75,4 +75,9 @@ jobs:
         run: pip install "gdtoolkit==4.*"
 
       - name: Lint GDScript (gdlint)
-        continue-on-error: true   # remove once
+        continue-on-error: true
+        run: gdlint $(git ls-files '*.gd')
+
+      - name: Check GDScript formatting (gdformat)
+        continue-on-error: true
+        run: gdformat --check --diff $(git ls-files '*.gd')
