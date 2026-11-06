@@ -9,7 +9,10 @@ on:
 env:
   GODOT_VERSION: "4.7.2"   # editor + templates CI downloads; any 4.7.x works with your project
   EXPORT_NAME: "holy-ship"
-
+  
+permissions:
+  contents: write
+  
 jobs:
   export-windows:
     name: Export Windows
