@@ -35,3 +35,44 @@ jobs:
           name: ${{ env.EXPORT_NAME }}-windows
           path: builds/windows/
           if-no-files-found: error
+
+  checks:
+    name: Lint & Repo Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      # ---- Repo hygiene (blocking) ----
+      - name: No build output or Godot cache committed
+        run: |
+          bad=$(git ls-files | grep -E '\.(exe|pck|zip|dmg)$|^\.godot/|^builds/' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::These files should not be committed:"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: Every script has its .uid file committed
+        run: |
+          missing=0
+          for f in $(git ls-files '*.gd'); do
+            if ! git ls-files --error-unmatch "$f.uid" >/dev/null 2>&1; then
+              echo "::error file=$f::Missing $f.uid - commit it with the script"
+              missing=1
+            fi
+          done
+          exit $missing
+
+      # ---- GDScript style (report-only for now) ----
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install gdtoolkit
+        run: pip install "gdtoolkit==4.*"
+
+      - name: Lint GDScript (gdlint)
+        continue-on-error: true   # remove once
