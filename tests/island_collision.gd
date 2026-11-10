@@ -75,19 +75,31 @@ func _run() -> void:
 				"%s's anchoring spot must be clear of land" % island.name)
 
 	# 1. Sail straight at the far side of every island (away from its dock):
-	#    the ship must stop at the shore, not sail over, and not dock.
+	#    the ship must graze along the shore, not sail over it, and not dock.
 	for name in names:
 		current_test = "far side of %s" % name
 		ship = await _fresh_ship()
 		var island := ship.get_island(name)
 		overlap_frames = 0
 		_launch(ship, island, Vector2(700, 0), Vector2.LEFT)
-		await _sail(ship, 6.0)
+		var touched := false
+		var saw_message := false
+		var moved_while_aground := 0.0
+		for i in int(6.0 * 60.0 / Engine.time_scale):
+			var before := ship.global_position
+			await physics_frame
+			if _hull_on_land(ship):
+				overlap_frames += 1
+			if ship.aground:
+				touched = true
+				moved_while_aground += before.distance_to(ship.global_position)
+			if ship.status_label.visible and ship.status_label.text.begins_with("Ran aground"):
+				saw_message = true
 		_check(overlap_frames == 0, "Hull overlapped land on %d frames" % overlap_frames)
 		_check(ship._state == Ship.State.SAILING, "Hitting the far side must not dock")
-		_check(ship.aground, "The ship must be pressed against the shore")
-		_check(ship.status_label.visible and ship.status_label.text.begins_with("Ran aground"), "A 'Ran aground' line must show")
-		_check(ship.global_position.x > island.global_position.x + 200, "The ship must stop at the east shore")
+		_check(touched, "The ship must reach the shore")
+		_check(saw_message, "A 'Ran aground' line must show")
+		_check(moved_while_aground > 20.0, "Running head-on into the shore must graze along it, not stick (moved %.0f px)" % moved_while_aground)
 
 	# 2. Get away after running aground, with the wind still blowing onto the
 	#    shore: turn the wheel toward open water and trim the sail.

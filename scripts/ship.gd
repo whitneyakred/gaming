@@ -69,6 +69,10 @@ var _docked_island: WorldIsland
 var _leaving_island: WorldIsland
 # The island whose shore the hull last touched.
 var _aground_island: WorldIsland
+# Keeps the "Ran aground" line up for a moment while grazing, so it doesn't
+# flicker on frames where the hull is briefly clear of the shore.
+var _aground_message_left: float = 0.0
+const AGROUND_MESSAGE_SECONDS := 0.8
 
 func _ready() -> void:
 	super._ready()
@@ -108,8 +112,9 @@ func _physics_process(delta: float) -> void:
 		if _leaving_island and _distance_to_shore(_leaving_island) > anchor_island_distance:
 			_leaving_island = null
 		if _state == State.SAILING:
-			if aground:
-				_set_status("Ran aground! Steer away from the shore.")
+			_aground_message_left = AGROUND_MESSAGE_SECONDS if aground else maxf(_aground_message_left - delta, 0.0)
+			if _aground_message_left > 0.0:
+				_set_status("Ran aground! Steer to slide along the shore or away from it.")
 			else:
 				_update_sailing_status()
 	ocean.global_position = global_position

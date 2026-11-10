@@ -24,6 +24,13 @@ extends IslandGame
 @export var pickup_scene: PackedScene = preload("res://scenes/coconut.tscn")
 ## Seconds you can't be hit again after a bonk.
 @export var invulnerable_seconds: float = 1.0
+## Size of the falling coconut art (it's 11x11 pixels).
+@export var coconut_scale: float = 2.0
+## How long a split-open coconut stays on the ground before fading away.
+@export var split_seconds: float = 0.9
+
+const COCONUT_TEXTURE := preload("res://assets/coconut.png")
+const SPLIT_COCONUT_TEXTURE := preload("res://assets/coconut_open.png")
 
 var hits: int = 0
 var storm_over: bool = false
@@ -32,6 +39,7 @@ var _spawn_timer: float = 0.5
 var _invulnerable: float = 0.0
 var _terrain: IslandTerrain
 var _falling: Array[Dictionary] = []   # {pos, t}
+var _split: Array[Dictionary] = []     # {pos, t} coconuts that broke on landing
 var _effects: Node2D
 var _pickups: Node2D
 
@@ -41,6 +49,7 @@ func _setup_game() -> void:
 	_effects = Node2D.new()
 	_effects.name = "FallingCoconuts"
 	_effects.z_index = 5
+	_effects.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_effects.draw.connect(_draw_falling)
 	add_child(_effects)
 	_pickups = get_node_or_null(^"World") as Node2D
@@ -66,6 +75,11 @@ func _game_process(delta: float) -> void:
 		if c.t >= warning_seconds:
 			_falling.remove_at(i)
 			_land(c.pos)
+	for i in range(_split.size() - 1, -1, -1):
+		var piece := _split[i]
+		piece.t += delta
+		if piece.t >= split_seconds:
+			_split.remove_at(i)
 	_effects.queue_redraw()
 
 
@@ -87,6 +101,7 @@ func _land(at: Vector2) -> void:
 	if player and _invulnerable <= 0.0 and player.global_position.distance_to(at) <= hit_radius:
 		hits += 1
 		_invulnerable = invulnerable_seconds
+		_split.append({"pos": at, "t": 0.0})
 		refresh_hud()
 		if hits >= max_hits:
 			lose("Bonk! You were knocked out by coconuts.")
@@ -97,6 +112,8 @@ func _land(at: Vector2) -> void:
 		var pickup := pickup_scene.instantiate() as Node2D
 		pickup.position = _pickups.to_local(at)
 		_pickups.add_child.call_deferred(pickup)
+	else:
+		_split.append({"pos": at, "t": 0.0})
 
 
 func _on_time_up() -> void:
@@ -127,6 +144,11 @@ func _get_incomplete_message() -> String:
 
 
 func _draw_falling() -> void:
+	var size := COCONUT_TEXTURE.get_size() * coconut_scale
+	for c in _split:
+		var fade: float = 1.0 - clampf((c.t - split_seconds * 0.5) / (split_seconds * 0.5), 0.0, 1.0)
+		var spot: Vector2 = c.pos - _effects.global_position
+		_effects.draw_texture_rect(SPLIT_COCONUT_TEXTURE, Rect2(spot - size / 2.0, size), false, Color(1, 1, 1, fade))
 	for c in _falling:
 		var k: float = clampf(c.t / warning_seconds, 0.0, 1.0)
 		var at: Vector2 = c.pos - _effects.global_position
@@ -135,4 +157,4 @@ func _draw_falling() -> void:
 		_effects.draw_set_transform(Vector2.ZERO)
 		# The coconut itself, dropping in from above.
 		var height := (1.0 - k) * 260.0
-		_effects.draw_circle(at - Vector2(0, height), 9.0, Color8(92, 51, 23))
+		_effects.draw_texture_rect(COCONUT_TEXTURE, Rect2(at - Vector2(0, height) - size / 2.0, size), false)

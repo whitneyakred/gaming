@@ -2,16 +2,19 @@
 class_name IslandTerrain
 extends Node2D
 
-## Placeholder island ground for the island minigames: a wobbly sand blob,
-## an inner patch (grass, rock, jungle...), and a wooden dock at the bottom
-## where the rowboat waits. When the game runs it also builds the invisible
-## wall that keeps the player on land and on the dock.
+## Island ground for the island minigames. When the game runs it also builds
+## the invisible wall that keeps the player on land and on the dock.
 ##
-## Everything is drawn in code, so you can tweak the shape and colors in the
-## Inspector and see it update in the 2D view. Swap it for real art later.
-## The dock is centred on x = 0 and runs from the shore down to
-## y = radius.y + dock_length, so put the rowboat at about
-## (0, radius.y + dock_length - 14) and the player's start at (0, radius.y).
+## Two ways to use it:
+## - Art (what the minigames use): set `art` to an island picture and trace
+##   `walkable_outline` around its sand and dock. scenes/islands/island_art.tscn
+##   is set up with assets/island_large.png; instance it as "Terrain" and
+##   scale the instance if a minigame needs more room.
+## - Placeholder: leave `art` empty and it draws a wobbly sand blob, an inner
+##   patch (grass, rock, jungle...) and a wooden dock in code. The dock is
+##   centred on x = 0 and runs from the shore down to y = radius.y + dock_length,
+##   so put the rowboat at about (0, radius.y + dock_length - 14) and the
+##   player's start at (0, radius.y).
 
 @export var radius: Vector2 = Vector2(420, 300):
 	set(value):
@@ -59,6 +62,25 @@ extends Node2D
 		dock_color = value
 		queue_redraw()
 
+@export_group("Art")
+## Island picture drawn instead of the placeholder. When it's set (and
+## `walkable_outline` has points), the shape, dock and color settings above
+## are ignored.
+@export var art: Texture2D:
+	set(value):
+		art = value
+		_rebuild()
+@export var art_scale: float = 1.25:
+	set(value):
+		art_scale = value
+		queue_redraw()
+## Where the player can walk on the art (the sand plus the dock), in this
+## node's coordinates.
+@export var walkable_outline: PackedVector2Array = PackedVector2Array():
+	set(value):
+		walkable_outline = value
+		_rebuild()
+
 const POINT_COUNT: int = 72
 ## The dock starts this far up the island so it always overlaps the sand.
 const DOCK_OVERLAP: float = 0.2
@@ -80,6 +102,8 @@ func contains_point(global_point: Vector2) -> bool:
 
 ## A random global position on the sand, at least `margin` px from the coast.
 func random_point(margin: float = 30.0, rng: RandomNumberGenerator = null) -> Vector2:
+	if _uses_art():
+		return _random_art_point(margin, rng)
 	for attempt in 60:
 		var angle := _randf(rng) * TAU
 		var distance := sqrt(_randf(rng))
@@ -94,7 +118,29 @@ func get_coast() -> PackedVector2Array:
 	return _coast
 
 
+func _uses_art() -> bool:
+	return art != null and walkable_outline.size() >= 3
+
+
+func _random_art_point(margin: float, rng: RandomNumberGenerator) -> Vector2:
+	var bounds := Rect2(_coast[0], Vector2.ZERO)
+	for point in _coast:
+		bounds = bounds.expand(point)
+	# The margin is in world pixels; this node may be scaled.
+	var local_margin := margin / maxf(absf(global_scale.x), 0.001)
+	for attempt in 200:
+		var local := bounds.position + Vector2(_randf(rng), _randf(rng)) * bounds.size
+		if Geometry2D.is_point_in_polygon(local, _coast) and _distance_to_coast(local) >= local_margin:
+			return to_global(local)
+	return global_position
+
+
 func _rebuild() -> void:
+	if _uses_art():
+		_coast = walkable_outline
+		_walkable = walkable_outline
+		queue_redraw()
+		return
 	_coast = _make_coast()
 	var dock := _dock_rect()
 	var merged := Geometry2D.merge_polygons(_coast, PackedVector2Array([
@@ -131,6 +177,11 @@ func _dock_rect() -> Rect2:
 
 
 func _draw() -> void:
+	if _uses_art():
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(art_scale, art_scale))
+		draw_texture(art, -art.get_size() / 2.0)
+		draw_set_transform(Vector2.ZERO)
+		return
 	if _coast.size() < 3:
 		return
 	draw_colored_polygon(_scaled(_coast, 1.0), shore_color)
