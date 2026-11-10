@@ -1,0 +1,102 @@
+[gd_scene format=3 uid="uid://d0pi4ib7v3pem"]
+
+[ext_resource type="Script" uid="uid://ctrdifj18g6xg" path="res://scripts/item-system/item_data.gd" id="6_ysfq8"]
+[ext_resource type="Script" uid="uid://cx41u6oa2ga7r" path="res://scripts/inventory-system/player_inventory.gd" id="7_qutf8"]
+[ext_resource type="Script" uid="uid://bgouxjugn55bs" path="res://scripts/islands/turtle_beach.gd" id="game"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_hud.tscn" id="hud"]
+[ext_resource type="Script" uid="uid://cdk143q5q8kk7" path="res://scripts/ocean.gd" id="ocean"]
+[ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="player"]
+[ext_resource type="Script" uid="uid://d0p5ddal0wg2" path="res://scripts/rowboat.gd" id="rowboat"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_art.tscn" id="terrain"]
+
+[sub_resource type="RectangleShape2D" id="RowboatShape"]
+size = Vector2(110, 40)
+
+[sub_resource type="Resource" id="Resource_k13pn"]
+resource_local_to_scene = true
+script = ExtResource("7_qutf8")
+player_id = &"player_1"
+
+[node name="TurtleBeach" type="Node2D" unique_id=1702566143]
+script = ExtResource("game")
+intro_message = "The turtles are hatching!
+Walk into the crabs to chase them off the hatchlings."
+intro_message_seconds = 4.0
+win_message = "The hatchlings made it. Off you row!"
+incomplete_message = "Get 8 hatchlings to the sea first!"
+
+[node name="Ocean" type="Node2D" parent="." unique_id=185343489]
+z_index = -20
+script = ExtResource("ocean")
+scroll_speed = 6.0
+cover_size = Vector2(1600, 1400)
+
+[node name="Terrain" parent="." unique_id=1494816850 instance=ExtResource("terrain")]
+
+[node name="Rowboat" type="Area2D" parent="." unique_id=1481071694]
+position = Vector2(30, 392)
+script = ExtResource("rowboat")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Rowboat" unique_id=928207826]
+shape = SubResource("RowboatShape")
+
+[node name="World" type="Node2D" parent="." unique_id=1632329792]
+y_sort_enabled = true
+
+[node name="Player" parent="World" unique_id=1748584756 instance=ExtResource("player")]
+position = Vector2(1, 320)
+player_inventory = SubResource("Resource_k13pn")
+
+[node name="Camera2D" type="Camera2D" parent="World/Player" unique_id=826435947]
+limit_left = -640
+limit_top = -520
+limit_right = 640
+limit_bottom = 520
+position_smoothing_enabled = true
+
+[node name="Nests" type="Node2D" parent="World" unique_id=1172523118]
+
+[node name="Nest1" type="Marker2D" parent="World/Nests" unique_id=2050087590]
+position = Vector2(-90, -40)
+
+[node name="Nest2" type="Marker2D" parent="World/Nests" unique_id=225009217]
+position = Vector2(40, -80)
+
+[node name="Nest3" type="Marker2D" parent="World/Nests" unique_id=1516162427]
+position = Vector2(130, 10)
+
+[node name="Nest4" type="Marker2D" parent="World/Nests" unique_id=552156722]
+position = Vector2(-20, 60)
+
+[node name="Sea" type="Node2D" parent="World" unique_id=1213211524]
+
+[node name="Shore1" type="Marker2D" parent="World/Sea" unique_id=1290359394]
+position = Vector2(-330, -10)
+
+[node name="Shore2" type="Marker2D" parent="World/Sea" unique_id=410542251]
+position = Vector2(330, -20)
+
+[node name="Shore3" type="Marker2D" parent="World/Sea" unique_id=248874955]
+position = Vector2(-250, -200)
+
+[node name="Shore4" type="Marker2D" parent="World/Sea" unique_id=712300712]
+position = Vector2(240, -200)
+
+[node name="Shore5" type="Marker2D" parent="World/Sea" unique_id=698929894]
+position = Vector2(0, -240)
+
+[node name="CrabDens" type="Node2D" parent="World" unique_id=410098587]
+
+[node name="Den1" type="Marker2D" parent="World/CrabDens" unique_id=147276939]
+position = Vector2(-335, 60)
+
+[node name="Den2" type="Marker2D" parent="World/CrabDens" unique_id=454085958]
+position = Vector2(230, 130)
+
+[node name="Den3" type="Marker2D" parent="World/CrabDens" unique_id=1561226053]
+position = Vector2(-150, -215)
+
+[node name="Den4" type="Marker2D" parent="World/CrabDens" unique_id=2050974551]
+position = Vector2(150, -215)
+
+[node name="IslandHUD" parent="." unique_id=944763232 instance=ExtResource("hud")]

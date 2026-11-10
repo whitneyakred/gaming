@@ -78,6 +78,48 @@ func _ready() -> void:
 		"Lost Compass",
 		"An old brass compass recovered from the jungle."
 	))
+	ItemDatabase.register_item(make_item(
+		&"gunpowder",
+		"Gunpowder",
+		"A pouch of black powder saved from a burning keg.",
+		30,
+		ItemData.Category.MATERIAL
+	))
+	ItemDatabase.register_item(make_item(
+		&"dried_fish",
+		"Dried Fish",
+		"Salted fish dried on a seaside rack. Keeps for the whole voyage.",
+		20,
+		ItemData.Category.FOOD
+	))
+	ItemDatabase.register_item(make_item(
+		&"glow_jar",
+		"Glow Jar",
+		"A jar of fireflies that lights the deck at night.",
+		1,
+		ItemData.Category.TOOL
+	))
+	ItemDatabase.register_item(make_item(
+		&"cannonball",
+		"Cannonball",
+		"Iron shot salvaged from the target rafts.",
+		30,
+		ItemData.Category.MATERIAL
+	))
+	ItemDatabase.register_item(make_item(
+		&"torch",
+		"Torch",
+		"A pitch torch from the marsh. Keeps the bugs away.",
+		3,
+		ItemData.Category.TOOL
+	))
+	ItemDatabase.register_item(make_item(
+		&"honey",
+		"Honey",
+		"A comb of wild honey, sticky and sweet.",
+		10,
+		ItemData.Category.FOOD
+	))
 
 func make_item(
 	item_id: StringName,

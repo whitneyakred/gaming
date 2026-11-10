@@ -62,7 +62,7 @@ position = Vector2(-140, -40)
 position = Vector2(170, -10)
 
 [node name="Spawn4" type="Marker2D" parent="World/CrabSpawns"]
-position = Vector2(260, 90)
+position = Vector2(190, 60)
 
 [node name="Spawn5" type="Marker2D" parent="World/CrabSpawns"]
 position = Vector2(-60, 120)

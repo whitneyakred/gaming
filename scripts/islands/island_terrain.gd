@@ -15,6 +15,12 @@ extends Node2D
 ##   centred on x = 0 and runs from the shore down to y = radius.y + dock_length,
 ##   so put the rowboat at about (0, radius.y + dock_length - 14) and the
 ##   player's start at (0, radius.y).
+##
+## Cliffs: island_art.tscn has a Cliffs body whose polygons cover the cliff
+## faces painted on the art, so the player can't walk down (or up) them; the
+## stairs by the dock are the way up. Points on a cliff don't count as land
+## for contains_point() or random_point(). Its Trees markers are the painted
+## trees' trunks, for islands that want them (Bee Hive Hill hides you there).
 
 @export var radius: Vector2 = Vector2(420, 300):
 	set(value):
@@ -80,6 +86,8 @@ extends Node2D
 	set(value):
 		walkable_outline = value
 		_rebuild()
+## The body whose CollisionPolygon2D children are the cliff faces.
+@export var cliffs_path: NodePath = ^"Cliffs"
 
 const POINT_COUNT: int = 72
 ## The dock starts this far up the island so it always overlaps the sand.
@@ -97,7 +105,19 @@ func _ready() -> void:
 
 ## True when a global position is on the island (sand or dock).
 func contains_point(global_point: Vector2) -> bool:
-	return Geometry2D.is_point_in_polygon(to_local(global_point), _walkable)
+	return Geometry2D.is_point_in_polygon(to_local(global_point), _walkable) and not is_on_cliff(global_point)
+
+
+## True when a global position is on one of the cliff faces.
+func is_on_cliff(global_point: Vector2) -> bool:
+	var cliffs := get_node_or_null(cliffs_path)
+	if cliffs == null:
+		return false
+	for child in cliffs.get_children():
+		var cliff := child as CollisionPolygon2D
+		if cliff and Geometry2D.is_point_in_polygon(cliff.to_local(global_point), cliff.polygon):
+			return true
+	return false
 
 
 ## A random global position on the sand, at least `margin` px from the coast.
@@ -130,7 +150,8 @@ func _random_art_point(margin: float, rng: RandomNumberGenerator) -> Vector2:
 	var local_margin := margin / maxf(absf(global_scale.x), 0.001)
 	for attempt in 200:
 		var local := bounds.position + Vector2(_randf(rng), _randf(rng)) * bounds.size
-		if Geometry2D.is_point_in_polygon(local, _coast) and _distance_to_coast(local) >= local_margin:
+		if Geometry2D.is_point_in_polygon(local, _coast) and _distance_to_coast(local) >= local_margin \
+				and not is_on_cliff(to_global(local)):
 			return to_global(local)
 	return global_position
 
