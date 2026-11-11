@@ -56,6 +56,7 @@ func _run() -> void:
 	if original_inventory == null:
 		quit(1)
 		return
+	_check(original_inventory.get_quantity(&"fishing_rod") == 1, "Initial player starts with one fishing rod")
 	_check(original_inventory.add_item(rope), "Initial player can receive an item before changing scenes")
 
 	ship_player.queue_free()

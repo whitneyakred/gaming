@@ -32,7 +32,13 @@ func _ready() -> void:
 	var initial_inventory := player_inventory
 	var player_id := initial_inventory.player_id if initial_inventory != null else &"player_1"
 	player_inventory = VoyageState.get_player_inventory(player_id, initial_inventory)
+	# Catalog autoloads and HUD controls can still be initializing during _ready.
+	# Defer the starter grant so ItemDatabase is populated and the hotbar receives
+	# the inventory_changed signal that renders this item.
+	call_deferred(&"_grant_starting_inventory")
 
+
+func _grant_starting_inventory() -> void:
 	# The prototype starts each crew member with the tool needed for its only
 	# available station. Other acquisition systems can add this item later.
 	var fishing_rod := ItemDatabase.get_item(&"fishing_rod")
