@@ -4,54 +4,16 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]   # optional: also test-build every PR before merging
+    branches: [ "main" ]   # also check every PR before merging
 
 env:
-  GODOT_VERSION: "4.7.2"   # editor + templates CI downloads; any 4.7.x works with your project
+  GODOT_VERSION: "4.7.2"   # editor + templates CI downloads; any 4.7.x works with this project
   EXPORT_NAME: "holy-ship"
-  
+
 permissions:
   contents: write
-  
+
 jobs:
-  export-windows:
-    name: Export Windows
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Export Game via Godot Action
-        uses: firebelley/godot-export@v6.0.0
-        with:
-          godot_executable_download_url: https://github.com/godotengine/godot-builds/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64.zip
-          godot_export_templates_download_url: https://github.com/godotengine/godot-builds/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
-          relative_project_path: ./
-          presets_to_export: Windows Desktop
-          use_preset_export_path: true
-          cache: true
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.EXPORT_NAME }}-windows
-          path: builds/windows/
-          if-no-files-found: error
-          
-      - name: Zip Windows Build
-        if: github.event_name == 'push'
-        run: cd builds/windows && zip -r ../../holy-ship-windows.zip .
-
-      - name: Publish GitHub Release
-        if: github.event_name == 'push'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: build-${{ github.run_number }}
-          name: Holy Ship build ${{ github.run_number }}
-          body: Automatic Windows build from commit ${{ github.sha }}
-          files: holy-ship-windows.zip
-
   checks:
     name: Lint & Repo Checks
     runs-on: ubuntu-latest
@@ -91,9 +53,48 @@ jobs:
         run: pip install "gdtoolkit==4.*"
 
       - name: Lint GDScript (gdlint)
-        continue-on-error: true
+        continue-on-error: true   # remove once existing warnings are fixed
         run: gdlint $(git ls-files '*.gd')
 
       - name: Check GDScript formatting (gdformat)
-        continue-on-error: true
+        continue-on-error: true   # remove once code has been formatted
         run: gdformat --check --diff $(git ls-files '*.gd')
+
+  export-windows:
+    name: Export Windows
+    needs: checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Export Game via Godot Action
+        uses: firebelley/godot-export@v6.0.0
+        with:
+          godot_executable_download_url: https://github.com/godotengine/godot-builds/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64.zip
+          godot_export_templates_download_url: https://github.com/godotengine/godot-builds/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz
+          relative_project_path: ./
+          presets_to_export: Windows Desktop
+          use_preset_export_path: true
+          cache: true
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.EXPORT_NAME }}-windows
+          path: builds/windows/
+          if-no-files-found: error
+
+      - name: Zip Windows Build
+        if: github.event_name == 'push'
+        run: cd builds/windows && zip -r ../../holy-ship-windows.zip .
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Holy Ship build ${{ github.run_number }}
+          body: Automatic Windows build from commit ${{ github.sha }}
+          files: holy-ship-windows.zip

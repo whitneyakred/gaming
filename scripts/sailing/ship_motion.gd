@@ -28,8 +28,13 @@ signal anchor_changed(deployed: bool)
 ## can't move or turn so that this overlaps land (see _is_pose_blocked).
 ## Leave empty for a ship that ignores land.
 @export var hull_outline: PackedVector2Array = PackedVector2Array()
-## Share of speed kept while scraping sideways along a shore.
+## Share of speed kept while grazing along a shore.
 @export_range(0.0, 1.0) var shore_slide_factor: float = 0.6
+## How fast (radians per second) the hull swings to run alongside the shore
+## after it touches land.
+@export_range(0.0, 3.0) var graze_turn_rate: float = 0.6
+## How strongly the hull is nudged back out to sea while grazing (share of speed).
+@export_range(0.0, 1.0) var shore_push: float = 0.15
 
 var _wind_change_left: float = 0.0
 var _target_wind_angle: float = 0.0
@@ -136,17 +141,16 @@ func _physics_process(delta: float) -> void:
 	aground = false
 	if _is_pose_blocked(new_position, new_rotation):
 		aground = true
-		# The hull can't swing into land: keep the old heading if turning is what hits.
-		if _is_pose_blocked(old_position, new_rotation):
+		var normal := _get_shore_normal(old_position)
+		if normal == Vector2.ZERO:
+			# No shore to slide along: just stop.
+			new_position = old_position
 			new_rotation = old_rotation
 			turn_rate = 0.0
-		# Scrape along the shore: drop the part of the move that goes into land.
-		# Speed is kept so the rudder still works and you can steer away.
-		var normal := _get_shore_normal(old_position)
-		var slide := step - normal * minf(step.dot(normal), 0.0)
-		new_position = old_position + slide * shore_slide_factor
-		if _is_pose_blocked(new_position, new_rotation):
-			new_position = old_position
+		else:
+			var graze := _graze_pose(old_position, old_rotation, new_rotation, normal, rudder, delta)
+			new_position = graze.origin
+			new_rotation = graze.get_rotation()
 	global_rotation = new_rotation
 	global_position = new_position
 	# Deck and crew inherit the same transform. Do not also add ship velocity to crew.
@@ -154,3 +158,29 @@ func _physics_process(delta: float) -> void:
 	for child in get_children():
 		if child is CollisionObject2D:
 			(child as CollisionObject2D).force_update_transform()
+
+## Where the hull goes this frame when it touches land: instead of sticking,
+## it grazes along the shore. It slides toward the side the wheel is turned
+## (or, with the wheel centred, the side the bow already leans to), swings
+## round to run alongside the coast, and is nudged a little back out to sea.
+## Speed is kept, so steering away or sailing on along the coast both work.
+func _graze_pose(old_position: Vector2, old_rotation: float, wanted_rotation: float, normal: Vector2, rudder: float, delta: float) -> Transform2D:
+	var heading := Vector2.UP.rotated(wanted_rotation)
+	var starboard := heading.rotated(PI / 2.0)
+	var steer := heading + starboard * clampf(rudder * 3.0, -1.0, 1.0)
+	var along := normal.orthogonal()
+	if along.dot(steer) < 0.0:
+		along = -along
+	# Heading that runs parallel to the shore in the chosen direction.
+	var along_rotation := along.angle() + PI / 2.0
+	var graze_rotation := rotate_toward(wanted_rotation, along_rotation, graze_turn_rate * delta)
+	var move := (along * shore_slide_factor + normal * shore_push) * speed * delta
+	# Try the graze; if the hull still touches, push it a little further out
+	# from the shore, then fall back to keeping the old heading.
+	for push: float in [0.0, 2.0, 5.0, 10.0, 20.0]:
+		for angle: float in [graze_rotation, old_rotation]:
+			for offset: Vector2 in [move, Vector2.ZERO]:
+				var spot := old_position + offset + normal * push
+				if not _is_pose_blocked(spot, angle):
+					return Transform2D(angle, spot)
+	return Transform2D(old_rotation, old_position)

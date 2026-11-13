@@ -7,7 +7,7 @@ extends CanvasLayer
 
 ## The icon's tip sits this far ahead of its position, so the tip lands
 ## exactly on the track's right edge when time runs out.
-const ICON_TIP_OFFSET: float = 8.0
+const ICON_TIP_OFFSET: float = 14.0
 
 @onready var objective_label: Label = $ObjectiveLabel
 @onready var time_label: Label = $TimeLabel
