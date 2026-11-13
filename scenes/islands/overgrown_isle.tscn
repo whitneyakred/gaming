@@ -1,0 +1,54 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/islands/overgrown_isle.gd" id="game"]
+[ext_resource type="Script" path="res://scripts/ocean.gd" id="ocean"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_art.tscn" id="terrain"]
+[ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="player"]
+[ext_resource type="Script" uid="uid://d0p5ddal0wg2" path="res://scripts/rowboat.gd" id="rowboat"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_hud.tscn" id="hud"]
+
+[sub_resource type="RectangleShape2D" id="RowboatShape"]
+size = Vector2(137.5, 50)
+
+[node name="OvergrownIsle" type="Node2D"]
+script = ExtResource("game")
+time_limit_seconds = 90.0
+intro_message = "Find the lost compass in the jungle maze!
+You can only see a little way around you."
+intro_message_seconds = 4.0
+win_message = "You found your way out with the compass!"
+incomplete_message = "The compass is still somewhere in the jungle!"
+
+[node name="Ocean" type="Node2D" parent="."]
+z_index = -20
+script = ExtResource("ocean")
+scroll_speed = 6.0
+cover_size = Vector2(2000, 1750)
+
+[node name="Terrain" parent="." instance=ExtResource("terrain")]
+scale = Vector2(1.25, 1.25)
+
+[node name="Rowboat" type="Area2D" parent="."]
+position = Vector2(37.5, 490)
+script = ExtResource("rowboat")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Rowboat"]
+shape = SubResource("RowboatShape")
+
+[node name="World" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Player" parent="World" instance=ExtResource("player")]
+position = Vector2(1.25, 400)
+
+[node name="Camera2D" type="Camera2D" parent="World/Player"]
+limit_left = -800
+limit_top = -650
+limit_right = 800
+limit_bottom = 650
+position_smoothing_enabled = true
+
+[node name="Maze" type="Marker2D" parent="World"]
+position = Vector2(0, -40)
+
+[node name="IslandHUD" parent="." instance=ExtResource("hud")]

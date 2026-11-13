@@ -1,0 +1,99 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/islands/smugglers_den.gd" id="game"]
+[ext_resource type="Script" path="res://scripts/ocean.gd" id="ocean"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_art.tscn" id="terrain"]
+[ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="player"]
+[ext_resource type="Script" uid="uid://d0p5ddal0wg2" path="res://scripts/rowboat.gd" id="rowboat"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_hud.tscn" id="hud"]
+
+[sub_resource type="RectangleShape2D" id="RowboatShape"]
+size = Vector2(110, 40)
+
+[node name="SmugglersDen" type="Node2D"]
+script = ExtResource("game")
+time_limit_seconds = 75.0
+intro_message = "Steal the smugglers' loot!
+Stay out of the guards' sight. Crates hide you."
+intro_message_seconds = 4.0
+win_message = "You slipped away with the smugglers' gold!"
+incomplete_message = "You haven't stolen the loot yet!"
+
+[node name="Ocean" type="Node2D" parent="."]
+z_index = -20
+script = ExtResource("ocean")
+scroll_speed = 6.0
+cover_size = Vector2(1600, 1400)
+
+[node name="Terrain" parent="." instance=ExtResource("terrain")]
+
+[node name="Rowboat" type="Area2D" parent="."]
+position = Vector2(30, 392)
+script = ExtResource("rowboat")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Rowboat"]
+shape = SubResource("RowboatShape")
+
+[node name="World" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Player" parent="World" instance=ExtResource("player")]
+position = Vector2(1, 320)
+
+[node name="Camera2D" type="Camera2D" parent="World/Player"]
+limit_left = -640
+limit_top = -520
+limit_right = 640
+limit_bottom = 520
+position_smoothing_enabled = true
+
+[node name="Loot" type="Marker2D" parent="World"]
+position = Vector2(0, -230)
+
+[node name="Crates" type="Node2D" parent="World"]
+
+[node name="Crate1" type="Marker2D" parent="World/Crates"]
+position = Vector2(-140, 40)
+
+[node name="Crate2" type="Marker2D" parent="World/Crates"]
+position = Vector2(60, 90)
+
+[node name="Crate3" type="Marker2D" parent="World/Crates"]
+position = Vector2(150, -100)
+
+[node name="Crate4" type="Marker2D" parent="World/Crates"]
+position = Vector2(-110, -130)
+
+[node name="Crate5" type="Marker2D" parent="World/Crates"]
+position = Vector2(40, -150)
+
+[node name="Crate6" type="Marker2D" parent="World/Crates"]
+position = Vector2(-225, 85)
+
+[node name="Guards" type="Node2D" parent="World"]
+
+[node name="Route1" type="Node2D" parent="World/Guards"]
+
+[node name="Stop1" type="Marker2D" parent="World/Guards/Route1"]
+position = Vector2(-280, -40)
+
+[node name="Stop2" type="Marker2D" parent="World/Guards/Route1"]
+position = Vector2(280, -40)
+
+[node name="Route2" type="Node2D" parent="World/Guards"]
+
+[node name="Stop1" type="Marker2D" parent="World/Guards/Route2"]
+position = Vector2(-230, -210)
+
+[node name="Stop2" type="Marker2D" parent="World/Guards/Route2"]
+position = Vector2(-50, -210)
+
+[node name="Route3" type="Node2D" parent="World/Guards"]
+
+[node name="Stop1" type="Marker2D" parent="World/Guards/Route3"]
+position = Vector2(240, 160)
+
+[node name="Stop2" type="Marker2D" parent="World/Guards/Route3"]
+position = Vector2(240, -170)
+
+[node name="IslandHUD" parent="." instance=ExtResource("hud")]

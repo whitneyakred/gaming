@@ -1,0 +1,67 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/islands/timber_isle.gd" id="game"]
+[ext_resource type="Script" path="res://scripts/ocean.gd" id="ocean"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_art.tscn" id="terrain"]
+[ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="player"]
+[ext_resource type="Script" uid="uid://d0p5ddal0wg2" path="res://scripts/rowboat.gd" id="rowboat"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_hud.tscn" id="hud"]
+
+[sub_resource type="RectangleShape2D" id="RowboatShape"]
+size = Vector2(110, 40)
+
+[node name="TimberIsle" type="Node2D"]
+script = ExtResource("game")
+time_limit_seconds = 60.0
+intro_message = "Chop down 3 trees for wood!
+Press E at a tree, then E again in the green zone."
+intro_message_seconds = 4.0
+win_message = "You rowed back with a load of timber!"
+incomplete_message = "Chop 3 trees first!"
+
+[node name="Ocean" type="Node2D" parent="."]
+z_index = -20
+script = ExtResource("ocean")
+scroll_speed = 6.0
+cover_size = Vector2(1600, 1400)
+
+[node name="Terrain" parent="." instance=ExtResource("terrain")]
+
+[node name="Rowboat" type="Area2D" parent="."]
+position = Vector2(30, 392)
+script = ExtResource("rowboat")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Rowboat"]
+shape = SubResource("RowboatShape")
+
+[node name="World" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Player" parent="World" instance=ExtResource("player")]
+position = Vector2(1, 320)
+
+[node name="Camera2D" type="Camera2D" parent="World/Player"]
+limit_left = -640
+limit_top = -520
+limit_right = 640
+limit_bottom = 520
+position_smoothing_enabled = true
+
+[node name="Trees" type="Node2D" parent="World"]
+
+[node name="Tree1" type="Marker2D" parent="World/Trees"]
+position = Vector2(-220, -80)
+
+[node name="Tree2" type="Marker2D" parent="World/Trees"]
+position = Vector2(-90, -170)
+
+[node name="Tree3" type="Marker2D" parent="World/Trees"]
+position = Vector2(70, -120)
+
+[node name="Tree4" type="Marker2D" parent="World/Trees"]
+position = Vector2(210, -40)
+
+[node name="Tree5" type="Marker2D" parent="World/Trees"]
+position = Vector2(-40, 40)
+
+[node name="IslandHUD" parent="." instance=ExtResource("hud")]

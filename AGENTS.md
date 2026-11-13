@@ -1,6 +1,6 @@
 # Durable project instructions
 
-- This is **Man the Ship**, a top-down 2D Godot 4 single-player sailing/survival game.
+- This is **Holy Ship**, a top-down 2D Godot 4 single-player sailing/survival game.
 - Use GDScript, not C#. Keep the Compatibility renderer and HTML5/Web export compatibility.
 - Focus on single-player gameplay; do not add networking or multiplayer architecture unless requested.
 - Keep each commit/pull request focused on one feature.

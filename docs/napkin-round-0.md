@@ -1,3 +1,7 @@
+# Historical Project Assessment
+
+> Early brainstorming retained as a historical record. Database/multiplayer suggestions and language notes below are not current requirements. The project uses Godot 4 and GDScript; see [current scope](requirements/vision-and-scope.md#43-mvp-scope).
+
 Given an unfamiliar problem, produce a defensible rough judgment in twenty minutes. This is the delegation boundary at project scale: an agent produces a fluent plan, stack, and risk list in seconds, so the human differentiator is judging whether it is any good. Two uses: sizing a problem you have never seen, and, written before a session, making agenda capture visible in one you know well.
 
 1. **Shape.** What kind of system is this really (a CRUD application, meaning create, read, update, and delete over a database; a data pipeline; real-time; integration glue; machine learning)? One sentence, then three to five boxes.  
@@ -20,4 +24,3 @@ A seventh prompt, **Delegate** (what goes to the agent, what stays human), waits
 5. Rendering, animation, Use of systems.  
      
 6. We think it is very feasible, we want to give the people a steak.
-
