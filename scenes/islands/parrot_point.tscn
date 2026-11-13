@@ -69,12 +69,12 @@ script = ExtResource("bush")
 fruit_id = &"papaya"
 
 [node name="MangoBush2" type="Node2D" parent="World/Bushes"]
-position = Vector2(160, 140)
+position = Vector2(150, 110)
 script = ExtResource("bush")
 fruit_id = &"mango"
 
 [node name="BananaBush2" type="Node2D" parent="World/Bushes"]
-position = Vector2(-170, 150)
+position = Vector2(-150, 120)
 script = ExtResource("bush")
 fruit_id = &"banana"
 

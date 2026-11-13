@@ -68,7 +68,7 @@ position = Vector2(-110, -130)
 position = Vector2(40, -150)
 
 [node name="Crate6" type="Marker2D" parent="World/Crates"]
-position = Vector2(-260, 120)
+position = Vector2(-225, 85)
 
 [node name="Guards" type="Node2D" parent="World"]
 
