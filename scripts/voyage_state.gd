@@ -18,14 +18,24 @@ var _inventories: Dictionary[StringName, PlayerInventory] = {}
 ## The same PlayerInventory instance for the whole voyage. An unknown id gets
 ## a new, empty inventory that is kept from then on.
 func get_inventory(player_id: StringName) -> PlayerInventory:
-	if not _inventories.has(player_id):
-		var inventory := PlayerInventory.new()
-		inventory.player_id = player_id
-		inventory.max_inv_space = INVENTORY_SLOTS
-		_inventories[player_id] = inventory
-	return _inventories[player_id]
+	return get_player_inventory(player_id)
 
 
-## Empties every inventory (for a new voyage or BR-capsize-reset later).
+## Both scene players and island rewards use the same voyage inventory.
+func get_player_inventory(player_id: StringName, initial_inventory: PlayerInventory = null) -> PlayerInventory:
+	var resolved_player_id := player_id if not player_id.is_empty() else &"player_1"
+	if not _inventories.has(resolved_player_id):
+		var inventory := initial_inventory if initial_inventory != null else PlayerInventory.new()
+		inventory.player_id = resolved_player_id
+		inventory.max_inv_space = maxi(inventory.max_inv_space, INVENTORY_SLOTS)
+		_inventories[resolved_player_id] = inventory
+	return _inventories[resolved_player_id]
+
+
+## Empties every inventory for a new voyage.
 func reset() -> void:
 	_inventories.clear()
+
+
+func clear_voyage() -> void:
+	reset()
