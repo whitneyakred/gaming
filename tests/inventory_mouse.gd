@@ -78,6 +78,20 @@ func run() -> void:
 	# Releasing over chest padding must cancel, never discard the stack.
 	await drag(hud.buttons[0].get_global_rect().get_center(), hud.chest_panel.get_global_rect().position + Vector2(8, 8))
 	check(service.local_slots[0].get("id") == &"fresh_water" and service.drops.size() == 1, "Panel padding cancels drop")
+	var deck := service.get_node("DeckItems")
+	check(deck.chest_texture().resource_path.ends_with("ship_chest_open.png"), "Chest sprite is open during storage interaction")
+	var cancel := InputEventAction.new()
+	cancel.action = &"ui_cancel"
+	cancel.pressed = true
+	get_viewport().push_input(cancel)
+	check(not hud.storage_open and deck.chest_texture().resource_path.ends_with("ship_chest_closed.png"), "Escape closes storage and its chest sprite")
+	get_viewport().push_input(interact)
+	service.player.position += Vector2(100, 0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(not hud.storage_open and deck.chest_texture().resource_path.ends_with("ship_chest_closed.png"), "Leaving interaction range closes the chest")
+	service.player.position = service.storage_position
+	get_viewport().push_input(interact)
 	print("INVENTORY MOUSE: ", "PASS" if failures == 0 else "FAIL", " (", failures, " failures)")
 	if "--capture" in OS.get_cmdline_user_args():
 		service.inventory.try_add(&"fishing_rod")
@@ -87,5 +101,9 @@ func run() -> void:
 			service.storage.add_items(item, 1)
 		await get_tree().process_frame
 		await RenderingServer.frame_post_draw
-		get_viewport().get_texture().get_image().save_png("res://.godot/inventory-revamp-preview.png")
+		get_viewport().get_texture().get_image().save_png("res://.godot/four-slot-chest-open.png")
+		hud.close()
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png("res://.godot/four-slot-chest-closed.png")
 	get_tree().quit(failures)

@@ -105,6 +105,7 @@ func _walk_direct(player: Node2D, target: Vector2, max_seconds: float, tolerance
 
 
 func _load(path: String) -> IslandGame:
+	_make_room()
 	get_tree().change_scene_to_file(path)
 	await get_tree().scene_changed
 	await _frames(2)
@@ -164,7 +165,7 @@ func _test_every_island_loads() -> void:
 		game.try_escape()
 		await _frames(2)
 		_check(game.is_running(), "The rowboat must refuse to leave before the task is done")
-		_check(game.get_node("InventorySystem/InventoryHUD").buttons.size() == 6, "The icon HUD must show six hotbar slots")
+		_check(game.get_node("InventorySystem/InventoryHUD").buttons.size() == 4, "The icon HUD must show four hotbar slots")
 		# Walking straight down the dock reaches the rowboat.
 		var rowboat := game.get_node(^"Rowboat") as Area2D
 		await _walk_to(game.player, rowboat.global_position, 6.0, 10.0)
@@ -477,13 +478,12 @@ func _test_parrot_point() -> void:
 	_check(inventory.get_quantity(&"fresh_water") == water_before + 2, "The parrot must reward fresh water")
 
 
-## The voyage bag only holds 12 kinds of item, and the islands give out more
-## kinds than that. Empty it (keeping coins, coconuts and the rod) so each
-## island's reward has room.
+## Reward tests start with space, as when unloading supplies before a visit.
+## Keep coins for the cross-scene persistence checks; four slots are the limit.
 func _make_room() -> void:
 	var bag := _inventory()
 	for item in bag.inventory.duplicate():
-		if item.id not in [&"gold_coin", &"coconut", &"fishing_rod"]:
+		if item.id != &"gold_coin":
 			bag.remove_item(item.id, bag.get_quantity(item.id))
 
 

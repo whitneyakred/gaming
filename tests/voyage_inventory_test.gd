@@ -58,7 +58,7 @@ func _run() -> void:
 		return
 	_check(original_inventory.get_quantity(&"fishing_rod") == 1, "Initial player starts with one fishing rod")
 	_check(voyage_state.call(&"get_inventory", &"player_1") == original_inventory, "Island rewards and player scenes share the same inventory")
-	_check(original_inventory.max_inv_space >= 12, "Voyage inventory retains capacity for island rewards")
+	_check(original_inventory.max_inv_space == 4 and original_inventory.capture().size() == 4, "Voyage inventory has exactly four carried slots")
 	_check(original_inventory.add_item(rope), "Initial player can receive an item before changing scenes")
 
 	ship_player.queue_free()

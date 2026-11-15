@@ -4,6 +4,7 @@ var entry: Dictionary = {}
 var number: String = ""
 var selected: bool = false
 @export var slot_size := Vector2(76, 80)
+@export var parchment_slot: bool = false
 var hud: Node
 var slot_index: int = -1
 var is_storage: bool = false
@@ -51,18 +52,22 @@ func set_entry(value: Dictionary, key: String, active: bool) -> void:
 
 func _draw() -> void:
 	var rect := Rect2(Vector2(2, 2), size - Vector2(4, 4))
-	draw_style_box(_box(Color("382b24"), Color("dcb76a") if selected else Color("796044"), 3 if selected else 1), rect)
+	if not parchment_slot:
+		draw_style_box(_box(Color("382b24"), Color("dcb76a") if selected else Color("796044"), 3 if selected else 1), rect)
+	elif selected:
+		draw_rect(rect, Color("9c6539"), false, 2)
 	if is_hovered():
 		draw_rect(rect.grow(-4), Color(1, 0.86, 0.58, 0.07))
 	var font := ThemeDB.fallback_font
-	draw_string(font, Vector2(8, 15), number, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("d3bd94"))
+	if not parchment_slot:
+		draw_string(font, Vector2(8, 15), number, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("d3bd94"))
 	var item: ItemData = ItemDatabase.get_item(entry.get("id", &""))
 	if item != null and item.icon != null:
 		var icon_size := Vector2.ONE * minf(42, size.x - 24)
 		draw_texture_rect(item.icon, Rect2((size - icon_size) / 2, icon_size), false)
 	if not entry.is_empty() and int(entry.quantity) > 1:
-		draw_string(font, Vector2(size.x - 30, size.y - 10), str(entry.quantity), HORIZONTAL_ALIGNMENT_RIGHT, 20, 15, Color("fff1cc"))
-	if selected:
+		draw_string(font, Vector2(size.x - 30, size.y - 10), str(entry.quantity), HORIZONTAL_ALIGNMENT_RIGHT, 20, 15, Color("493329") if parchment_slot else Color("fff1cc"))
+	if selected and not parchment_slot:
 		draw_line(Vector2(22, size.y - 5), Vector2(size.x - 22, size.y - 5), Color("ffe0a0"), 2)
 
 func _box(fill: Color, edge: Color, width: int) -> StyleBoxFlat:

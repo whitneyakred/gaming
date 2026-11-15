@@ -6,8 +6,8 @@ extends Node
 ## Carries player inventories, ship storage and scene-local floor items across
 ## visits. All state resets on a new voyage; it is not a disk save.
 
-## Six hotbar slots plus six bag slots. Multiple stacks may share an item ID.
-const INVENTORY_SLOTS: int = 12
+## The four hotbar slots are the entire carried inventory.
+const INVENTORY_SLOTS: int = 4
 
 var _inventories: Dictionary[StringName, PlayerInventory] = {}
 var _starter_granted: Dictionary[StringName, bool] = {}
@@ -39,7 +39,7 @@ func get_player_inventory(player_id: StringName, initial_inventory: PlayerInvent
 	if not _inventories.has(resolved_player_id):
 		var inventory := initial_inventory if initial_inventory != null else PlayerInventory.new()
 		inventory.player_id = resolved_player_id
-		inventory.max_inv_space = maxi(inventory.max_inv_space, INVENTORY_SLOTS)
+		inventory.max_inv_space = INVENTORY_SLOTS
 		_inventories[resolved_player_id] = inventory
 	return _inventories[resolved_player_id]
 

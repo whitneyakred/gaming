@@ -5,7 +5,7 @@ voyage owns the resource; player scenes, fishing, island rewards and UI share it
 See `docs/inventory-system.md` for controls, architecture and test commands.
 
 The standalone resource defaults to four slots. `VoyageState` gives the active
-player twelve: six hotbar slots and six additional bag slots. The ship chest has
+player exactly four hotbar slots, with no additional bag slots. The ship chest has
 eighteen. `max_inv_space` counts **stacks**, not distinct item types. A full stack
 can overflow into another free slot. Removing a stack leaves an empty slot;
 it does not shift the remaining slots.

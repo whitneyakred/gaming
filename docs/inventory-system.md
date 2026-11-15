@@ -9,15 +9,15 @@ was already included; `inventory-ui` supplied the existing item PNGs.
 
 In Godot, choose **Debug > Run Project** (F5).
 
-- **1–6**, mouse wheel, or click: select a hotbar slot.
-- **I**: open/close the twelve-slot bag. The first six slots are the hotbar.
+- **1–4**, mouse wheel, or click: select a hotbar slot.
+- The original parchment-and-bottle hotbar is the entire inventory: **four slots total**. Store spare supplies in the chest.
 - Approach the wooden chest on the starboard deck, forward of the cooking station.
-  **E / Space** opens its eighteen slots. **E / Space / Esc / I** closes it.
+  **E / Space** opens its eighteen slots. **E / Space / Esc** closes it.
 - Drag a whole stack between slots to move it. Matching stacks merge up to the
   item's limit; different items swap. Empty slots retain their positions.
 - **Shift-click** with the chest open transfers as much as fits to the other
   container. Any remainder stays in the original slot.
-- Drag a stack outside the bag, chest and hotbar to drop it **at your feet**.
+- Drag a stack outside the chest and hotbar to drop it **at your feet**.
   Releasing over panel padding cancels. There is no throw-to-cursor behavior.
 - Step away from a dropped item and walk back to collect it. Full bags leave it
   on the floor; partially fitting pickups leave the remainder. Leave/re-enter
@@ -25,8 +25,8 @@ In Godot, choose **Debug > Run Project** (F5).
 - Hover for an item's name, description and stack limit. Slots show icons and
   quantities. The selected hotbar slot does not yet equip or consume items.
 
-The bag works on islands too. Handling items is disabled while swimming, rowing,
-using a station, paused, or viewing the map. Opening storage/bag stops walking;
+The four-slot hotbar works on islands too. Handling items is disabled while swimming, rowing,
+using a station, paused, or viewing the map. Opening storage stops walking;
 closing it restores walking. Islands' challenge timers continue running.
 
 Chest contents and loose items persist between island/ship scene transitions.
@@ -68,4 +68,9 @@ godot --headless --path . --script res://tests/island_minigames.gd
 
 The rendered mouse suite uses native Godot GUI drag events, Shift-click and
 padding cancellation. Append `-- --capture` to save a populated inventory preview
-to `.godot/inventory-revamp-preview.png`; supplies are seeded only in that test.
+to `.godot/four-slot-chest-open.png` and `.godot/four-slot-chest-closed.png`; supplies are seeded only in that test.
+
+The ship chest uses generated transparent sprites in `assets/props/`. Its lid
+opens while the storage interface is open and closes when the interface closes
+or interaction becomes unavailable. Both states share the same base alignment.
+See `assets/props/chest-art.md` for the generation prompts.

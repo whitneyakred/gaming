@@ -1,5 +1,10 @@
 extends Node2D
+@export var closed_chest_texture: Texture2D = preload("res://assets/props/ship_chest_closed.png")
+@export var open_chest_texture: Texture2D = preload("res://assets/props/ship_chest_open.png")
 var service: Node
+
+func chest_texture() -> Texture2D:
+	return open_chest_texture if service.hud != null and service.hud.storage_open else closed_chest_texture
 
 func _ready() -> void:
 	service = get_parent()
@@ -14,7 +19,8 @@ func _draw() -> void:
 	if service == null:
 		return
 	if service.chest_enabled:
-		draw_texture_rect(preload("res://assets/items/chest.svg"), Rect2(service.storage_position - Vector2(24, 24), Vector2(48, 48)), false)
+		# Both images use the same canvas and base position, so opening only moves the lid.
+		draw_texture_rect(chest_texture(), Rect2(service.storage_position - Vector2(36, 54), Vector2(72, 72)), false)
 	for key: int in service.drops:
 		var entry: Dictionary = service.drops[key]
 		var item: ItemData = ItemDatabase.get_item(entry.id)
