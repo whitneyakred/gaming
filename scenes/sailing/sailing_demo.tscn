@@ -1,9 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/sailing/sailing_demo.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/sailing/helm_wheel_widget.gd" id="2"]
 [ext_resource type="Shader" path="res://scripts/sailing/station_vignette.gdshader" id="3"]
 [ext_resource type="Script" path="res://scripts/sailing/ship_direction.gd" id="4"]
+
+[ext_resource type="Texture2D" path="res://assets/items/wind_arrow.svg" id="5"]
 
 [sub_resource type="ShaderMaterial" id="VignetteMaterial"]
 shader = ExtResource("3")
@@ -42,18 +44,26 @@ offset_bottom = 145.0
 grow_horizontal = 0
 mouse_filter = 2
 
-[node name="Arrow" type="Label" parent="HUD/Wind"]
-offset_left = 27.0
-offset_top = 18.0
-offset_right = 87.0
-offset_bottom = 78.0
-pivot_offset = Vector2(30, 30)
+[node name="Title" type="Label" parent="HUD/Wind"]
+offset_right = 115.0
+offset_bottom = 25.0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.82, 0.96, 1, 1)
-theme_override_font_sizes/font_size = 50
-text = "↑"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.063, 0.145, 0.192, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 14
+text = "Wind"
 horizontal_alignment = 1
-vertical_alignment = 1
+
+[node name="Arrow" type="TextureRect" parent="HUD/Wind"]
+texture_filter = 1
+offset_left = 33.5
+offset_top = 42.0
+offset_right = 81.5
+offset_bottom = 90.0
+pivot_offset = Vector2(24, 24)
+mouse_filter = 2
+texture = ExtResource("5")
 
 [node name="HelmWheel" type="Control" parent="HUD"]
 visible = false

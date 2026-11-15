@@ -42,6 +42,14 @@ func run() -> void:
 	check(not get_tree().paused, "Title screen cannot be paused")
 	check(get_window().content_scale_size == Vector2i(1280, 720), "Design canvas is 1280 by 720")
 	var logo_rect: Rect2 = title.logo.get_global_rect()
+	var ship_rest: Vector2 = title.logo_ship.position
+	GameWindow.set_preference("reduced_motion", false)
+	title._process(0.5)
+	check(title.logo.get_global_rect() == logo_rect, "Lettering remains still while ship animates")
+	check(not title.logo_ship.position.is_equal_approx(ship_rest), "Only the decorative ship bobs")
+	GameWindow.set_preference("reduced_motion", true)
+	title._process(0.0)
+	check(title.logo_ship.position.is_equal_approx(ship_rest), "Reduced motion restores ship rest position")
 	for dimensions in [Vector2i(1280, 720), Vector2i(960, 540), Vector2i(1440, 900), Vector2i(1920, 1080)]:
 		get_window().size = dimensions
 		await frames(5)

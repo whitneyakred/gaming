@@ -43,13 +43,45 @@ wave/logo motion and button scaling. Keyboard focus wraps within modal settings.
 The controls are implemented once in `SettingsPanel`, reused by title and pause.
 The window settings and preferences intentionally do not save voyage progress.
 
-## Files and checks
+## Editing the menus in Godot
+
+1. In the **FileSystem** dock, open `scenes/menus/title_screen.tscn` and select
+   the **2D** workspace. The title now contains real, editable scene nodes.
+2. In the **Scene** dock, select `Tagline`, `Footer`, `Hint`, or a Label/Button
+   under `MenuCard > Rows`. Change **Text** in the **Inspector**.
+3. Move `MenuCard`, `Wordmark`, `LogoShip`, or `Tagline` in the 2D viewport,
+   or edit **Layout > Transform > Position / Size** in the Inspector.
+   Buttons inside `Rows` are arranged by the VBoxContainer: reorder its children
+   or change **Theme Overrides > Constants > Separation** on `Rows` for spacing.
+   Keep node names intact; the title script uses them to wire button actions.
+4. Select `TitleScreen` to adjust **Ship Bob Height** and **Ship Bob Speed**.
+   The ship's edited position becomes its animation rest position. Reduced menu
+   motion disables bobbing; the wordmark stays stationary in both modes.
+5. **Ctrl+S** saves. **F6** (**Debug > Run Current Scene**) previews the title;
+   **F5** (**Debug > Run Project**) tests the complete game. The ocean, panel
+   theme, and button styling are applied at runtime, so use F6 for final styling.
+
+The shared settings panel is still generated in `scripts/menus/settings_panel.gd`,
+not an editable settings scene. Open that script from **FileSystem**, use
+**Ctrl+F** to find wording, and edit the quoted display text. For example,
+`_toggle(display, "Fullscreen", "fullscreen")` can become
+`_toggle(display, "Play in fullscreen", "fullscreen")`. Change the second
+argument (the label), keeping the final `fullscreen` preference key unchanged.
+`_page("Display")` names a tab; `HarborTheme.label(...)` supplies descriptions.
+Changes affect settings from both title and pause menus. Save and use F5 to test.
+
+Voyage water colors are exported by `scripts/ocean.gd`; select an Ocean node
+in a gameplay scene to override **Water Color**, **Wave Color**, and **Foam Color**.
+The default base is `#142f40`, matching `scripts/menus/menu_ocean.gd`.
+
+## Implementation and validation
 
 - `scenes/menus/title_screen.tscn` and `scripts/menus/title_screen.gd`: title flow.
 - `scripts/menus/`: shared theme, animated buttons, settings and ocean background.
 - `scripts/game_window.gd`: persistence, window mode, focus behavior and audio.
 - `scripts/pause_menu.gd`: pause/settings and confirmed return to title.
-- `assets/menus/holy_ship_logo.png`: generated transparent title artwork.
+- `assets/menus/holy_ship_wordmark.png` and `holy_ship_boat.png`: separate
+  stationary lettering and animated ship. The original combined logo is retained.
 
 ```
 godot --headless --path . --script res://tests/menu_flow.gd -- --settings-test

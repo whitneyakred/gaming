@@ -23,7 +23,9 @@ func get_ship_storage(capacity: int = 18) -> ShipInventory:
 func grant_starter(inventory: PlayerInventory) -> void:
 	if _starter_granted.has(inventory.player_id):
 		return
-	if inventory.get_quantity(&"fishing_rod") > 0 or inventory.try_add(&"fishing_rod"):
+	var rod_granted := inventory.get_quantity(&"fishing_rod") > 0 or inventory.try_add(&"fishing_rod")
+	var spyglass_granted := inventory.get_quantity(&"spyglass") > 0 or inventory.try_add(&"spyglass")
+	if rod_granted and spyglass_granted:
 		_starter_granted[inventory.player_id] = true
 
 

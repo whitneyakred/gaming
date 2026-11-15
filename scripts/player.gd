@@ -5,6 +5,7 @@ extends CharacterBody2D
 @export var swim_speed: float = 65.0
 var is_overboard: bool = false
 var inventory_open: bool = false
+var fishing_active: bool = false
 var _deck_mask: int
 var _deck_layer: int
 var _sprite_position: Vector2
@@ -16,7 +17,7 @@ var using_station: bool:
 var active_station: Node = null
 
 func try_use_station(station: Node) -> bool:
-	if inventory_open or is_overboard or not is_instance_valid(station) or using_station or not is_physics_processing():
+	if inventory_open or fishing_active or is_overboard or not is_instance_valid(station) or using_station or not is_physics_processing():
 		return false
 	active_station = station
 	velocity = Vector2.ZERO
@@ -44,12 +45,11 @@ func _ready() -> void:
 
 
 func _grant_starting_inventory() -> void:
-	# The prototype starts each crew member with the tool needed for its only
-	# available station. Other acquisition systems can add this item later.
+	# Grant the voyage's starting tools once, including across island visits.
 	VoyageState.grant_starter(player_inventory)
 
 func _physics_process(_delta: float) -> void:
-	if using_station or inventory_open:
+	if using_station or inventory_open or fishing_active:
 		velocity = Vector2.ZERO
 		return
 	# Read WASD / arrow keys; diagonal movement stays the same speed.

@@ -13,7 +13,7 @@ var _normal_zoom: Vector2 = Vector2.ONE
 var _focus_offset: Vector2 = Vector2.ZERO
 ## Rowboat framing is controlled by the ship during island travel.
 var view_offset: Vector2 = Vector2.ZERO
-@onready var wind_arrow: Label = $HUD/Wind/Arrow
+@onready var wind_arrow: TextureRect = $HUD/Wind/Arrow
 @onready var helm_wheel: HelmWheelWidget = $HUD/HelmWheel
 @onready var vignette: ColorRect = $StationOverlay/Vignette
 

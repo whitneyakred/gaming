@@ -8,9 +8,9 @@ extends Node2D
 # How fast the water scrolls past, in pixels per second. The ship scene
 # changes this while sailing / anchoring; the island leaves it low.
 @export var scroll_speed: float = 0.0
-@export var water_color: Color = Color8(64, 68, 130)
-@export var wave_color: Color = Color8(78, 92, 149)
-@export var foam_color: Color = Color8(95, 132, 168)
+@export var water_color: Color = Color("142f40")
+@export var wave_color: Color = Color("1e4054")
+@export var foam_color: Color = Color("345a6b")
 # Smallest area to cover. The water always grows to fill the whole screen
 # around the camera too, however big the window is.
 @export var cover_size: Vector2 = Vector2(1600, 1000)

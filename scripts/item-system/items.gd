@@ -7,6 +7,11 @@ const COCONUT_WHOLE_ICON := preload("res://assets/items/coconut_whole.png")
 
 func _ready() -> void:
 	ItemDatabase.register_item(make_item(
+		&"spyglass", "Spyglass",
+		"Hold left-click to zoom out. Move the mouse to scout; release to return.",
+		1, ItemData.Category.TOOL, preload("res://assets/items/spyglass.svg")
+	))
+	ItemDatabase.register_item(make_item(
 		&"fish_cod",
 		"Sea Bass",
 		"A common sea fish.",
@@ -25,7 +30,7 @@ func _ready() -> void:
 	ItemDatabase.register_item(make_item(
 		&"fishing_rod",
 		"Fishing Rod",
-		"An old but useful tool for getting food and other items from the sea.",
+		"Click water to cast. At a bite, click again; hold and release to keep tension green.",
 		1,
 		ItemData.Category.TOOL
 	))

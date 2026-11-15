@@ -89,7 +89,7 @@ func _build_tabs() -> void:
 	_toggle(comfort, "Pause when switching to another app", "pause_unfocused")
 	comfort.add_child(HarborTheme.label("Reduced motion removes button scaling and decorative menu motion.\nFocus pause leaves your voyage paused until you resume.\nThese preferences apply to this device.", 15, Color("aebdb7")))
 	var controls := _page("Controls")
-	for pair in [["WASD / Arrow keys", "Walk or swim"], ["E / Space", "Use chest / station; hold and release to fish"], ["Sail / Helm", "W/S sail level; A/D trim or steer"], ["1–4 / Mouse wheel", "Select hotbar slot"], ["Drag / Shift-click", "Move or drop a stack / transfer to chest"], ["M", "Map (C clears destination while open)"], ["P", "Pause / resume"], ["Esc", "Close the current panel or pause"], ["F11", "Fullscreen / windowed"]]:
+	for pair in [["WASD / Arrow keys", "Walk or swim"], ["E / Space", "Use chest / station"], ["Left mouse", "Rod: cast / hook / reel; Spyglass: hold to scout"], ["Sail / Helm", "W/S sail level; A/D trim or steer"], ["1–4 / Mouse wheel", "Select hotbar slot"], ["Drag / Shift-click", "Move or drop a stack / transfer to chest"], ["M", "Map (C clears destination while open)"], ["P", "Pause / resume"], ["Esc", "Close the current panel or pause"], ["F11", "Fullscreen / windowed"]]:
 		var line := HBoxContainer.new()
 		line.add_theme_constant_override("separation", 24)
 		controls.add_child(line)
