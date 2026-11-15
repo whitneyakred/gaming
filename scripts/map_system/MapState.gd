@@ -23,6 +23,23 @@ var has_destination := false
 var destination := Vector2.ZERO
 var map_open := false
 
+func reset() -> void:
+	world_bounds = Rect2(-1024, -1024, 2048, 2048)
+	_has_world_bounds = false
+	markers.clear()
+	discovered_islands.clear()
+	island_catalog.clear()
+	discovered_ocean.clear()
+	player_position = Vector2.ZERO
+	has_player_position = false
+	paradise_position = Vector2.ZERO
+	has_paradise_position = false
+	selected_island_id = ""
+	has_destination = false
+	destination = Vector2.ZERO
+	map_open = false
+	changed.emit()
+
 
 func register_island(
 	island_id: String,
