@@ -6,18 +6,32 @@ exports remain solo-only. There is no public server directory or host migration.
 
 ## Host & Play
 
-1. Start `HolyShip.exe`, choose **Co-op • Host / Join**.
-2. Enter your sailor name and optionally a session password.
-3. Leave **UDP port** at **24567** (or choose an unused port).
-4. Leave **Host: continue saved voyage** checked to resume the previous hosted
+1. Start `HolyShip.exe` (or press **F6** with `title_screen.tscn` open in Godot).
+2. Enter your name on the **Your Sailor** card. It is saved and used as your nametag.
+3. Choose **Sail with a crew > Host a crew**, name your crew, and optionally add a password.
+4. Leave **Continue my saved voyage** checked to resume the previous hosted
    world. Uncheck it to start a new hosted voyage, replacing the current save.
-5. Click **Host & Play**. The host PC must remain awake with the game running.
+5. Click **Launch crew**. The host PC must remain awake with the game running.
 
-Friends choose **Co-op • Host / Join**, enter their own name, the host address,
-the public UDP port, and the same session password, then click **Join crew**.
+Friends on the same network choose **Sail with a crew > Browse crews** and click
+your named crew. The list shows occupied slots and password protection. Full crews
+cannot be selected; closed crews disappear within about seven seconds.
+
+For internet tunnels or manual connections choose **Direct connect**, enter the
+host address, public UDP port, and password, then click **Join crew**.
 Everyone must use the same build. Local testing uses address `127.0.0.1` only
 when both game processes are on the same computer; other PCs use your LAN IP or
 public/tunnel address. Each normal OS user has a persistent crew identity.
+
+Nearby discovery uses UDP 24566; hosting uses UDP 24567. One advertised host is
+supported per computer. Firewall rules or guest Wi-Fi isolation may prevent LAN
+discovery. Editor Play and exported games use the same networking. Separate PCs
+need no editor-specific setup. For two clients under the same OS user, launch
+the second with `-- --crew-profile second` to give it a separate persistent
+identity. Automated tests use isolated profiles via `--settings-test`.
+
+Internet-wide browsing and automatic relay connections are **not integrated yet**.
+The planned provider is Epic Online Services; see [the setup handoff](online-services-setup.md).
 
 ## Friends on different Wi-Fi networks: free UDP tunnel
 

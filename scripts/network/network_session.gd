@@ -20,6 +20,9 @@ var accounts: Dictionary = {}
 var password: String = ""
 var local_name: String = "Sailor"
 var local_token: String = ""
+var crew_title: String = "The Wandering Ship"
+var profile_path: String = "user://crew_identity.cfg"
+var discovery: Node
 var dropped_id: int = 1
 var _send_clock: float = 0.0
 var _save_clock: float = 0.0
@@ -44,15 +47,31 @@ func _ready() -> void:
 			_pending[id] = Time.get_ticks_msec())
 	var config := ConfigFile.new()
 	var path := "user://crew_identity.cfg"
+	var arguments := OS.get_cmdline_user_args()
+	var profile_index := arguments.find("--crew-profile")
+	if profile_index >= 0 and profile_index + 1 < arguments.size():
+		path = "user://crew_identity_%s.cfg" % arguments[profile_index + 1].sha256_text().left(16)
 	if "--settings-test" in OS.get_cmdline_user_args():
 		path = "res://.godot/crew-identity-%s.cfg" % OS.get_process_id()
 	config.load(path)
+	profile_path = path
+	local_name = clean_name(str(config.get_value("crew", "name", "Sailor")))
 	local_token = str(config.get_value("crew", "token", ""))
 	if local_token.length() < 32:
 		local_token = Crypto.new().generate_random_bytes(24).hex_encode()
 		config.set_value("crew", "token", local_token)
 		config.save(path)
+	discovery = preload("res://scripts/network/crew_discovery.gd").new()
+	add_child(discovery)
 	_start_cli.call_deferred()
+
+func save_player_name(value: String) -> void:
+	local_name = clean_name(value)
+	var config := ConfigFile.new()
+	config.load(profile_path)
+	config.set_value("crew", "name", local_name)
+	config.set_value("crew", "token", local_token)
+	config.save(profile_path)
 
 func set_status(message: String) -> void:
 	status = message
@@ -81,7 +100,7 @@ func host_session(name_text: String, port_number: int, secret: String = "", resu
 		load_world()
 	if not dedicated:
 		identities[1] = {"name": local_name, "token": local_token}
-	set_status("Hosting UDP %d. Share your public/tunnel address; opening a menu does not pause the crew." % port)
+	set_status("Your crew is sailing. Nearby players can find it in Browse crews.")
 	load_game.call_deferred()
 	return OK
 
@@ -198,7 +217,7 @@ func load_game() -> void:
 	_badge.add_theme_color_override("font_outline_color", Color("102531"))
 	_badge.add_theme_constant_override("outline_size", 4)
 	hud.add_child(_badge)
-	_badge.text = "Co-op testing • %s • UDP %d" % ["Host" if multiplayer.is_server() else "Crew", port]
+	_badge.text = "Sailing together • " + ("Captain" if multiplayer.is_server() else "Crew")
 
 func _disable_local_systems(node: Node) -> void:
 	if node is ShipStation:

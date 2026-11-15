@@ -20,10 +20,13 @@ func _ready() -> void:
 	$MenuCard/Rows/QuitButton.action = quit_game
 	$MenuCard/Rows/QuitButton.visible = not OS.has_feature("web")
 	settings = SettingsPanel.new()
+	$ProfileCard.add_theme_stylebox_override("panel", HarborTheme.panel())
+	$ProfileCard/Rows/PlayerName.text = NetworkSession.local_name
+	$ProfileCard/Rows/PlayerName.text_changed.connect(NetworkSession.save_player_name)
 	add_child(settings)
 	crew_menu = CrewMenu.new()
 	add_child(crew_menu)
-	var crew_button := HarborTheme.button("Co-op • Host / Join", func() -> void: crew_menu.open())
+	var crew_button := HarborTheme.button("Sail with a crew", func() -> void: crew_menu.open())
 	$MenuCard/Rows.add_child(crew_button)
 	$MenuCard/Rows.move_child(crew_button, 3)
 	$MenuCard.position.y = 125

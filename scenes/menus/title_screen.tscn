@@ -1,10 +1,12 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/menus/title_screen.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/menus/menu_ocean.gd" id="2"]
 [ext_resource type="Texture2D" path="res://assets/menus/holy_ship_wordmark.png" id="3"]
 [ext_resource type="Texture2D" path="res://assets/menus/holy_ship_boat.png" id="4"]
 [ext_resource type="Script" path="res://scripts/menus/harbor_button.gd" id="5"]
+
+[ext_resource type="Texture2D" path="res://assets/player_viking.png" id="6_player"]
 
 [node name="TitleScreen" type="Control" groups=["title_screen"]]
 layout_mode = 3
@@ -26,10 +28,10 @@ script = ExtResource("2")
 [node name="Wordmark" type="TextureRect" parent="."]
 texture_filter = 1
 layout_mode = 0
-offset_left = 70.0
-offset_top = 86.0
-offset_right = 650.0
-offset_bottom = 452.0
+offset_left = 24.0
+offset_top = 150.0
+offset_right = 480.0
+offset_bottom = 438.0
 mouse_filter = 2
 texture = ExtResource("3")
 expand_mode = 1
@@ -38,10 +40,10 @@ stretch_mode = 5
 [node name="LogoShip" type="TextureRect" parent="."]
 texture_filter = 1
 layout_mode = 0
-offset_left = 210.0
+offset_left = 130.0
 offset_top = 420.0
-offset_right = 510.0
-offset_bottom = 604.0
+offset_right = 370.0
+offset_bottom = 567.0
 mouse_filter = 2
 texture = ExtResource("4")
 expand_mode = 1
@@ -49,9 +51,9 @@ stretch_mode = 5
 
 [node name="Tagline" type="Label" parent="."]
 layout_mode = 0
-offset_left = 125.0
-offset_top = 610.0
-offset_right = 595.0
+offset_left = 24.0
+offset_top = 585.0
+offset_right = 480.0
 offset_bottom = 641.0
 theme_override_colors/font_color = Color(0.949, 0.875, 0.722, 1)
 theme_override_font_sizes/font_size = 23
@@ -60,9 +62,9 @@ horizontal_alignment = 1
 
 [node name="MenuCard" type="PanelContainer" parent="."]
 layout_mode = 0
-offset_left = 780.0
+offset_left = 505.0
 offset_top = 165.0
-offset_right = 1140.0
+offset_right = 865.0
 offset_bottom = 555.0
 
 [node name="Rows" type="VBoxContainer" parent="MenuCard"]
@@ -84,7 +86,7 @@ text = "A small ship. An open ocean."
 [node name="PlayButton" type="Button" parent="MenuCard/Rows"]
 custom_minimum_size = Vector2(260, 52)
 layout_mode = 2
-text = "Play  •  New voyage"
+text = "Solo voyage"
 script = ExtResource("5")
 
 [node name="SettingsButton" type="Button" parent="MenuCard/Rows"]
@@ -124,3 +126,46 @@ offset_bottom = 696.0
 theme_override_colors/font_color = Color(0.549, 0.659, 0.675, 1)
 theme_override_font_sizes/font_size = 14
 text = "F11  Fullscreen    •    Headphones welcome"
+
+[node name="ProfileCard" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 895.0
+offset_top = 125.0
+offset_right = 1245.0
+offset_bottom = 585.0
+
+[node name="Rows" type="VBoxContainer" parent="ProfileCard"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Heading" type="Label" parent="ProfileCard/Rows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898, 0.776, 0.529, 1)
+theme_override_font_sizes/font_size = 23
+text = "YOUR SAILOR"
+horizontal_alignment = 1
+
+[node name="Portrait" type="TextureRect" parent="ProfileCard/Rows"]
+custom_minimum_size = Vector2(0, 245)
+layout_mode = 2
+size_flags_vertical = 3
+texture_filter = 1
+mouse_filter = 2
+texture = ExtResource("6_player")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="ProfileCard/Rows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.682, 0.741, 0.718, 1)
+theme_override_font_sizes/font_size = 16
+text = "Your name · visible to your crew"
+horizontal_alignment = 1
+
+[node name="PlayerName" type="LineEdit" parent="ProfileCard/Rows"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+placeholder_text = "Sailor"
+alignment = 1
+max_length = 24
+theme_override_font_sizes/font_size = 20
