@@ -3,16 +3,28 @@ extends Node
 ## Autoload `VoyageState`: in-memory state for one voyage that must outlive
 ## a scene change (ship -> island -> ship). Nothing here is saved to disk.
 ##
-## Today it holds each crew member's inventory, so items collected on an
-## island are still in the bag back on the ship (see docs/design/isle.md,
-## "One VoyageState autoload holds everything that must cross a scene change").
+## Carries player inventories, ship storage and scene-local floor items across
+## visits. All state resets on a new voyage; it is not a disk save.
 
-## Distinct item types one crew member can carry. The prototype's per-scene
-## inventory used 4, which the island rewards outgrow quickly.
-## BR-inventory-slots (6 quick slots + TBD expanded slots) is still open (OI-11).
+## Six hotbar slots plus six bag slots. Multiple stacks may share an item ID.
 const INVENTORY_SLOTS: int = 12
 
 var _inventories: Dictionary[StringName, PlayerInventory] = {}
+var _starter_granted: Dictionary[StringName, bool] = {}
+var ship_storage: ShipInventory
+var floor_items: Dictionary = {}
+
+func get_ship_storage(capacity: int = 18) -> ShipInventory:
+	if ship_storage == null:
+		ship_storage = ShipInventory.new()
+		ship_storage.max_inv_space = capacity
+	return ship_storage
+
+func grant_starter(inventory: PlayerInventory) -> void:
+	if _starter_granted.has(inventory.player_id):
+		return
+	if inventory.get_quantity(&"fishing_rod") > 0 or inventory.try_add(&"fishing_rod"):
+		_starter_granted[inventory.player_id] = true
 
 
 ## The same PlayerInventory instance for the whole voyage. An unknown id gets
@@ -35,6 +47,9 @@ func get_player_inventory(player_id: StringName, initial_inventory: PlayerInvent
 ## Empties every inventory for a new voyage.
 func reset() -> void:
 	_inventories.clear()
+	_starter_granted.clear()
+	ship_storage = null
+	floor_items.clear()
 
 
 func clear_voyage() -> void:

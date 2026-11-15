@@ -146,6 +146,9 @@ func make_item(
 	item.max_stack = item_max_stack
 	item.category = item_category
 	item.icon = item_icon
+	var icon_path := "res://assets/items/%s.svg" % item_id
+	if item.icon == null and ResourceLoader.exists(icon_path):
+		item.icon = load(icon_path) as Texture2D
 	item.draw_weight = item_draw_weight
 	item.sell_value = item_sell_value
 	return item

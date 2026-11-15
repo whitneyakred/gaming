@@ -56,8 +56,8 @@ var _run_ended: bool = false
 var _timer_paused: bool = false
 var _bag_full_warned_at: int = -100000
 # The bag as it was when you landed, so a game over can take back the prize.
-var _bag_on_arrival: Array[ItemData] = []
-var _quantities_on_arrival: Dictionary[StringName, int] = {}
+var _bag_on_arrival: Array[Dictionary] = []
+var _floor_on_arrival: Dictionary = {}
 
 const COIN_ITEM_ID: StringName = &"gold_coin"
 
@@ -75,8 +75,12 @@ func _ready() -> void:
 
 	var bag := get_inventory()
 	if bag:
-		_bag_on_arrival = bag.inventory.duplicate()
-		_quantities_on_arrival = bag.quantities.duplicate()
+		_bag_on_arrival = bag.capture()
+	_floor_on_arrival = VoyageState.floor_items.get(scene_file_path, {}).duplicate(true)
+	var inventory_system := preload("res://scenes/inventory/inventory_system.tscn").instantiate()
+	inventory_system.chest_enabled = false
+	inventory_system.player_path = NodePath("../" + str(player_path))
+	add_child(inventory_system)
 
 	_setup_game()
 	refresh_hud()
@@ -254,9 +258,9 @@ func _take_back_prizes() -> void:
 	var bag := get_inventory()
 	if bag == null:
 		return
-	bag.inventory = _bag_on_arrival.duplicate()
-	bag.quantities = _quantities_on_arrival.duplicate()
-	bag.emit_changed()
+	bag.restore(_bag_on_arrival)
+	# Roll back loose items too: otherwise failure could duplicate dropped gear.
+	VoyageState.floor_items[scene_file_path] = _floor_on_arrival.duplicate(true)
 
 func _end_run() -> void:
 	_run_ended = true

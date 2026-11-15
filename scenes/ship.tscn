@@ -18,7 +18,7 @@
 [ext_resource type="Texture2D" path="res://assets/island_large.png" id="15"]
 [ext_resource type="PackedScene" uid="uid://b324lul81i3po" path="res://scenes/maps/MapUI.tscn" id="16_map"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/anchor_station.tscn" id="16"]
-[ext_resource type="PackedScene" uid="uid://cjgbshu0u7v0w" path="res://scenes/ui/inventory_hotbar.tscn" id="17_hotbar"]
+[ext_resource type="PackedScene" path="res://scenes/inventory/inventory_system.tscn" id="17_inventory"]
 
 [ext_resource type="Script" path="res://scripts/sailing/swim_access.gd" id="swim_access"]
 
@@ -499,13 +499,6 @@ draw_ocean_marks = false
 
 [node name="MapUI" parent="." instance=ExtResource("16_map")]
 
-[node name="InventoryHotbar" parent="HUD" unique_id=1780503792 instance=ExtResource("17_hotbar")]
-offset_left = 245.0
-offset_top = -107.0
-offset_right = 389.0
-offset_bottom = -62.0
-scale = Vector2(1.75, 1.75)
-
 [node name="StatusLabel" type="Label" parent="HUD" unique_id=1710473860]
 anchor_left = 0.1
 anchor_right = 0.8
@@ -527,9 +520,9 @@ anchor_right = 0.9
 anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 0.0
-offset_top = -70.0
+offset_top = -165.0
 offset_right = 0.0
-offset_bottom = -18.0
+offset_bottom = -113.0
 grow_vertical = 0
 theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
@@ -560,3 +553,5 @@ Sail: W/S deployment, A/D trim | Helm: A/D steer"
 
 [node name="SwimAccess" type="Node2D" parent="."]
 script = ExtResource("swim_access")
+
+[node name="InventorySystem" parent="." instance=ExtResource("17_inventory")]

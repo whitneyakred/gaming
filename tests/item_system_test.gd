@@ -72,7 +72,7 @@ func _test_registered_catalog() -> void:
 			"description": "An old but useful tool for getting food and other items from the sea.",
 			"max_stack": 1,
 			"category": ItemData.Category.TOOL,
-			"icon_path": "",
+			"icon_path": "res://assets/items/fishing_rod.svg",
 		},
 		{
 			"id": &"coconut",

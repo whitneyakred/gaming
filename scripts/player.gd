@@ -4,6 +4,7 @@ extends CharacterBody2D
 @export var walk_speed: float = 145.0
 @export var swim_speed: float = 65.0
 var is_overboard: bool = false
+var inventory_open: bool = false
 var _deck_mask: int
 var _deck_layer: int
 var _sprite_position: Vector2
@@ -15,7 +16,7 @@ var using_station: bool:
 var active_station: Node = null
 
 func try_use_station(station: Node) -> bool:
-	if is_overboard or not is_instance_valid(station) or using_station or not is_physics_processing():
+	if inventory_open or is_overboard or not is_instance_valid(station) or using_station or not is_physics_processing():
 		return false
 	active_station = station
 	velocity = Vector2.ZERO
@@ -25,8 +26,7 @@ func leave_station(station: Node) -> void:
 	if active_station == station:
 		active_station = null
 
-## Each player owns a separate inventory so station checks remain player-specific
-## when local multiplayer is added later.
+## The voyage owns this resource; stations and UI share the same inventory.
 @export var player_inventory: PlayerInventory
 
 @onready var idle_sprite: Sprite2D = $Sprite2D
@@ -46,12 +46,10 @@ func _ready() -> void:
 func _grant_starting_inventory() -> void:
 	# The prototype starts each crew member with the tool needed for its only
 	# available station. Other acquisition systems can add this item later.
-	var fishing_rod := ItemDatabase.get_item(&"fishing_rod")
-	if fishing_rod != null and player_inventory.get_quantity(fishing_rod.id) == 0:
-		player_inventory.add_item(fishing_rod)
+	VoyageState.grant_starter(player_inventory)
 
 func _physics_process(_delta: float) -> void:
-	if using_station:
+	if using_station or inventory_open:
 		velocity = Vector2.ZERO
 		return
 	# Read WASD / arrow keys; diagonal movement stays the same speed.

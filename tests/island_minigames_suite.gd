@@ -164,7 +164,7 @@ func _test_every_island_loads() -> void:
 		game.try_escape()
 		await _frames(2)
 		_check(game.is_running(), "The rowboat must refuse to leave before the task is done")
-		_check(game.hud.bag_label.visible and game.hud.bag_label.text.begins_with("Bag:"), "The HUD must show the bag")
+		_check(game.get_node("InventorySystem/InventoryHUD").buttons.size() == 6, "The icon HUD must show six hotbar slots")
 		# Walking straight down the dock reaches the rowboat.
 		var rowboat := game.get_node(^"Rowboat") as Area2D
 		await _walk_to(game.player, rowboat.global_position, 6.0, 10.0)

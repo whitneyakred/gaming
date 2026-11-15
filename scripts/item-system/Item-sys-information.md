@@ -28,8 +28,8 @@ identifier once merged.
 | `id` | Unique code ID used by inventories and stations. |
 | `display_name` | Human-readable UI text. |
 | `description` | Player-facing description for future UI. |
-| `max_stack` | Maximum count of this item in a single inventory item type. Use at least `1`. |
-| `icon` | Optional `Texture2D` displayed by the inventory hotbar. When it is empty, the hotbar displays the item's name instead. |
+| `max_stack` | Maximum count of this item in a single inventory slot. Use at least `1`. |
+| `icon` | `Texture2D` displayed in hotbar, bag, chest and floor pickups. All registered items have icons; names appear in tooltips. |
 | `category` | Catalog category used by future systems to filter item definitions. Current categories are `FOOD`, `MATERIAL`, and `TOOL`. |
 | `draw_weight` | Positive relative weight for a future item-pool draw. The current definitions use the neutral value `1.0` until loot tuning is approved. |
 | `sell_value` | Nonnegative future merchant value. The current definitions use `0` until economy values are approved. |
@@ -121,8 +121,8 @@ a warning.
 | --- | --- | ---: | --- | --- |
 | `fish_cod` | Sea Bass | 10 | `assets/items/seabass_alive.png` | Fishing reward |
 | `rope` | Rope | 25 | `assets/items/rope_var1.png` | Fishing reward; general shipboard material |
-| `fishing_rod` | Fishing Rod | 1 | None | Required to begin fishing; starter player item |
-| `coconut` | Coconut | 20 | None | Registered fruit definition; placed challenge pickups do not yet grant it to inventory |
+| `fishing_rod` | Fishing Rod | 1 | `assets/items/fishing_rod.svg` | Required to begin fishing; starter player item |
+| `coconut` | Coconut | 20 | `assets/items/coconut_whole.png` | Island pickup |
 
 ## Scope and future work
 
@@ -134,3 +134,7 @@ Keep this system as item definitions only. Item removal, recipes, world
 pickups, saving, and item UI belong in their own focused changes. When adding
 an icon, assign it through an item-definition workflow rather than loading a
 texture ad hoc from each UI or station script.
+
+When no explicit texture is passed, the catalog looks for `assets/items/<id>.svg`.
+The remaining island rewards use these editable pixel-style SVG icons. Add matching
+art when registering new items; UI renderers do not substitute item names in slots.
