@@ -6,6 +6,7 @@ extends Control
 @onready var logo_ship: TextureRect = $LogoShip
 @onready var play_button: Button = $MenuCard/Rows/PlayButton
 var settings: SettingsPanel
+var crew_menu: CrewMenu
 var _ship_rest_y: float
 var _time: float = 0.0
 var _starting: bool = false
@@ -20,6 +21,15 @@ func _ready() -> void:
 	$MenuCard/Rows/QuitButton.visible = not OS.has_feature("web")
 	settings = SettingsPanel.new()
 	add_child(settings)
+	crew_menu = CrewMenu.new()
+	add_child(crew_menu)
+	var crew_button := HarborTheme.button("Co-op • Host / Join", func() -> void: crew_menu.open())
+	$MenuCard/Rows.add_child(crew_button)
+	$MenuCard/Rows.move_child(crew_button, 3)
+	$MenuCard.position.y = 125
+	$MenuCard.size.y = 460
+	if not NetworkSession.status.is_empty():
+		crew_menu.open()
 	play_button.grab_focus()
 	GameWindow.start_menu_music()
 

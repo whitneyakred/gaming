@@ -4,6 +4,7 @@ extends CharacterBody2D
 @export var walk_speed: float = 145.0
 @export var swim_speed: float = 65.0
 var is_overboard: bool = false
+var on_land: bool = false
 var inventory_open: bool = false
 var fishing_active: bool = false
 var _deck_mask: int
@@ -46,16 +47,22 @@ func _ready() -> void:
 
 func _grant_starting_inventory() -> void:
 	# Grant the voyage's starting tools once, including across island visits.
-	VoyageState.grant_starter(player_inventory)
+	if not NetworkSession.online or multiplayer.is_server():
+		VoyageState.grant_starter(player_inventory)
 
 func _physics_process(_delta: float) -> void:
+	if NetworkSession.online:
+		return
+	move_crew(Input.get_vector("move_left", "move_right", "move_up", "move_down"), _delta)
+
+func move_crew(direction: Vector2, _delta: float) -> void:
 	if using_station or inventory_open or fishing_active:
 		velocity = Vector2.ZERO
 		return
 	# Read WASD / arrow keys; diagonal movement stays the same speed.
-	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+
 	if is_overboard:
-		velocity = direction * swim_speed
+		velocity = direction * (walk_speed if on_land else swim_speed)
 		var next := global_position + velocity * _delta
 		var ship := get_parent() as Ship
 		if ship:
@@ -104,7 +111,7 @@ func set_overboard(value: bool) -> void:
 	velocity = Vector2.ZERO
 
 func _draw() -> void:
-	if is_overboard:
+	if is_overboard and not on_land:
 		draw_arc(Vector2(0, 3), 12, 0.0, PI, 16, Color(0.7, 0.9, 1.0, 0.6), 1.5)
 
 func play_fishing_animation() -> void:
@@ -115,3 +122,10 @@ func play_fishing_animation() -> void:
 func _on_fishing_animation_animation_finished() -> void:
 	fishing_animation.hide()
 	idle_sprite.show()
+
+func update_land(is_land: bool) -> void:
+	on_land = is_overboard and is_land
+	if is_overboard:
+		idle_sprite.region_enabled = not on_land
+		idle_sprite.position = _sprite_position if on_land else Vector2(0, -7)
+	queue_redraw()

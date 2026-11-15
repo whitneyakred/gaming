@@ -144,6 +144,7 @@ func shutdown_audio() -> void:
 	_sounds.clear()
 
 func quit_game() -> void:
+	NetworkSession.save_world()
 	if _quitting:
 		return
 	_quitting = true

@@ -115,6 +115,8 @@ func _ready() -> void:
 	MapState.update_player_position(global_position)
 
 func _physics_process(delta: float) -> void:
+	if NetworkSession.online and not multiplayer.is_server():
+		return
 	if _state == State.SAILING or _state == State.ANCHORED:
 		super._physics_process(delta)
 		if _leaving_island and _distance_to_shore(_leaving_island) > anchor_island_distance:
@@ -127,7 +129,7 @@ func _physics_process(delta: float) -> void:
 				_update_sailing_status()
 	MapState.update_player_position(global_position)
 	ocean.global_position = global_position
-	prompt_label.visible = _state == State.ANCHORED and _player_at_stern and not player.using_station
+	prompt_label.visible = false
 
 func _process(delta: float) -> void:
 	super._process(delta)
@@ -153,11 +155,8 @@ func _view_offset_showing(point: Vector2, current: Vector2) -> Vector2:
 		signf(from_center.y) * maxf(absf(from_center.y) - half.y, 0.0))
 	return current + shift
 
-func _unhandled_input(event: InputEvent) -> void:
-	if _state == State.ANCHORED and _player_at_stern and not player.using_station:
-		if event.is_action_pressed("interact") and not event.is_echo():
-			get_viewport().set_input_as_handled()
-			_row_to_island()
+func _unhandled_input(_event: InputEvent) -> void:
+	pass
 
 # --- Islands on the map --------------------------------------------------------
 
@@ -262,7 +261,7 @@ func _on_anchor_changed(deployed: bool) -> void:
 func _anchor_at(island: WorldIsland) -> void:
 	_state = State.ANCHORED
 	_docked_island = island
-	_set_status("Anchored near %s! Head to the back of the ship to row ashore, or raise the anchor to sail on." % island.display_name)
+	_set_status("Anchored near %s! Use the boarding plank to swim ashore, or raise the anchor to sail on." % island.display_name)
 
 # Ship-local points from the stern to the island's dock, going around the
 # island's coast and around the ship itself rather than over either.

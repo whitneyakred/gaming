@@ -4,6 +4,10 @@ extends Node2D
 var service: Node
 
 func chest_texture() -> Texture2D:
+	if NetworkSession.online:
+		for value in NetworkSession.services.values():
+			if value.hud.storage_open:
+				return open_chest_texture
 	return open_chest_texture if service.hud != null and service.hud.storage_open else closed_chest_texture
 
 func _ready() -> void:
@@ -24,7 +28,7 @@ func _draw() -> void:
 	for key: int in service.drops:
 		var entry: Dictionary = service.drops[key]
 		var item: ItemData = ItemDatabase.get_item(entry.id)
-		var point: Vector2 = entry.position + Vector2((key % 3 - 1) * 7, (key % 2) * 5)
+		var point: Vector2 = (to_local(entry.position) if entry.get("world", false) else entry.position) + Vector2((key % 3 - 1) * 7, (key % 2) * 5)
 		draw_set_transform(point, -global_rotation)
 		draw_circle(Vector2(0, 6), 12, Color(0, 0, 0, 0.3))
 		if item != null and item.icon != null:

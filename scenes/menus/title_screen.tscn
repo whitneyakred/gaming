@@ -113,7 +113,7 @@ offset_right = 450.0
 offset_bottom = 696.0
 theme_override_colors/font_color = Color(0.549, 0.659, 0.675, 1)
 theme_override_font_sizes/font_size = 13
-text = "SINGLE PLAYER  /  EARLY VOYAGE"
+text = "SOLO + CO-OP  /  EARLY VOYAGE"
 
 [node name="Hint" type="Label" parent="."]
 layout_mode = 0

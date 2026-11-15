@@ -35,6 +35,8 @@ func bind_service(value: InventoryService) -> void:
 		button.slot_index = index
 		button.pressed.connect(func() -> void:
 			selected = index
+			if NetworkSession.online:
+				NetworkSession.command("select", {"index": index})
 			_refresh())
 		buttons.append(button)
 	panels = HBoxContainer.new()
@@ -85,6 +87,8 @@ func _slot(parent: Control, index: int, storage: bool) -> InventorySlotButton:
 	button.pressed.connect(func() -> void:
 		if not storage and index < HOTBAR_SLOTS:
 			selected = index
+			if NetworkSession.online:
+				NetworkSession.command("select", {"index": index})
 			_refresh())
 	parent.add_child(button)
 	return button
@@ -161,6 +165,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if service == null or event.is_echo():
 		return
 	if event.is_action_pressed("ui_cancel") and storage_open:
+		if NetworkSession.online:
+			NetworkSession.command("close")
 		close()
 		get_viewport().set_input_as_handled()
 		return
@@ -168,6 +174,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var handled := false
 	if event.is_action_pressed("interact"):
+		if NetworkSession.online:
+			NetworkSession.command("interact")
+			get_viewport().set_input_as_handled()
+			return
 		if storage_open:
 			close()
 			handled = true
@@ -183,6 +193,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		selected = posmod(selected + (-1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1), buttons.size())
 		handled = true
 	if handled:
+		if NetworkSession.online:
+			NetworkSession.command("select", {"index": selected})
 		service.player.set("inventory_open", storage_open)
 		_refresh()
 		get_viewport().set_input_as_handled()

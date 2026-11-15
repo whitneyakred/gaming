@@ -9,6 +9,7 @@ signal feedback(message: String)
 @export var storage_position := Vector2(45, -45)
 @export var interaction_distance: float = 38.0
 @export var pickup_distance: float = 24.0
+var network_id: int = 1
 var player: CharacterBody2D
 var inventory: PlayerInventory
 var storage: ShipInventory
@@ -44,10 +45,16 @@ func _exit_tree() -> void:
 		storage.inventory_changed.disconnect(publish)
 
 func can_handle_items() -> bool:
-	return is_instance_valid(player) and player.is_physics_processing() and not player.get("using_station") and not player.get("is_overboard") and not MapState.map_open and not get_tree().paused
+	if not is_instance_valid(player) or not player.is_physics_processing() or player.using_station or (player.is_overboard and not player.on_land):
+		return false
+	if NetworkSession.online:
+		if network_id == NetworkSession.local_id and (MapState.map_open or PauseMenu.is_paused()):
+			return false
+		return not NetworkSession.inputs.get(network_id, {}).get("blocked", false)
+	return not MapState.map_open and not get_tree().paused
 
 func near_storage() -> bool:
-	return chest_enabled and can_handle_items() and player.position.distance_to(storage_position) <= interaction_distance
+	return chest_enabled and not player.is_overboard and can_handle_items() and player.position.distance_to(storage_position) <= interaction_distance
 
 func chest_is_nearest() -> bool:
 	if not near_storage():
@@ -59,6 +66,9 @@ func chest_is_nearest() -> bool:
 	return true
 
 func request(action: String, index: int) -> void:
+	if NetworkSession.online and not NetworkSession.applying:
+		NetworkSession.command("transfer", {"action": action, "index": index, "revision": view_revision})
+		return
 	if not can_handle_items() or not near_storage() or not hud.storage_open:
 		return
 	var source: ShipInventory = storage if action == "take" else inventory
@@ -67,6 +77,9 @@ func request(action: String, index: int) -> void:
 		feedback.emit("No room for that stack.")
 
 func request_drag(data: Dictionary, destination: int = -1, to_storage: bool = false) -> void:
+	if NetworkSession.online and not NetworkSession.applying:
+		NetworkSession.command("drag", {"index": data.get("index", -1), "storage": data.get("storage", false), "revision": data.get("revision", -1), "destination": destination, "to_storage": to_storage})
+		return
 	if not can_handle_items() or data.get("service_id", 0) != get_instance_id():
 		return
 	if data.get("revision", -1) != view_revision:
@@ -87,16 +100,24 @@ func request_drag(data: Dictionary, destination: int = -1, to_storage: bool = fa
 
 func _spawn_drop(entry: Dictionary, point: Vector2) -> void:
 	# Parent coordinates keep drops on the moving ship; island drops stay ashore.
-	drops[next_drop_id] = {"id": entry.id, "quantity": entry.quantity, "position": point}
+	if NetworkSession.online:
+		next_drop_id = NetworkSession.dropped_id
+		NetworkSession.dropped_id += 1
+	drops[next_drop_id] = {"id": entry.id, "quantity": entry.quantity, "position": point, "world": player.is_overboard}
 	pickup_inside[next_drop_id] = player.position.distance_to(point) <= pickup_distance
 	next_drop_id += 1
 
 func _physics_process(_delta: float) -> void:
+	if not NetworkSession.online:
+		server_pickups()
+
+func server_pickups() -> void:
 	if not can_handle_items():
 		return
 	for id: int in drops.keys():
 		var entry: Dictionary = drops[id]
-		if player.position.distance_to(entry.position) > pickup_distance:
+		var drop_world: Vector2 = entry.position if entry.get("world", false) else get_parent().to_global(entry.position)
+		if player.global_position.distance_to(drop_world) > pickup_distance:
 			pickup_inside[id] = false
 			continue
 		if pickup_inside.get(id, false):

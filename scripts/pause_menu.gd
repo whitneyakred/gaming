@@ -27,7 +27,7 @@ func _ready() -> void:
 	rows.add_theme_constant_override("separation", 16)
 	panel.add_child(rows)
 	rows.add_child(HarborTheme.label("A MOMENT AT ANCHOR", 25))
-	rows.add_child(HarborTheme.label("Your voyage is paused.", 17, Color("aebdb7")))
+	rows.add_child(HarborTheme.label("Solo pauses here. Online crews keep sailing.", 17, Color("aebdb7")))
 	_resume_button = HarborTheme.button("Resume voyage", resume)
 	_resume_button.name = "ResumeButton"
 	rows.add_child(_resume_button)
@@ -67,7 +67,7 @@ func pause() -> void:
 	var scene := get_tree().current_scene
 	if is_paused() or scene == null or scene.is_in_group("title_screen"):
 		return
-	get_tree().paused = true
+	get_tree().paused = not NetworkSession.online
 	GameWindow.start_menu_music()
 	_screen.show()
 	_resume_button.grab_focus()
@@ -84,12 +84,19 @@ func resume() -> void:
 	pause_changed.emit(false)
 
 func is_paused() -> bool:
-	return get_tree().paused
+	return _screen.visible
 
 func _ask_return() -> void:
+	if NetworkSession.online:
+		_confirm.dialog_text = "Leave this crew? The host saves the voyage. If you are hosting, everyone disconnects."
+	else:
+		_confirm.dialog_text = "End the solo voyage? Solo progress is not saved."
 	_confirm.popup_centered(Vector2i(500, 180))
 
 func return_to_title() -> void:
+	if NetworkSession.online:
+		NetworkSession.leave()
+		return
 	resume()
 	GameWindow.save_preferences()
 	get_tree().change_scene_to_file("res://scenes/menus/title_screen.tscn")

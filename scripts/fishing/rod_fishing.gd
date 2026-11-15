@@ -28,6 +28,7 @@ var wait_left: float = 0.0
 var bite_left: float = 0.0
 var splash_age: float = 10.0
 var held: bool = false
+var visual_catches: int = 0
 var sound: FishingAudio
 var hud: FishingHUD
 var _terrain: Array[IslandTerrain] = []
@@ -48,7 +49,11 @@ func _ready() -> void:
 	canvas.add_child(hud)
 	_ship = service.get_parent() as Ship
 	_collect_terrain(service.get_parent())
-	get_window().focus_exited.connect(cancel)
+	get_window().focus_exited.connect(func() -> void:
+		if not NetworkSession.online:
+			cancel()
+		elif service.network_id == NetworkSession.local_id and not NetworkSession.dedicated:
+			NetworkSession.command("cancel_fish"))
 
 func _collect_terrain(node: Node) -> void:
 	if node is IslandTerrain:
@@ -63,7 +68,8 @@ func rod_selected() -> bool:
 	return index >= 0 and index < service.local_slots.size() and service.local_slots[index].get("id", &"") == &"fishing_rod"
 
 func can_fish() -> bool:
-	return rod_selected() and service.can_handle_items() and not service.hud.storage_open and not get_viewport().gui_is_dragging()
+	var local_drag := get_viewport().gui_is_dragging() and (not NetworkSession.online or service.network_id == NetworkSession.local_id)
+	return rod_selected() and service.can_handle_items() and not service.hud.storage_open and not local_drag
 
 func is_water(point: Vector2) -> bool:
 	if is_instance_valid(_ship):
@@ -90,6 +96,17 @@ func _input(event: InputEvent) -> void:
 		held = false
 
 func _unhandled_input(event: InputEvent) -> void:
+	if NetworkSession.online:
+		if service.network_id != NetworkSession.local_id or PauseMenu.is_paused() or MapState.map_open:
+			return
+		if event is InputEventMouseButton and event.pressed:
+			if event.button_index == MOUSE_BUTTON_LEFT and rod_selected():
+				NetworkSession.command("fish", {"point": get_canvas_transform().affine_inverse() * event.position})
+				get_viewport().set_input_as_handled()
+			elif event.button_index == MOUSE_BUTTON_RIGHT:
+				NetworkSession.command("cancel_fish")
+				get_viewport().set_input_as_handled()
+		return
 	if state != State.IDLE and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 		cancel()
 		get_viewport().set_input_as_handled()
@@ -119,7 +136,7 @@ func cast(point: Vector2) -> bool:
 		return false
 	cast_origin = service.player.global_position + Vector2(8, -18)
 	target = point
-	_cast_from_ship = is_instance_valid(_ship)
+	_cast_from_ship = is_instance_valid(_ship) and not service.player.is_overboard
 	if _cast_from_ship:
 		_ship_target = _ship.to_local(point)
 		_ship_origin = _ship.to_local(cast_origin)
@@ -179,6 +196,7 @@ func finish(success: bool, message: String = "", snapped: bool = true) -> void:
 	service.player.set("fishing_active", false)
 	sound.set_reeling(false)
 	if success:
+		visual_catches += 1
 		var item_id: StringName = &"fish_cod" if rng.randf() < 0.9 else &"rope"
 		var item := ItemDatabase.get_item(item_id)
 		if not service.inventory.try_add(item_id):

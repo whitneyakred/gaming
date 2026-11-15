@@ -64,6 +64,8 @@ func _ready() -> void:
 	_wind_change_left = _next_wind_interval()
 
 func _process(delta: float) -> void:
+	if NetworkSession.online and not multiplayer.is_server():
+		return
 	# Separate from movement so anchored/docking ships still experience wind shifts.
 	if not changing_wind_enabled:
 		_target_wind_angle = wind_velocity.angle()
