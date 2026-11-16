@@ -78,7 +78,7 @@ func run() -> void:
 	check(title.crew_menu.tabs.get_parent().get_parent().get_global_rect() == browse_rect, "Private fields do not resize the crew panel")
 	GameWindow.play_ui()
 	await frames()
-	check(not GameWindow.music_player.playing and GameWindow.music_player.stream == null, "Button clicks do not start background music")
+	check(GameWindow.music_player.playing and GameWindow.music_player.stream is AudioStreamOggVorbis, "Menu uses the supplied song")
 	title.crew_menu.hide()
 	title.settings.open()
 	await frames()
@@ -120,6 +120,8 @@ func run() -> void:
 	await get_tree().scene_changed
 	await frames()
 	check(get_tree().current_scene.has_node("Ship"), "Play starts a voyage")
+	GameWindow.play_ui()
+	check(not GameWindow.music_player.playing, "Gameplay button sounds do not restart menu music")
 	check(MapState.markers.is_empty() and Ship.completed_islands.is_empty(), "New voyage clears map and island completion")
 	check(VoyageState.get_inventory(&"player_1").get_quantity(&"rope") == 0, "New voyage clears carried items")
 	var ship := get_tree().current_scene.get_node("Ship")

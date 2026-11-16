@@ -68,7 +68,6 @@ func pause() -> void:
 	if is_paused() or scene == null or scene.is_in_group("title_screen"):
 		return
 	get_tree().paused = not NetworkSession.online
-	GameWindow.start_menu_music()
 	_screen.show()
 	_resume_button.grab_focus()
 	pause_changed.emit(true)
@@ -79,7 +78,6 @@ func resume() -> void:
 	_settings.hide()
 	_confirm.hide()
 	get_tree().paused = false
-	GameWindow.stop_menu_music()
 	_screen.hide()
 	pause_changed.emit(false)
 

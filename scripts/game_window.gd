@@ -1,5 +1,5 @@
 extends Node
-## Display preferences and original synthesized menu audio. No gameplay save data.
+## Display preferences, menu soundtrack and synthesized button sounds.
 signal preferences_changed
 const DEFAULTS := {"fullscreen": true, "window_size": 1, "vsync": true, "master": 0.8, "music": 0.35, "effects": 0.7, "reduced_motion": false, "mute_unfocused": true, "pause_unfocused": true}
 const WINDOW_SIZES := [Vector2i(960, 540), Vector2i(1280, 720), Vector2i(1600, 900)]
@@ -11,6 +11,7 @@ var _sounds: Dictionary = {}
 var _save_timer: Timer
 var _focused: bool = true
 var _music_started: bool = false
+var _menu_music_requested: bool = false
 var _quitting: bool = false
 
 func _ready() -> void:
@@ -37,7 +38,9 @@ func _ready() -> void:
 	_sounds["hover"] = _tone(720.0, 0.045, 0.12)
 	_sounds["click"] = _tone(440.0, 0.09, 0.3)
 	_sounds["back"] = _tone(290.0, 0.12, 0.22)
-	# Menu soundtrack intentionally disabled until the replacement track is ready.
+	var track := load("res://assets/audio/menu_theme.ogg") as AudioStreamOggVorbis
+	track.loop = true
+	music_player.stream = track
 	apply_preferences()
 
 func load_preferences(path: String) -> void:
@@ -94,6 +97,9 @@ func apply_preferences(changed_key: String = "") -> void:
 			DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if preferences.vsync else DisplayServer.VSYNC_DISABLED)
 
 func _input(event: InputEvent) -> void:
+	# Browser audio unlock must happen during a real user gesture.
+	if _menu_music_requested and not _music_started and ((event is InputEventMouseButton and event.pressed) or (event is InputEventKey and event.pressed)):
+		_begin_menu_music()
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
 		set_preference("fullscreen", get_window().mode != Window.MODE_FULLSCREEN)
 		get_viewport().set_input_as_handled()
@@ -116,16 +122,21 @@ func play_ui(kind: String = "click") -> void:
 		return
 	sound_player.stream = _sounds.get(kind, _sounds.click)
 	sound_player.play()
-	if not _music_started and kind != "hover" and music_player.stream != null:
-		_music_started = true
+	if _menu_music_requested and kind != "hover":
+		_begin_menu_music()
+
+func _begin_menu_music() -> void:
+	if not _quitting and not music_player.playing and music_player.stream != null:
 		music_player.play()
+		_music_started = true
 
 func start_menu_music() -> void:
-	if not _quitting and music_player.stream != null and not OS.has_feature("web") and not music_player.playing:
-		music_player.play()
-		_music_started = true
+	_menu_music_requested = true
+	if not OS.has_feature("web"):
+		_begin_menu_music()
 
 func stop_menu_music() -> void:
+	_menu_music_requested = false
 	music_player.stop()
 	_music_started = false
 
@@ -169,24 +180,6 @@ func _tone(frequency: float, duration: float, amplitude: float) -> AudioStreamWA
 		var sample := (sin(TAU * frequency * t) + 0.3 * sin(TAU * frequency * 2.01 * t)) * envelope * amplitude
 		data.encode_s16(i * 2, int(clampf(sample, -1, 1) * 32767))
 	return _wav(data)
-
-func _make_music() -> AudioStreamWAV:
-	# An original quiet eight-note plucked motif, looped with a soft drone.
-	var notes := [220.0, 261.63, 329.63, 392.0, 329.63, 293.66, 261.63, 196.0]
-	var count := 22050 * 8
-	var data := PackedByteArray()
-	data.resize(count * 2)
-	for i in count:
-		var time := float(i) / 22050.0
-		var local := fmod(time, 1.0)
-		var note: float = notes[int(time) % notes.size()]
-		var env := minf(local / 0.025, 1.0) * exp(-local * 4.0)
-		var sample := sin(TAU * note * local) * env * 0.16 + sin(TAU * 110.0 * time) * 0.025
-		data.encode_s16(i * 2, int(sample * 32767))
-	var stream := _wav(data)
-	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = count
-	return stream
 
 func _wav(data: PackedByteArray) -> AudioStreamWAV:
 	var stream := AudioStreamWAV.new()

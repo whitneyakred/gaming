@@ -32,9 +32,11 @@ values fall back to defaults or are clamped. Volume changes save after a short
 debounce; leaving settings and quitting also save.
 
 - Fullscreen, windowed size and VSync.
-- Master, Music and Effects volume. The original synthesized eight-note menu
-  motif uses Music; the short hover, click and back tones use Effects. Music
-  runs on the title/pause menus, not continuously during gameplay.
+- Master, Music and Effects volume. The supplied `assets/audio/menu_theme.ogg`
+  loops on the title and its crew/settings panels through Music; the short
+  hover, click and back tones use Effects. The menu track stops for voyages
+  and does not restart in the gameplay pause menu. Browser playback begins
+  after a user click/key gesture. See [audio notes](../assets/audio/README.md).
 - Mute when unfocused, auto-pause when unfocused, and reduced menu motion.
 - Restore defaults and a keyboard/mouse controls reference.
 
