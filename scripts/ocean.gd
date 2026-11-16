@@ -49,6 +49,13 @@ func _draw() -> void:
 	draw_set_transform(center)
 	var half := area / 2.0
 	draw_rect(Rect2(-half, area), water_color)
+	if world_anchored:
+		var world_center := to_global(center)
+		var visible_world := Rect2(world_center-half,area)
+		var safe := Rect2(-11000,-11000,22000,22000)
+		for red in [Rect2(visible_world.position,Vector2(maxf(0,safe.position.x-visible_world.position.x),area.y)),Rect2(Vector2(maxf(safe.end.x,visible_world.position.x),visible_world.position.y),Vector2(maxf(0,visible_world.end.x-safe.end.x),area.y)),Rect2(visible_world.position,Vector2(area.x,maxf(0,safe.position.y-visible_world.position.y))),Rect2(Vector2(visible_world.position.x,maxf(safe.end.y,visible_world.position.y)),Vector2(area.x,maxf(0,visible_world.end.y-safe.end.y)))]:
+			var clipped: Rect2 = red.intersection(visible_world)
+			if clipped.has_area(): draw_rect(Rect2(clipped.position-world_center,clipped.size), Color("522331"))
 	var tiles_x := int(ceil(area.x / TILE)) + 2
 	var tiles_y := int(ceil(area.y / TILE)) + 2
 	var start := Vector2(-tiles_x / 2 * TILE, -tiles_y / 2 * TILE)
@@ -70,4 +77,5 @@ func _draw() -> void:
 				if abs(p.x) > half.x or abs(p.y) > half.y:
 					continue
 				var colour := foam_color if i % 5 == 0 else wave_color
+				if world_anchored and WorldLayout.danger(to_global(center+p)): colour = Color("8c3c47") if i%5 == 0 else Color("6a2c39")
 				draw_rect(Rect2(p, Vector2(w.z * PIXEL, PIXEL)), colour)

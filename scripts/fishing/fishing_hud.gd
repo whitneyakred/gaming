@@ -9,7 +9,7 @@ func _ready() -> void:
 	offset_top = 32
 	offset_bottom = 190
 func _process(_delta: float) -> void:
-	visible = fishing != null and fishing.state != 0
+	visible = fishing != null and fishing.state != 0 and not fishing.local_done
 	queue_redraw()
 func _draw() -> void:
 	if fishing == null:

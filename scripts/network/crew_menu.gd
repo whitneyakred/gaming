@@ -1,5 +1,7 @@
 class_name CrewMenu
 extends Control
+signal solo_requested
+var solo_button: Button
 var secret: LineEdit
 var crew_name: LineEdit
 var privacy: OptionButton
@@ -12,6 +14,8 @@ var tabs: TabContainer
 var refresh_clock := 0.0
 var password_dialog: ConfirmationDialog
 var notice: Label
+var save_buttons: Array[Button] = []
+var reset_save: Button
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -29,7 +33,15 @@ func _ready() -> void:
 	var rows := VBoxContainer.new()
 	rows.add_theme_constant_override("separation", 12)
 	card.add_child(rows)
-	rows.add_child(HarborTheme.label("FIND YOUR CREW", 28))
+	var heading := HBoxContainer.new()
+	rows.add_child(heading)
+	var caption := HarborTheme.label("FIND YOUR CREW", 28)
+	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_child(caption)
+	solo_button = HarborTheme.button("Solo Offline ship", start_solo)
+	heading.add_child(solo_button)
+	solo_button.custom_minimum_size = Vector2(210, 40)
+	solo_button.add_theme_font_size_override("font_size", 17)
 	rows.add_child(HarborTheme.label("An open sea. A shared ship. Up to four sailors.", 17))
 	notice = HarborTheme.label("", 16)
 	notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -51,7 +63,31 @@ func _ready() -> void:
 	scroll.add_child(list)
 	refresh = HarborTheme.button("Refresh crews", search_crews)
 	browse.add_child(refresh)
-	var host := page("Host a voyage")
+	var host_page := page("Host a voyage")
+	var host_columns := HBoxContainer.new()
+	host_columns.add_theme_constant_override("separation", 24)
+	host_page.add_child(host_columns)
+	var host := VBoxContainer.new()
+	host.custom_minimum_size.x = 350
+	host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	host.add_theme_constant_override("separation", 12)
+	host_columns.add_child(host)
+	var saves := VBoxContainer.new()
+	saves.custom_minimum_size.x = 350
+	saves.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	saves.add_theme_constant_override("separation", 8)
+	host_columns.add_child(saves)
+	saves.add_child(HarborTheme.label("YOUR VOYAGES", 18))
+	for i in VoyageSaves.COUNT:
+		var slot := i
+		var button := HarborTheme.button("", func(): select_save(slot))
+		button.custom_minimum_size.y = 64
+		button.add_theme_font_size_override("font_size", 15)
+		saves.add_child(button)
+		save_buttons.append(button)
+	reset_save = HarborTheme.button("Clear selected save", confirm_clear)
+	reset_save.add_theme_font_size_override("font_size", 16)
+	saves.add_child(reset_save)
 	host.add_child(HarborTheme.label("Voyage name", 18))
 	crew_name = field(host, "Name your voyage", "The Wandering Ship")
 	crew_name.max_length = 32
@@ -72,7 +108,7 @@ func _ready() -> void:
 		if index == 1:
 			if secret.text.is_empty(): secret.text = "123"
 			secret.grab_focus())
-	host.add_child(HarborTheme.label("Keep the game open while your crew is sailing.", 16))
+	host.add_child(HarborTheme.label("Keep the game open for your crew.", 14))
 	launch = HarborTheme.button("Launch voyage", host_voyage)
 	host.add_child(launch)
 	message = HarborTheme.label("", 15)
@@ -84,6 +120,8 @@ func _ready() -> void:
 	HarborService.changed.connect(refresh_list)
 	tabs.tab_changed.connect(func(index: int):
 		if index == 0 and visible: search_crews())
+	VoyageSaves.changed.connect(refresh_saves)
+	refresh_saves()
 	hide()
 
 func _process(delta: float) -> void:
@@ -99,8 +137,43 @@ func host_voyage() -> void:
 		message.text = "Enter a password for your private voyage."
 		secret.grab_focus()
 		return
-	# Resume automatically; save management is not part of the join/host flow.
+	# Selected slot resumes when occupied; empty slots start a new voyage.
 	HarborService.host(title, secret.text if privacy.selected == 1 else "")
+
+func select_save(slot: int) -> void:
+	if HarborService.busy or NetworkSession.online: return
+	VoyageSaves.selected = slot
+	var entry := VoyageSaves.read_slot(slot)
+	crew_name.text = str(entry.get("title", "The Wandering Ship"))
+	refresh_saves()
+
+func refresh_saves() -> void:
+	for i in save_buttons.size():
+		var entry := VoyageSaves.read_slot(i)
+		var selected := i == VoyageSaves.selected
+		for state in ["normal", "hover", "pressed", "disabled"]:
+			var style := save_buttons[i].get_theme_stylebox(state).duplicate() as StyleBoxFlat
+			style.set_border_width_all(3 if selected else 1)
+			style.border_color = Color("f5d999") if selected else Color("b89459")
+			save_buttons[i].add_theme_stylebox_override(state, style)
+		save_buttons[i].text = "Slot %d · " % (i + 1) + ("New voyage" if entry.is_empty() else str(entry.title))
+		if not entry.is_empty(): save_buttons[i].text += "\n" + VoyageSaves.timestamp(entry)
+	var occupied := not VoyageSaves.read_slot(VoyageSaves.selected).is_empty()
+	reset_save.disabled = not occupied or NetworkSession.online or HarborService.busy
+	launch.text = "Resume voyage" if occupied else "Launch voyage"
+
+func confirm_clear() -> void:
+	var slot := VoyageSaves.selected
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Clear voyage save?"
+	dialog.dialog_text = "Permanently clear slot %d and start a fresh world?" % (slot + 1)
+	dialog.ok_button_text = "Clear save"
+	add_child(dialog)
+	dialog.confirmed.connect(func():
+		if not VoyageSaves.clear_slot(slot): message.text = "Could not clear this save."
+		dialog.queue_free())
+	dialog.canceled.connect(dialog.queue_free)
+	dialog.popup_centered(Vector2i(440, 160))
 
 func page(caption: String) -> VBoxContainer:
 	var rows := VBoxContainer.new()
@@ -123,6 +196,8 @@ func refresh_list() -> void:
 	for child in list.get_children():
 		list.remove_child(child)
 		child.queue_free()
+	for button in save_buttons: button.disabled = HarborService.busy or NetworkSession.online
+	reset_save.disabled = VoyageSaves.read_slot(VoyageSaves.selected).is_empty() or HarborService.busy or NetworkSession.online
 	launch.disabled = HarborService.busy or NetworkSession.online
 	refresh.disabled = HarborService.busy or NetworkSession.online
 	var crews: Array = HarborService.crews.values()
@@ -171,6 +246,7 @@ func open() -> void:
 		notice.text = previous
 		notice.show()
 	# Opening always starts in the browser, including after a failed join.
+	select_save(VoyageSaves.selected)
 	tabs.set_current_tab(0)
 	message.text = NetworkSession.status
 	refresh_list()
@@ -192,3 +268,9 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		close()
 		get_viewport().set_input_as_handled()
+
+func start_solo() -> void:
+	HarborService.cancel_browse()
+	if HarborService.busy or NetworkSession.online: return
+	hide()
+	solo_requested.emit()

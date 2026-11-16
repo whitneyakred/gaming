@@ -9,6 +9,7 @@ var peer: HarborPeer
 var closing_peers: Array[Dictionary] = []
 var endpoint := ""
 var generation := 0
+var current_room: String = ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -90,7 +91,8 @@ func browse() -> void:
 		status(str(result.error))
 		return
 	crews.clear()
-	for crew: Dictionary in result.get("crews", []): crews[str(crew.id)] = crew
+	for crew: Dictionary in result.get("crews", []):
+		if int(crew.get("count", 0)) > 0: crews[str(crew.id)] = crew
 	status("Choose a voyage to join." if not crews.is_empty() else "No ships at sea yet. Be the first to host a voyage.")
 
 func cancel_browse() -> void:
@@ -114,6 +116,9 @@ func join_crew(id: String, password: String) -> void:
 	operation = "join"
 	status("Joining the voyage…")
 	var result := await call_api("/api/crews/" + id.uri_encode() + "/join", {"password": password, "token": NetworkSession.local_token, "protocol": NetworkSession.PROTOCOL})
+	if result.has("error") and "ended" in str(result.error):
+		crews.erase(id)
+		changed.emit()
 	await connect_result(result, false, "", password)
 
 func connect_result(result: Dictionary, hosting: bool, title: String, password: String) -> void:
@@ -122,6 +127,7 @@ func connect_result(result: Dictionary, hosting: bool, title: String, password: 
 		operation = ""
 		status(str(result.error))
 		return
+	current_room = str(result.id)
 	peer = HarborPeer.new()
 	if OS.has_feature("web"):
 		var departure := {"url": endpoint + "/api/crews/" + str(result.id) + "/leave", "ticket": result.ticket}
@@ -146,6 +152,9 @@ func connect_result(result: Dictionary, hosting: bool, title: String, password: 
 	changed.emit()
 
 func leave() -> void:
+	crews.erase(current_room)
+	current_room = ""
+	changed.emit()
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("if (window.holyShipLeave) window.holyShipLeave();")
 	if peer != null:

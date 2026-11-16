@@ -74,6 +74,14 @@ var _aground_island: WorldIsland
 var _aground_message_left: float = 0.0
 const AGROUND_MESSAGE_SECONDS := 0.8
 
+var world_seed: int = 0
+var survival: SurvivalWorld
+
+func rebuild_world(seed_value: int) -> void:
+	if world_seed == seed_value: return
+	world_seed = seed_value
+	WorldLayout.generate(self, world_seed)
+
 func _ready() -> void:
 	super._ready()
 	# Islands stay put in world space (their positions in ship.tscn are map
@@ -85,13 +93,11 @@ func _ready() -> void:
 	islands_root.z_index = -10
 	ocean.set_as_top_level(true)
 	ocean.global_rotation = 0.0
+	rebuild_world(randi_range(1, 2147483646))
+	survival = SurvivalWorld.new()
+	survival.name = "Survival"
+	add_child(survival)
 	MapState.pixels_per_meter = pixels_per_meter
-	for island in get_islands():
-		MapState.register_island(
-			str(island.name),
-			island.display_name,
-			island.global_position,
-			island.display_name.to_lower() == "paradise island")
 	_rowboat_home = rowboat.position
 	stern_zone.body_entered.connect(_on_stern_entered)
 	stern_zone.body_exited.connect(_on_stern_exited)
@@ -256,7 +262,7 @@ func _on_anchor_changed(deployed: bool) -> void:
 func _anchor_at(island: WorldIsland) -> void:
 	_state = State.ANCHORED
 	_docked_island = island
-	_set_status("Anchored near %s! Use the boarding plank to swim ashore, or raise the anchor to sail on." % island.display_name)
+	_set_status("")
 
 # Ship-local points from the stern to the island's dock, going around the
 # island's coast and around the ship itself rather than over either.

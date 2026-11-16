@@ -13,6 +13,10 @@ var _focused: bool = true
 var _music_started: bool = false
 var _menu_music_requested: bool = false
 var _quitting: bool = false
+const VOYAGE_TRACKS := ["res://assets/audio/voyage_01.ogg", "res://assets/audio/voyage_02.ogg"]
+var _voyage_tracks: Array[AudioStreamOggVorbis] = []
+var _voyage_index: int = 0
+var _voyage_music_requested: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -35,8 +39,11 @@ func _ready() -> void:
 	music_player = AudioStreamPlayer.new()
 	music_player.bus = &"Music"
 	add_child(music_player)
+	music_player.finished.connect(_next_voyage_track)
 	_sounds["hover"] = _tone(720.0, 0.045, 0.12)
 	_sounds["click"] = _tone(440.0, 0.09, 0.3)
+	_sounds["grill_place"] = _tone(220.0, 0.055, 0.18)
+	_sounds["grill_ready"] = _tone(880.0, 0.24, 0.18)
 	_sounds["back"] = _tone(290.0, 0.12, 0.22)
 	var track := load("res://assets/audio/menu_theme.ogg") as AudioStreamOggVorbis
 	track.loop = true
@@ -98,7 +105,7 @@ func apply_preferences(changed_key: String = "") -> void:
 
 func _input(event: InputEvent) -> void:
 	# Browser audio unlock must happen during a real user gesture.
-	if _menu_music_requested and not _music_started and ((event is InputEventMouseButton and event.pressed) or (event is InputEventKey and event.pressed)):
+	if (_menu_music_requested or _voyage_music_requested) and not _music_started and ((event is InputEventMouseButton and event.pressed) or (event is InputEventKey and event.pressed)):
 		_begin_menu_music()
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
 		set_preference("fullscreen", get_window().mode != Window.MODE_FULLSCREEN)
@@ -131,14 +138,48 @@ func _begin_menu_music() -> void:
 		_music_started = true
 
 func start_menu_music() -> void:
+	if not _menu_music_requested:
+		music_player.stop()
+		music_player.stream = load("res://assets/audio/menu_theme.ogg")
+		_music_started = false
+	_voyage_music_requested = false
 	_menu_music_requested = true
-	if not OS.has_feature("web"):
-		_begin_menu_music()
+	# Start immediately when autoplay is permitted. Godot resumes the web audio
+	# context on user interaction if the browser initially suspends it.
+	_begin_menu_music()
 
 func stop_menu_music() -> void:
 	_menu_music_requested = false
+	_voyage_music_requested = false
 	music_player.stop()
 	_music_started = false
+
+func start_voyage_music() -> void:
+	if _voyage_music_requested:
+		return
+	stop_menu_music()
+	_voyage_tracks.clear()
+	for path in VOYAGE_TRACKS:
+		# Recordings may be supplied later; never substitute menu music at sea.
+		if ResourceLoader.exists(path):
+			var track := load(path) as AudioStreamOggVorbis
+			if track != null:
+				track.loop = false
+				_voyage_tracks.append(track)
+	if _voyage_tracks.is_empty():
+		music_player.stream = null
+		return
+	_voyage_music_requested = true
+	_voyage_index = 0
+	music_player.stream = _voyage_tracks[0]
+	_begin_menu_music()
+
+func _next_voyage_track() -> void:
+	if not _voyage_music_requested or _voyage_tracks.is_empty() or _quitting:
+		return
+	_voyage_index = (_voyage_index + 1) % _voyage_tracks.size()
+	music_player.stream = _voyage_tracks[_voyage_index]
+	music_player.play()
 
 func _exit_tree() -> void:
 	if is_instance_valid(_save_timer) and not _save_timer.is_stopped():
@@ -146,6 +187,7 @@ func _exit_tree() -> void:
 	shutdown_audio()
 
 func shutdown_audio() -> void:
+	_voyage_tracks.clear()
 	if is_instance_valid(music_player):
 		music_player.stop()
 		music_player.stream = null

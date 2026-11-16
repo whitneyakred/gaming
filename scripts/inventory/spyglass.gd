@@ -8,6 +8,9 @@ extends Node2D
 var _blend: float = 0.0
 var _pan: Vector2 = Vector2.ZERO
 var active: bool = false
+var audio: AudioStreamPlayer
+var open_sound: AudioStreamWAV
+var close_sound: AudioStreamWAV
 var _previous_camera: Camera2D
 var _scope_camera: Camera2D
 @onready var service: InventoryService = get_parent() as InventoryService
@@ -15,6 +18,11 @@ var _scope_camera: Camera2D
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	process_priority = 100
+	audio = AudioStreamPlayer.new()
+	audio.bus = "Effects"
+	add_child(audio)
+	open_sound = ActionAudio.make("scope_open")
+	close_sound = ActionAudio.make("scope_close")
 	_scope_camera = Camera2D.new()
 	_scope_camera.enabled = false
 	_scope_camera.position_smoothing_enabled = false
@@ -25,7 +33,7 @@ func _ready() -> void:
 func can_scout() -> bool:
 	if service == null or service.hud == null or not service.can_handle_items():
 		return false
-	if service.hud.storage_open or get_viewport().gui_is_dragging():
+	if service.hud.storage_open or service.hud.grill_open or get_viewport().gui_is_dragging():
 		return false
 	var index: int = service.hud.selected
 	return index >= 0 and index < service.local_slots.size() and service.local_slots[index].get("id", &"") == &"spyglass"
@@ -51,12 +59,17 @@ func start() -> void:
 		_scope_camera.zoom = _previous_camera.zoom
 		_scope_camera.global_position = _previous_camera.get_screen_center_position()
 		_pan = Vector2.ZERO
+	audio.stream = open_sound
+	audio.play()
 	active = true
 	_scope_camera.enabled = true
 	_scope_camera.make_current()
 	_scope_camera.force_update_scroll()
 
 func stop(immediate: bool = false) -> void:
+	if active and is_instance_valid(audio):
+		audio.stream = close_sound
+		audio.play()
 	active = false
 	if immediate or _blend <= 0.0:
 		_restore_camera()
@@ -65,6 +78,7 @@ func _restore_camera() -> void:
 	_blend = 0.0
 	_scope_camera.enabled = false
 	if is_instance_valid(_previous_camera):
+		_previous_camera.reset_smoothing()
 		_previous_camera.make_current()
 		_previous_camera.force_update_scroll()
 
@@ -92,7 +106,7 @@ func _update_view(delta: float) -> void:
 	var desired_pan := pan_for_mouse(get_viewport().get_mouse_position(), get_viewport_rect().size)
 	_pan = _pan.lerp(desired_pan, 1.0 - exp(-10.0 * delta))
 	_scope_camera.zoom = _previous_camera.zoom.lerp(_previous_camera.zoom * zoom_multiplier, eased)
-	_scope_camera.global_position = _previous_camera.get_screen_center_position().lerp(service.player.global_position + _pan, eased)
+	_scope_camera.global_position = (_previous_camera.global_position + _previous_camera.offset).lerp(service.player.global_position + _pan, eased)
 	_scope_camera.force_update_scroll()
 	if not active and _blend <= 0.0:
 		_restore_camera()

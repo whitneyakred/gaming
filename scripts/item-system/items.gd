@@ -43,6 +43,10 @@ func _ready() -> void:
 		COCONUT_WHOLE_ICON
 	))
 
+	ItemDatabase.register_item(make_item(
+		&"coal", "Coal", "Slow-burning fuel for the ship's grill.",
+		30, ItemData.Category.MATERIAL, preload("res://assets/items/coal.svg")
+	))
 	# --- Island rewards ---
 	ItemDatabase.register_item(make_item(
 		&"gold_coin",
@@ -53,7 +57,7 @@ func _ready() -> void:
 	ItemDatabase.register_item(make_item(
 		&"wood",
 		"Wood",
-		"Chopped timber. Used to patch leaks in the hull.",
+		"Timber for the grill or hull repairs.",
 		30
 	))
 	ItemDatabase.register_item(make_item(
@@ -100,8 +104,8 @@ func _ready() -> void:
 	))
 	ItemDatabase.register_item(make_item(
 		&"dried_fish",
-		"Dried Fish",
-		"Salted fish dried on a seaside rack. Keeps for the whole voyage.",
+		"Cooked Fish",
+		"Freshly grilled sea bass, ready to eat.",
 		20,
 		ItemData.Category.FOOD
 	))

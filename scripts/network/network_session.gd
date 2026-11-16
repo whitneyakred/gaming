@@ -1,7 +1,7 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-4"
+const PROTOCOL := "holy-ship-coop-9"
 const DEFAULT_PORT := 24567
 const MAX_CREW := 4
 var online: bool = false
@@ -40,6 +40,7 @@ var _badge: Label
 var _prediction: Array[Dictionary] = []
 var _prediction_error := Vector2.ZERO
 var _last_local_move := Vector2.ZERO
+var _pagehide_callback: JavaScriptObject
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -60,6 +61,9 @@ func _ready() -> void:
 	if "--settings-test" in OS.get_cmdline_user_args():
 		path = "res://.godot/crew-identity-%s.cfg" % OS.get_process_id()
 	config.load(path)
+	if OS.has_feature("web"):
+		var stored: Variant = JavaScriptBridge.eval("(() => {try {return localStorage.getItem('holyShip.identity') || '';} catch(e) {return '';}})()")
+		if stored is String and stored.length() == 48: config.set_value("crew", "token", stored)
 	profile_path = path
 	local_name = clean_name(str(config.get_value("crew", "name", "Sailor")))
 	local_token = str(config.get_value("crew", "token", ""))
@@ -67,6 +71,10 @@ func _ready() -> void:
 		local_token = Crypto.new().generate_random_bytes(24).hex_encode()
 		config.set_value("crew", "token", local_token)
 		config.save(path)
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("try {localStorage.setItem('holyShip.identity', " + JSON.stringify(local_token) + ");} catch(e) {}")
+		_pagehide_callback = JavaScriptBridge.create_callback(func(_args: Array): save_world())
+		JavaScriptBridge.get_interface("window").addEventListener("pagehide", _pagehide_callback)
 	discovery = preload("res://scripts/network/crew_discovery.gd").new()
 	add_child(discovery)
 	_start_cli.call_deferred()
@@ -199,7 +207,7 @@ func load_game() -> void:
 	Ship.returning_from_island = false
 	SwimAccess.returning_by_swimming = false
 	PauseMenu.resume()
-	GameWindow.stop_menu_music()
+	GameWindow.start_voyage_music()
 	get_tree().change_scene_to_file("res://scenes/main.tscn")
 	await get_tree().scene_changed
 	ship = get_tree().current_scene.get_node("Ship")
@@ -217,8 +225,17 @@ func load_game() -> void:
 	galley.set_process_unhandled_input(false)
 	if multiplayer.is_server():
 		if not _restored.is_empty():
+			ship.rebuild_world(int(_restored.get("seed", ship.world_seed)))
+			MapState.discovered_islands = _restored.get("discovered", {})
 			ship.global_position = _restored.get("position", Vector2.ZERO)
 			ship.global_rotation = _restored.get("rotation", 0.0)
+			if not _restored.has("seed"):
+				var hull: PackedVector2Array = ship.get_hull_polygon(ship.global_position, ship.global_rotation)
+				var bounds := Rect2(hull[0], Vector2.ZERO)
+				for point in hull: bounds = bounds.expand(point)
+				for island in ship.get_islands():
+					if island.overlaps_land(hull, bounds): ship.global_position = Vector2.ZERO; break
+				if WorldLayout.danger(ship.global_position): ship.global_position = Vector2.ZERO
 			ship.anchor_deployed = true
 			var slots: Array[Dictionary] = []
 			slots.assign(_restored.get("storage", []))
@@ -227,6 +244,8 @@ func load_game() -> void:
 			drops.merge(_restored.get("drops", {}), true)
 			for key: int in drops:
 				dropped_id = maxi(dropped_id, key + 1)
+		ship.get_node("Cooking").restore(_restored.get("grill", {}))
+		ship.get_node("Cooking").seed_fuel()
 		if not dedicated:
 			spawn_crew(1)
 	else:
@@ -240,6 +259,7 @@ func load_game() -> void:
 	_badge.add_theme_color_override("font_outline_color", Color("102531"))
 	_badge.add_theme_constant_override("outline_size", 4)
 	hud.add_child(_badge)
+	if multiplayer.is_server(): save_world.call_deferred()
 	_badge.text = "Sailing together • " + ("Captain" if multiplayer.is_server() else "Crew")
 
 func _disable_local_systems(node: Node) -> void:
@@ -247,7 +267,7 @@ func _disable_local_systems(node: Node) -> void:
 		node.set_physics_process(false)
 		node.set_process_unhandled_input(false)
 	if node.name == "Cooking":
-		node.process_mode = Node.PROCESS_MODE_DISABLED
+		node.set_process_unhandled_input(false)
 	for child in node.get_children():
 		_disable_local_systems(child)
 
@@ -318,6 +338,9 @@ func spawn_crew(id: int) -> void:
 			feedback.rpc_id(id, message))
 	if multiplayer.is_server():
 		var account: Dictionary = accounts.get(identities[id].token, {})
+		player.health = clampi(int(account.get("health",15)),0,15)
+		player.hunger = clampi(int(account.get("hunger",15)),0,15)
+		player.hunger_clock = clampf(float(account.get("hunger_clock",0)),0,1)
 		if account.has("inventory"):
 			var slots: Array[Dictionary] = []
 			slots.assign(account.inventory)
@@ -343,6 +366,14 @@ func feedback(message: String) -> void:
 			fishing.sound.play("snap")
 
 func command(kind: String, args: Dictionary = {}) -> void:
+	if online and local_id != 1 and services.has(local_id) and kind == "fish":
+		var fishing: RodFishing = services[local_id].get_node("Fishing")
+		if fishing.state == RodFishing.State.BITE:
+			args["attempt"] = fishing.attempt_id
+			fishing.begin_local_hook()
+		elif fishing.local_reeling:
+			fishing.held = true
+			return
 	if not online or not world_ready:
 		return
 	if multiplayer.is_server():
@@ -376,7 +407,14 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 	var player: CharacterBody2D = players[id]
 	var service: InventoryService = services[id]
 	var fishing: RodFishing = service.get_node("Fishing")
+	if kind == "respawn":
+		if player.health <= 0: ship.survival.respawn(id)
+		return
+	if player.health <= 0: return
 	match kind:
+		"eat":
+			if int(args.get("revision", -1)) == service.view_revision and not inputs[id].get("blocked",false):
+				ship.survival.eat(id, int(args.get("index", -1)))
 		"select":
 			service.hud.selected = clampi(int(args.get("index", 0)), 0, 3)
 		"interact":
@@ -386,8 +424,12 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 			if player.fishing_active:
 				fishing.cancel()
 				return
-			if service.hud.storage_open:
+			if service.hud.storage_open or service.hud.grill_open:
 				service.hud.close()
+				return
+			if service.grill_is_nearest():
+				service.hud.grill_open = true
+				player.inventory_open = true
 				return
 			if service.chest_is_nearest():
 				service.hud.storage_open = true
@@ -402,13 +444,15 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 			if nearest != null:
 				if not nearest.try_take_control(player):
 					service.feedback.emit("That station is occupied.")
-				elif nearest.name == "Galley":
-					inputs[id]["cooking"] = 0.0
-					service.feedback.emit("Preparing fish… stay at the galley.")
+
+		"grill":
+			ship.get_node("Cooking").handle(service, args)
 		"close": service.hud.close()
 		"sail_step":
 			if player.active_station == ship.get_node("Sail"):
 				ship.set_sail_level((ship.sail_level + 1) % 4)
+		"fish_steps":
+			if id != 1 and fishing.can_fish(): fishing.replay_steps(args)
 		"fish":
 			if inputs[id].get("blocked", false) or not fishing.can_fish():
 				return
@@ -419,8 +463,11 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 			elif fishing.state in [RodFishing.State.CASTING, RodFishing.State.WAITING]:
 				fishing.finish(false, "Too soon! Recast and wait for a bite.", false)
 			elif fishing.state == RodFishing.State.BITE:
+				if id != 1 and int(args.get("attempt", -1)) != fishing.attempt_id: return
+				fishing.replay_frame = 0
+				fishing.hook_started = Time.get_ticks_msec()
 				fishing.state = RodFishing.State.REELING
-				fishing.fight.begin(fishing.rng.randi())
+				fishing.fight.begin(fishing.fight_seed)
 			inputs[id].held = true
 		"cancel_fish": fishing.cancel()
 		"transfer", "drag":
@@ -478,6 +525,7 @@ func _physics_process(delta: float) -> void:
 				input_frame.rpc_id(1, move, held, blocked, Engine.get_physics_frames())
 			_last_local_move = move
 	if not multiplayer.is_server():
+		if services.has(local_id): services[local_id].get_node("Fishing").tick_local_fight(delta)
 		_interpolate(delta)
 		return
 	for id: int in players:
@@ -494,17 +542,13 @@ func _physics_process(delta: float) -> void:
 				player.active_station.release_control()
 		if service.hud.storage_open and not service.near_storage():
 			service.hud.close()
-		player.inventory_open = service.hud.storage_open
+		if service.hud.grill_open and not ship.get_node("Cooking").near(service):
+			service.hud.close()
+		player.inventory_open = service.hud.storage_open or service.hud.grill_open
 		if player.active_station == ship.get_node("Helm"):
 			ship.set_wheel_angle(ship.wheel_angle_degrees + move.x * 165 * delta)
 		elif player.active_station == ship.get_node("Sail"):
 			ship.set_sail_angle(ship.sail_angle_degrees + move.x * 34 * delta)
-		if player.active_station == ship.get_node("Galley"):
-			var cooking: float = data.get("cooking", 0.0) + delta
-			inputs[id]["cooking"] = cooking
-			if cooking >= 3.0:
-				service.prepare_fish()
-				player.active_station.release_control()
 		player.move_crew(move, delta)
 		player.get_node("CrewName").rotation = -player.global_rotation
 		ship.get_node("SwimAccess").update_crew(player)
@@ -513,7 +557,15 @@ func _physics_process(delta: float) -> void:
 				fishing.cancel()
 			else:
 				fishing.held = data.held and not blocked
-				fishing.advance(delta, fishing.held)
+				if id != 1 and fishing.state == RodFishing.State.REELING:
+					fishing.clock += delta
+					fishing.queue_redraw()
+					if Time.get_ticks_msec() - fishing.hook_started > 45000: fishing.cancel()
+				else:
+					var before := fishing.state
+					fishing.advance(delta, fishing.held)
+					if id != 1 and before != RodFishing.State.BITE and fishing.state == RodFishing.State.BITE:
+						fishing.bite_left += 0.75 # Transport grace; local display stays responsive.
 		service.server_pickups()
 	_send_clock += delta
 	_save_clock += delta
@@ -535,16 +587,16 @@ func _send_snapshot() -> void:
 		var player: CharacterBody2D = players[id]
 		var service: InventoryService = services[id]
 		var fishing: RodFishing = service.get_node("Fishing")
-		crew[id] = {"ack": inputs[id].get("sequence", -1), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
+		crew[id] = {"eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("sequence", -1), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
 			"station": str(player.active_station.name) if player.using_station else "", "inventory": service.inventory.capture(),
-			"selected": service.hud.selected, "chest": service.hud.storage_open, "revision": service.view_revision,
-			"fish": {"state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
+			"selected": service.hud.selected, "chest": service.hud.storage_open, "grill_open": service.hud.grill_open, "revision": service.view_revision,
+			"fish": {"attempt": fishing.attempt_id, "seed": fishing.fight_seed, "state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
 				"progress": fishing.fight.progress, "tension": fishing.fight.tension, "green": fishing.fight.green_center,
 				"width": fishing.fight.green_width, "danger": fishing.fight.danger, "held": fishing.held, "catches": fishing.visual_catches}}
 	_snapshot_serial += 1
 	var data := {"serial": _snapshot_serial, "position": ship.global_position, "rotation": ship.global_rotation, "wind": ship.wind_velocity,
 		"sail": ship.sail_level, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees, "anchor": ship.anchor_deployed,
-		"crew": crew, "storage": VoyageState.get_ship_storage().capture(), "drops": VoyageState.floor_items.get("ship", {})}
+		"discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "drops": VoyageState.floor_items.get("ship", {})}
 	var packed := var_to_bytes(data).compress(FileAccess.COMPRESSION_GZIP)
 	for id: int in identities:
 		if id != 1 and players.has(id):
@@ -591,7 +643,13 @@ func apply_snapshot(data: Dictionary) -> void:
 	_received_serial = data.serial
 	if not world_ready or multiplayer.is_server():
 		return
+	ship.rebuild_world(int(data.get("seed", ship.world_seed)))
+	ship.survival.restore(data.get("survival", {}))
+	var known_before := MapState.discovered_islands.size()
+	MapState.discovered_islands.merge(data.get("discovered", {}), true)
+	if known_before != MapState.discovered_islands.size(): MapState.changed.emit()
 	_last_snapshot = data
+	ship.get_node("Cooking").restore(data.get("grill", {}))
 	for id: int in data.crew:
 		if not players.has(id):
 			identities[id] = {"name": data.crew[id].name}
@@ -614,7 +672,14 @@ func apply_snapshot(data: Dictionary) -> void:
 		var entry: Dictionary = data.crew[id]
 		var player: CharacterBody2D = players[id]
 		var service: InventoryService = services[id]
-		var transition: bool = player.is_overboard != entry.outside or (str(player.active_station.name) if player.using_station else "") != entry.station
+		var respawned: bool = player.respawn_serial != int(entry.get("respawn", 0))
+		player.eat_serial = entry.get("eat", 0)
+		player.health = entry.get("health", 15)
+		player.hunger = entry.get("hunger", 15)
+		player.hurt_serial = entry.get("hurt", 0)
+		player.respawn_serial = entry.get("respawn", 0)
+		player.danger_time = entry.get("danger", 0.0)
+		var transition: bool = respawned or player.is_overboard != entry.outside or (str(player.active_station.name) if player.using_station else "") != entry.station
 		player.set_overboard(entry.outside)
 		player.update_land(entry.land)
 		player.active_station = ship.get_node_or_null(NodePath(entry.station)) if entry.station != "" else null
@@ -625,7 +690,8 @@ func apply_snapshot(data: Dictionary) -> void:
 		service.inventory.restore(slots)
 		service.hud.selected = entry.selected
 		service.hud.storage_open = entry.chest
-		player.inventory_open = entry.chest
+		service.hud.grill_open = entry.get("grill_open", false)
+		player.inventory_open = entry.chest or service.hud.grill_open
 		service.view_revision = entry.revision
 		service.hud._refresh()
 		var fishing: RodFishing = service.get_node("Fishing")
@@ -633,27 +699,35 @@ func apply_snapshot(data: Dictionary) -> void:
 		var fish: Dictionary = entry.fish
 		if id != local_id and fishing.visual_catches != fish.catches and previous != RodFishing.State.IDLE:
 			player.play_fishing_animation()
+		var predicted := id == local_id and fishing.local_reeling and fishing.attempt_id == int(fish.attempt) and int(fish.state) != RodFishing.State.IDLE
+		if not predicted:
+			if id == local_id and fishing.local_reeling and int(fish.state) == RodFishing.State.IDLE:
+				fishing.sound.play("catch" if int(fish.catches) > fishing.visual_catches else "snap")
+			fishing.local_reeling = false
+			fishing.local_done = false
+			fishing.state = fish.state
+			fishing.clock = fish.clock
+			fishing.held = fish.held
+			fishing.fight.progress = fish.progress
+			fishing.fight.tension = fish.tension
+			fishing.fight.green_center = fish.green
+			fishing.fight.green_width = fish.width
+			fishing.fight.danger = fish.danger
 		fishing.visual_catches = fish.catches
-		fishing.state = fish.state
+		fishing.attempt_id = fish.attempt
+		fishing.fight_seed = fish.seed
 		fishing._cast_from_ship = false
 		fishing.target = fish.target
 		fishing.cast_origin = fish.origin
-		fishing.clock = fish.clock
-		fishing.held = fish.held
-		fishing.fight.progress = fish.progress
-		fishing.fight.tension = fish.tension
-		fishing.fight.green_center = fish.green
-		fishing.fight.green_width = fish.width
-		fishing.fight.danger = fish.danger
-		player.fishing_active = fish.state != 0
+		player.fishing_active = fishing.state != 0
 		if id == local_id:
 			_reconcile_local(entry, transition)
-		if id == local_id:
-			if previous != fish.state:
-				if fish.state == RodFishing.State.CASTING: fishing.sound.play("cast")
-				elif fish.state == RodFishing.State.WAITING: fishing.sound.play("splash")
-				elif fish.state == RodFishing.State.BITE: fishing.sound.play("bite")
-			fishing.sound.set_reeling(fish.state == RodFishing.State.REELING and fish.held, fish.tension)
+			if not predicted:
+				if previous != fish.state:
+					if fish.state == RodFishing.State.CASTING: fishing.sound.play("cast")
+					elif fish.state == RodFishing.State.WAITING: fishing.sound.play("splash")
+					elif fish.state == RodFishing.State.BITE: fishing.sound.play("bite")
+				fishing.sound.set_reeling(false)
 		fishing.queue_redraw()
 
 func _interpolate(delta: float) -> void:
@@ -662,6 +736,7 @@ func _interpolate(delta: float) -> void:
 	var weight := 1.0 - exp(-18 * delta)
 	ship.global_position = ship.global_position.lerp(_last_snapshot.position, weight) if ship.global_position.distance_to(_last_snapshot.position) < 500 else _last_snapshot.position
 	ship.global_rotation = lerp_angle(ship.global_rotation, _last_snapshot.rotation, weight)
+	MapState.update_player_position(ship.global_position)
 	var local_player: Node = players.get(local_id)
 	var station := str(local_player.active_station.name) if is_instance_valid(local_player) and local_player.using_station else ""
 	# Interpolate remote controls instead of stepping them at snapshot frequency.
@@ -727,7 +802,7 @@ func _peer_left(id: int) -> void:
 
 func _remember(id: int) -> void:
 	if identities.has(id) and services.has(id):
-		accounts[identities[id].token] = {"name": identities[id].name, "inventory": services[id].inventory.capture()}
+		accounts[identities[id].token] = {"name": identities[id].name, "inventory": services[id].inventory.capture(), "health": players[id].health, "hunger": players[id].hunger, "hunger_clock": players[id].hunger_clock}
 
 func _remove_crew(id: int) -> void:
 	if not players.has(id):
@@ -742,42 +817,32 @@ func _remove_crew(id: int) -> void:
 	inputs.erase(id)
 
 func save_path() -> String:
-	return "res://.godot/test-voyage-%d.save" % port if "--settings-test" in OS.get_cmdline_user_args() else "user://hosted-voyage.save"
+	return VoyageSaves.path(VoyageSaves.selected)
 
 func save_world() -> void:
 	if not online or local_id != 1 or not world_ready or not is_instance_valid(ship):
 		return
 	for id: int in players:
 		_remember(id)
-	var data := {"version": PROTOCOL, "position": ship.global_position, "rotation": ship.global_rotation,
-		"storage": VoyageState.get_ship_storage().capture(), "drops": VoyageState.floor_items.get("ship", {}), "accounts": accounts}
-	var file := FileAccess.open(save_path() + ".tmp", FileAccess.WRITE)
-	if file == null:
-		set_status("Could not save hosted voyage: " + str(FileAccess.get_open_error()))
-		return
-	file.store_var(data)
-	file.close()
-	var error := DirAccess.rename_absolute(save_path() + ".tmp", save_path())
-	if error != OK:
-		set_status("Could not replace hosted save (error %d)." % error)
+	var data := {"discovered": MapState.discovered_islands, "seed": ship.world_seed, "version": PROTOCOL, "title": crew_title, "position": ship.global_position, "rotation": ship.global_rotation,
+		"grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "drops": VoyageState.floor_items.get("ship", {}), "accounts": accounts}
+	if not VoyageSaves.store(data):
+		set_status(VoyageSaves.last_error)
+		if services.has(local_id): services[local_id].feedback.emit(VoyageSaves.last_error)
 
 func load_world() -> void:
-	if not FileAccess.file_exists(save_path()):
-		return
-	var file := FileAccess.open(save_path(), FileAccess.READ)
-	if file == null:
-		return
-	var data: Variant = file.get_var(false)
-	if data is Dictionary and data.get("version") in [PROTOCOL, "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
+	var data := VoyageSaves.world(VoyageSaves.selected)
+	if data.get("version") in [PROTOCOL, "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
 		_restored = data
 		accounts = data.get("accounts", {})
 
 func leave(message: String = "") -> void:
 	save_world()
-	if online:
-		multiplayer.multiplayer_peer.close()
 	if internet:
 		HarborService.leave()
+	elif online:
+		multiplayer.multiplayer_peer.close()
+	if internet:
 		EOSGRuntime.leave_lobby()
 	internet = false
 	_snapshot_parts.clear()

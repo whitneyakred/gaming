@@ -4,6 +4,7 @@ var checks: int = 0
 var role: String
 var last_phase: String = ""
 var client_seen_fish: bool = false
+var shared_grill_key: int = -1
 func check(value: bool, message: String) -> void:
 	checks += 1
 	if not value:
@@ -20,7 +21,7 @@ func phase(value: String) -> void:
 func read_phase() -> String:
 	return FileAccess.get_file_as_string("res://.godot/network-phase.txt") if FileAccess.file_exists("res://.godot/network-phase.txt") else ""
 func run() -> void:
-	get_tree().create_timer(50).timeout.connect(func() -> void: get_tree().quit(1))
+	get_tree().create_timer(70).timeout.connect(func() -> void: get_tree().quit(1))
 	GameWindow.set_preference("pause_unfocused", false)
 	GameWindow.set_preference("fullscreen", false)
 	get_window().size = Vector2i(1280, 720)
@@ -41,8 +42,9 @@ func run() -> void:
 	print("NETWORK ", role, ": ", checks, " checks, ", failures, " failures")
 	if NetworkSession.online:
 		NetworkSession.leave()
-	GameWindow.shutdown_audio()
 	await wait(0.2)
+	GameWindow.shutdown_audio()
+	await wait(0.1)
 	get_tree().quit(0 if failures == 0 else 1)
 
 func join_test() -> void:
@@ -79,6 +81,7 @@ func host_tests() -> void:
 	check(a.player.position.x > -10, "Client movement input advances server-owned player")
 	a.player.position = a.storage_position
 	b.player.position = b.storage_position
+	VoyageState.get_ship_storage().restore([]) # Isolate the chest race from starter fuel.
 	VoyageState.get_ship_storage().try_add(&"fish_cod") if VoyageState.get_ship_storage().has_method("try_add") else VoyageState.get_ship_storage().add_items(ItemDatabase.get_item(&"fish_cod"), 1)
 	await wait(0.5)
 	phase("chest")
@@ -88,6 +91,32 @@ func host_tests() -> void:
 	await wait(1)
 	check(a.inventory.get_quantity(&"fish_cod") + b.inventory.get_quantity(&"fish_cod") == 1, "Contended chest item awarded exactly once")
 	check(VoyageState.get_ship_storage().capture()[0].is_empty(), "Shared chest emptied consistently")
+	a.hud.close()
+	b.hud.close()
+	var grill: ShipGrill = ship.get_node("Cooking")
+	a.player.position = grill.position + Vector2(-16, 12)
+	b.player.position = grill.position + Vector2(-16, 12)
+	a.inventory.try_add(&"fish_cod", 1)
+	a.inventory.try_add(&"wood", 1)
+	await wait(0.4)
+	phase("grill_open")
+	await wait(0.6)
+	check(a.hud.grill_open and b.hud.grill_open, "Both clients open the same grill")
+	phase("grill_place")
+	await wait(0.8)
+	check(grill.fish.size() == 1, "Client drag places authoritative fish")
+	phase("grill_fuel")
+	await wait(0.8)
+	check(grill.cooking(), "Client fuel starts shared cooking")
+	grill.advance(8)
+	await wait(0.4)
+	phase("grill_inspect")
+	await wait(0.6)
+	phase("grill_collect")
+	await wait(0.8)
+	check(grill.fish.is_empty() and a.inventory.get_quantity(&"dried_fish") + b.inventory.get_quantity(&"dried_fish") == 1, "Two clients collecting one fish receive exactly one meal")
+	a.inventory.try_remove(&"dried_fish", 1)
+	b.inventory.try_remove(&"dried_fish", 1)
 	a.hud.close()
 	b.hud.close()
 	b.player.position = Vector2(-25, 120)
@@ -163,11 +192,34 @@ func host_tests() -> void:
 	for id: int in NetworkSession.identities:
 		if NetworkSession.identities[id].token == token and NetworkSession.services.has(id): restored = NetworkSession.services[id]
 	check(restored != null and restored.inventory.capture() == inventory, "Reconnect restores inventory without duplicating starter tools")
+	var survival: SurvivalWorld = ship.survival
+	restored.player.set_overboard(true)
+	restored.player.global_position = Vector2(1500,0)
+	restored.player.swim_time = 11
+	survival.damage(restored.network_id, 1)
+	await wait(0.3)
+	phase("survival")
+	await wait(0.7)
+	restored.player.set_overboard(false)
+	restored.player.position=Vector2(0,70)
+	restored.inventory.restore([])
+	restored.inventory.try_add(&"fish_cod",1)
+	restored.hud.selected=0
+	restored.player.hunger=11
+	await wait(0.3)
+	phase("eat")
+	await wait(0.7)
+	check(restored.player.hunger==12 and restored.inventory.get_quantity(&"fish_cod")==0,"Guest eating is host-authoritative")
+	survival.damage(restored.network_id, 15)
+	check(restored.player.health == 0, "Guest waits for respawn")
+	NetworkSession._handle_command(restored.network_id, "respawn", {})
+	check(restored.player.health == 15 and not restored.player.is_overboard, "Host respawns dead guest")
+	check(restored.inventory.capture().all(func(slot): return slot.is_empty()), "Guest death destroys inventory")
 	phase("done")
 	await wait(0.6)
 func client_tests() -> void:
 	var rejoined := false
-	for i in 800:
+	for i in 1300:
 		await wait(0.05)
 		var current := read_phase()
 		if current == last_phase or current.is_empty():
@@ -179,6 +231,13 @@ func client_tests() -> void:
 			continue
 		var service: InventoryService = NetworkSession.services[NetworkSession.local_id]
 		match current:
+			"eat":
+				if role=="Alpha": NetworkSession.command("eat",{"index":0,"revision":service.view_revision})
+			"survival":
+				check(NetworkSession.ship.get_islands().size() == 30, "Guest has randomized world")
+				check(NetworkSession.ship.world_seed == int(NetworkSession._last_snapshot.seed), "Guest shares host seed")
+				check(NetworkSession.ship.survival.sharks.any(func(shark): return shark.active), "Guests see host sharks")
+				if role == "Alpha": check(service.player.health == 14, "Guest receives third-heart damage")
 			"move":
 				if role == "Alpha":
 					var before: Vector2 = service.player.position
@@ -192,6 +251,21 @@ func client_tests() -> void:
 				NetworkSession.command("interact")
 			"race":
 				NetworkSession.command("transfer", {"action": "take", "index": 0, "revision": service.view_revision})
+			"grill_open": NetworkSession.command("interact")
+			"grill_place", "grill_fuel":
+				if role == "Alpha":
+					var item := &"fish_cod" if current == "grill_place" else &"wood"
+					for slot in service.local_slots.size():
+						if service.local_slots[slot].get("id") == item:
+							NetworkSession.command("grill", {"action": "fish" if current == "grill_place" else "fuel", "index": slot, "revision": service.view_revision, "point": Vector2(0.3, 0.4)})
+							break
+			"grill_inspect":
+				var grill: ShipGrill = NetworkSession.ship.get_node("Cooking")
+				check(grill.fish.size() == 1 and grill.fish[0].progress >= grill.cook_seconds, "Shared grill progress reaches both clients")
+				if not grill.fish.is_empty():
+					shared_grill_key = grill.fish[0].key
+			"grill_collect":
+				NetworkSession.command("grill", {"action": "collect", "key": shared_grill_key})
 			"drop":
 				if role == "Alpha":
 					NetworkSession.command("drag", {"index": 0, "storage": false, "destination": -1, "revision": service.view_revision})
@@ -217,6 +291,10 @@ func client_tests() -> void:
 						if fishing.state == RodFishing.State.BITE and not hooked:
 							hooked = true
 							NetworkSession.command("fish")
+							check(fishing.local_reeling, "Hook starts locally without awaiting host")
+							var tension_before := fishing.fight.tension
+							fishing.tick_local_fight(1.0 / 60.0)
+							check(fishing.fight.tension > tension_before, "Reel responds on the local frame")
 						elif fishing.state == RodFishing.State.REELING:
 							var event := InputEventMouseButton.new()
 							event.button_index = MOUSE_BUTTON_LEFT

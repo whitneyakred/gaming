@@ -26,6 +26,7 @@ PauseMenu="*res://scenes/pause_menu.tscn"
 EOSGRuntime="*res://scripts/network/eos_runtime.gd"
 HarborService="*res://scripts/network/harbor_service.gd"
 NetworkSession="*res://scripts/network/network_session.gd"
+VoyageSaves="*res://scripts/network/voyage_saves.gd"
 
 [display]
 

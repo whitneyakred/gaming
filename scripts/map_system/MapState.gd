@@ -5,7 +5,7 @@ signal changed
 const DISCOVERY_CELL_SIZE := 256.0
 const MAP_EDGE_PADDING_CELLS := 2
 
-var world_bounds := Rect2(-1024, -1024, 2048, 2048)
+var world_bounds := Rect2(-12000, -12000, 24000, 24000)
 var _has_world_bounds := false
 var pixels_per_meter := 10.0
 
@@ -24,7 +24,7 @@ var destination := Vector2.ZERO
 var map_open := false
 
 func reset() -> void:
-	world_bounds = Rect2(-1024, -1024, 2048, 2048)
+	world_bounds = Rect2(-12000, -12000, 24000, 24000)
 	_has_world_bounds = false
 	markers.clear()
 	discovered_islands.clear()
@@ -48,7 +48,7 @@ func register_island(
 	is_paradise_island: bool = false
 ) -> void:
 	island_catalog[island_id] = {"name": island_name, "position": position}
-	_expand_world_bounds(position, DISCOVERY_CELL_SIZE)
+
 	if is_paradise_island:
 		paradise_position = position
 		has_paradise_position = true
@@ -64,14 +64,14 @@ func update_player_position(position: Vector2) -> void:
 	if discovered_new_tile:
 		discovered_ocean[cell] = true
 
-	_expand_world_bounds(position, DISCOVERY_CELL_SIZE)
+
 
 	var discovered_new_island := false
 	for island_id in island_catalog:
 		var island: Dictionary = island_catalog[island_id]
 		if discovered_islands.has(island_id):
 			continue
-		if _world_to_cell(Vector2(island["position"])) == cell:
+		if position.distance_to(Vector2(island["position"])) < 950:
 			discovered_islands[island_id] = {
 				"name": str(island["name"]),
 				"position": Vector2(island["position"])

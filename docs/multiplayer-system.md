@@ -41,7 +41,7 @@ flowchart LR
     Relay --> Directory[CrewDirectory: four shards]
     Relay --> Gates[RequestGate: per-IP limits]
     Captain[Captain's game simulation] <-->|Same player connection path| Relay
-    Captain --> Local[Local hosted-voyage.save]
+    Captain --> Local[Three local voyage slots]
 ```
 
 The captain is one of the browser/desktop players in this diagram, not a third
@@ -102,10 +102,12 @@ session; there is no automatic captain migration or always-running cloud world.
 5. Godot's hello/welcome exchange checks the game protocol and initializes the
    guest's world. Subsequent snapshots bring the client up to date.
 
-The current protocol is `holy-ship-coop-4`. The Worker configuration and
+The current protocol is `holy-ship-coop-6`. The Worker configuration and
 `NetworkSession.PROTOCOL` must agree. A protocol mismatch requires a refreshed
 browser game or matching desktop build; do not silently accept incompatible
 packet layouts.
+
+For grill controls, fuel rules and implementation details, see [the shared grill guide](shared-grill.md).
 
 ## 5. How gameplay stays synchronized
 
@@ -121,6 +123,7 @@ competitive anti-cheat system: a modified host still controls its simulation.
 | Inventory and chest transfers | Captain processes requests and distributes resulting inventory state |
 | Dropped items and pickups | Captain owns shared drops and pickup results |
 | Fishing line, bobber, fishing state and catches | Replicated by the gameplay session |
+| Shared grill, fuel and cooking progress | Captain simulates one grill; requests validate range, inventory revision and unique fish ID |
 | Swimming and land movement | Part of the shared player/world state |
 | Camera, spyglass view and UI | Local to each player |
 
@@ -159,8 +162,8 @@ it is sent in HTTPS request bodies, not placed in public crew listings.
 
 | Data | Location and lifetime |
 | --- | --- |
-| Sailor token/name | `user://crew_identity.cfg` on each device/browser |
-| Hosted voyage | Captain's `user://hosted-voyage.save` |
+| Sailor identity | Desktop `user://crew_identity.cfg`; browser token `localStorage[holyShip.identity]` |
+| Hosted voyage | Desktop `user://voyage-slot-0.save` through `voyage-slot-2.save`; browser `holyShip.voyage.v1.0` through `.2` |
 | Preferences | Local game/browser storage |
 | Voyage name, room membership, password hash and connection tickets | Temporary room/directory data in Cloudflare Durable Objects |
 | Abuse-prevention counters | Temporary per-IP hashed identifiers in Cloudflare |
@@ -171,9 +174,9 @@ inventories on departure. Saves contain boat position/rotation, shared chest,
 ship drops and remembered crew inventories. They are not a complete snapshot
 of every transient system: an active fishing minigame, for example, is not a
 durable cloud activity. Save files use a temporary file and rename for replacement.
-Current saves and earlier protocol 1/2/3 save formats are accepted by the loader.
+The loader accepts save protocols 1 through 6.
 
-In browser builds, Godot's user data is backed by browser storage. Clearing site
+In browser builds, world snapshots and identity use localStorage; other Godot preferences use browser storage. Clearing site
 data, using a different browser/profile, or changing website origin changes the
 available identity/save. Moving from the old `workers.dev` site to `pages.dev`
 does not automatically transfer those files. Two tabs in the same browser
@@ -385,3 +388,27 @@ The `pre-multiplayer` checkpoint is commit `38ca32e`. Use a separate checkout or
 worktree to inspect it; do not reset ongoing work. A code rollback does not
 automatically roll back deployed Pages/Worker versions or data migrations.
 Coordinate frontend/backend versions and preserve local saves when rolling back.
+
+
+## November 15 update: protocol 6
+
+Guest fishing runs locally at 60 Hz. Reliable batches of six hold/release inputs
+are sent at 10 Hz; the host replays the seeded fight and alone awards catches.
+Snapshots do not overwrite the local tension bar. Stale, duplicate and excessively
+fast input is rejected. Bite timing includes 750 ms transport grace.
+
+Host departure marks the room ended before closing guest sockets. The directory
+keeps a three-minute hidden tombstone so late guest disconnects cannot republish
+the listing. Normal departure is immediate; crashes still rely on timeout cleanup.
+
+Hosts now select one of three dated local saves. Browser storage is synchronous
+localStorage; desktop saves use atomic files. Autosave runs every 20 seconds and
+on normal exit/page navigation. Old native single saves migrate once. Protocols
+1–6 load. See [save slots](save-slots.md) for persistence and capacity details.
+
+
+## World survival update (protocol 8)
+
+The bounded seeded world, shared sharks, health, death and sinking rules are
+implemented in [world survival](world-survival.md). Protocol 8 is current; both
+game and harbor must match. Saves from protocols 1–7 remain loadable.

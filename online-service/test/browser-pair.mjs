@@ -30,10 +30,12 @@ async function game(name) {
   });
   await page.goto(base + "/play/");
   await page.waitForTimeout(16000);
-  await page.mouse.click(1060, 540);
+  await page.mouse.click(370, 550);
+  await page.mouse.click(640, 510);
   await page.keyboard.press("Control+A");
   await page.keyboard.type(name);
-  await page.mouse.click(680, 260);
+  await page.mouse.click(640, 575);
+  await page.mouse.click(640, 550);
   await page.waitForTimeout(1000);
   return { context, page };
 }
@@ -44,7 +46,7 @@ try {
   await host.page.mouse.click(500, 242);
   await host.page.keyboard.press("Control+A");
   await host.page.keyboard.type("Browser smoke");
-  await host.page.mouse.click(640, 394);
+  await host.page.mouse.click(440, 394);
   await host.page.waitForTimeout(3500);
   await host.page.screenshot({ path: "../.godot/browser-host-game.png" });
   const list = await (await fetch(base + "/api/crews")).json();
@@ -79,7 +81,7 @@ try {
     console.log('PASS page navigation releases guest within one second');
     await guest.page.goto(base + '/play/');
     await guest.page.waitForTimeout(16000);
-    await guest.page.mouse.click(680, 260);
+    await guest.page.mouse.click(640, 550);
     await guest.page.waitForTimeout(1000);
     await guest.page.mouse.click(600, 222);
     await guest.page.waitForTimeout(3500);

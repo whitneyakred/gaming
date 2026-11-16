@@ -29,6 +29,16 @@ var bite_left: float = 0.0
 var splash_age: float = 10.0
 var held: bool = false
 var visual_catches: int = 0
+var attempt_id: int = 0
+var fight_seed: int = 0
+var local_reeling: bool = false
+var local_done: bool = false
+var local_frame: int = 0
+var local_accumulator: float = 0.0
+var pending_bits: int = 0
+var pending_frames: int = 0
+var replay_frame: int = 0
+var hook_started: int = 0
 var sound: FishingAudio
 var hud: FishingHUD
 var _terrain: Array[IslandTerrain] = []
@@ -69,7 +79,7 @@ func rod_selected() -> bool:
 
 func can_fish() -> bool:
 	var local_drag := get_viewport().gui_is_dragging() and (not NetworkSession.online or service.network_id == NetworkSession.local_id)
-	return rod_selected() and service.can_handle_items() and not service.hud.storage_open and not local_drag
+	return rod_selected() and service.can_handle_items() and not service.hud.storage_open and not service.hud.grill_open and not local_drag
 
 func is_water(point: Vector2) -> bool:
 	if is_instance_valid(_ship):
@@ -140,6 +150,8 @@ func cast(point: Vector2) -> bool:
 	if _cast_from_ship:
 		_ship_target = _ship.to_local(point)
 		_ship_origin = _ship.to_local(cast_origin)
+	attempt_id += 1
+	fight_seed = rng.randi()
 	clock = 0.0
 	held = false
 	state = State.CASTING
@@ -148,6 +160,57 @@ func cast(point: Vector2) -> bool:
 	sound.play("cast")
 	queue_redraw()
 	return true
+
+func begin_local_hook() -> void:
+	local_reeling = true
+	local_done = false
+	local_frame = 0
+	local_accumulator = 0
+	pending_bits = 0
+	pending_frames = 0
+	held = true
+	state = State.REELING
+	fight.begin(fight_seed)
+
+func tick_local_fight(delta: float) -> void:
+	if not local_reeling or local_done: return
+	if not can_fish():
+		NetworkSession.command("cancel_fish")
+		local_reeling = false
+		return
+	local_accumulator += minf(delta, 0.25)
+	while local_accumulator >= 1.0 / 60.0 and not local_done:
+		local_accumulator -= 1.0 / 60.0
+		if held: pending_bits |= 1 << pending_frames
+		pending_frames += 1
+		local_frame += 1
+		fight.step(1.0 / 60.0, held)
+		clock += 1.0 / 60.0
+		local_done = fight.caught or fight.broken
+		if pending_frames >= 6 or local_done:
+			NetworkSession.command("fish_steps", {"attempt": attempt_id, "first": local_frame - pending_frames, "count": pending_frames, "bits": pending_bits})
+			pending_frames = 0
+			pending_bits = 0
+	sound.set_reeling(held and not local_done, fight.tension)
+	queue_redraw()
+
+func replay_steps(args: Dictionary) -> void:
+	if state != State.REELING or int(args.get("attempt", -1)) != attempt_id: return
+	var count := int(args.get("count", 0))
+	if int(args.get("first", -1)) != replay_frame or count < 1 or count > 12: return
+	# Never accept sped-up client simulation or trust a claimed result/progress.
+	if float(replay_frame + count) / 60.0 > float(Time.get_ticks_msec() - hook_started) / 1000.0 + 0.75: return
+	var bits := int(args.get("bits", 0))
+	for i in count:
+		held = (bits & (1 << i)) != 0
+		fight.step(1.0 / 60.0, held)
+		replay_frame += 1
+		if fight.caught:
+			finish(true)
+			return
+		if fight.broken:
+			finish(false, "Line snapped! Keep the marker in the green.")
+			return
 
 func _process(delta: float) -> void:
 	if state == State.IDLE:

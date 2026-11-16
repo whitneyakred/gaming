@@ -7,6 +7,17 @@ var is_overboard: bool = false
 var on_land: bool = false
 var inventory_open: bool = false
 var fishing_active: bool = false
+var health: int = 15
+var hunger: int = 15
+var hunger_clock: float = 0.0
+var starvation_clock: float = 0.0
+var regen_clock: float = 0.0
+var eat_cooldown: float = 0.0
+var eat_serial: int = 0
+var swim_time: float = 0.0
+var danger_time: float = 0.0
+var hurt_serial: int = 0
+var respawn_serial: int = 0
 var _deck_mask: int
 var _deck_layer: int
 var _sprite_position: Vector2
@@ -18,6 +29,7 @@ var using_station: bool:
 var active_station: Node = null
 
 func try_use_station(station: Node) -> bool:
+	if health <= 0: return false
 	if inventory_open or fishing_active or is_overboard or not is_instance_valid(station) or using_station or not is_physics_processing():
 		return false
 	active_station = station
@@ -55,8 +67,12 @@ func _physics_process(_delta: float) -> void:
 		return
 	move_crew(Input.get_vector("move_left", "move_right", "move_up", "move_down"), _delta)
 
+func _process(_delta: float) -> void:
+	global_rotation = 0.0
+	visible = health > 0
+
 func move_crew(direction: Vector2, _delta: float) -> void:
-	if using_station or inventory_open or fishing_active:
+	if health <= 0 or using_station or inventory_open:
 		velocity = Vector2.ZERO
 		return
 	# Read WASD / arrow keys; diagonal movement stays the same speed.

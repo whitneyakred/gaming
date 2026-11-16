@@ -55,7 +55,13 @@ func _draw() -> void:
 	if not parchment_slot:
 		draw_style_box(_box(Color("382b24"), Color("dcb76a") if selected else Color("796044"), 3 if selected else 1), rect)
 	elif selected:
-		draw_rect(rect, Color("9c6539"), false, 2)
+		draw_rect(rect.grow(-3), Color(0.35, 0.8, 0.4, 0.16))
+		var edge := rect.grow(-4)
+		var green := Color("568b50")
+		draw_dashed_line(edge.position, Vector2(edge.end.x, edge.position.y), green, 3, 5)
+		draw_dashed_line(Vector2(edge.end.x, edge.position.y), edge.end, green, 3, 5)
+		draw_dashed_line(edge.end, Vector2(edge.position.x, edge.end.y), green, 3, 5)
+		draw_dashed_line(Vector2(edge.position.x, edge.end.y), edge.position, green, 3, 5)
 	if is_hovered():
 		draw_rect(rect.grow(-4), Color(1, 0.86, 0.58, 0.07))
 	var font := ThemeDB.fallback_font

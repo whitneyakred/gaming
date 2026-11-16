@@ -67,7 +67,7 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _get_clicked_island(world_position: Vector2) -> String:
-	var hit_tolerance := 90.0 * MapState.world_bounds.size.x / get_map_rect().size.x
+	var hit_tolerance := 14.0 * MapState.world_bounds.size.x / get_map_rect().size.x
 	for island_id in MapState.discovered_islands:
 		var island: Dictionary = MapState.discovered_islands[island_id]
 		if world_position.distance_to(Vector2(island["position"])) <= hit_tolerance:
@@ -105,21 +105,20 @@ func _draw() -> void:
 		draw_line(Vector2(x, rect.position.y), Vector2(x, rect.end.y), Color(0.6, 0.8, 0.9, 0.08))
 		draw_line(Vector2(rect.position.x, y), Vector2(rect.end.x, y), Color(0.6, 0.8, 0.9, 0.08))
 
-	for island in MapState.discovered_islands.values():
-		var island_position := Vector2(island["position"])
-		var position := world_to_map(island_position)
-		var island_radius := clampf(80.0 * pixels_per_world_unit, 4.0, 15.0)
-		draw_circle(position, island_radius + 2.0, Color("#80c7cb"))
-		draw_circle(position, island_radius, Color("#7fae65"))
-		draw_circle(position + Vector2(island_radius * 0.45, -island_radius * 0.25), island_radius * 0.42, Color("#a5c979"))
-		draw_string(
-			font,
-			position + Vector2(island_radius + 8.0, 5.0),
-			str(island["name"]),
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			16,
-			Color.WHITE)
+	for island_id in MapState.island_catalog:
+		if MapState.discovered_islands.has(island_id): continue
+		var point := world_to_map(MapState.island_catalog[island_id].position)
+		draw_string(font, point + Vector2(-5,6), "?", HORIZONTAL_ALIGNMENT_LEFT,-1,20,Color("e5c987"))
+	for island_id in MapState.discovered_islands:
+		var island: Dictionary = MapState.discovered_islands[island_id]
+		var coast: PackedVector2Array = MapState.island_catalog.get(island_id, {}).get("coast", PackedVector2Array())
+		var outline := PackedVector2Array()
+		for point in coast: outline.append(world_to_map(point))
+		if outline.size() >= 3:
+			draw_colored_polygon(outline, Color("77956d"))
+			outline.append(outline[0])
+			draw_polyline(outline,Color("d9c79c"),1.5,true)
+		else: draw_circle(world_to_map(island.position),4,Color("77956d"))
 
 	for marker in MapState.markers:
 		var marker_position := world_to_map(marker)

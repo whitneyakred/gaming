@@ -4,7 +4,7 @@ extends Control
 @export_range(0.1, 3.0) var ship_bob_speed: float = 0.9
 @onready var logo: TextureRect = $Wordmark
 @onready var logo_ship: TextureRect = $LogoShip
-@onready var play_button: Button = $MenuCard/Rows/PlayButton
+@onready var play_button: Button = $PlayButton
 var settings: SettingsPanel
 var crew_menu: CrewMenu
 var _ship_rest_y: float
@@ -13,24 +13,22 @@ var _starting: bool = false
 
 func _ready() -> void:
 	_ship_rest_y = logo_ship.position.y
-	$MenuCard.add_theme_stylebox_override("panel", HarborTheme.panel())
-	play_button.action = start_voyage
-	$MenuCard/Rows/SettingsButton.action = func() -> void: settings.open()
-	$MenuCard/Rows/HelpButton.action = func() -> void: settings.open(3)
-	$MenuCard/Rows/QuitButton.action = quit_game
-	$MenuCard/Rows/QuitButton.visible = not OS.has_feature("web")
+	play_button.action = func() -> void: crew_menu.open()
+	play_button.custom_minimum_size = Vector2(280, 76)
+	play_button.add_theme_font_size_override("font_size", 26)
+	for button in [$CustomizeButton, $SettingsButton]:
+		button.custom_minimum_size = Vector2(220, 56)
+	$SettingsButton.action = func() -> void: settings.open()
+	$CustomizeButton.action = open_customize
+	$ProfileOverlay/ProfileCard/Rows/DoneButton.action = close_customize
 	settings = SettingsPanel.new()
-	$ProfileCard.add_theme_stylebox_override("panel", HarborTheme.panel())
-	$ProfileCard/Rows/PlayerName.text = NetworkSession.local_name
-	$ProfileCard/Rows/PlayerName.text_changed.connect(NetworkSession.save_player_name)
+	$ProfileOverlay/ProfileCard.add_theme_stylebox_override("panel", HarborTheme.panel())
+	$ProfileOverlay/ProfileCard/Rows/PlayerName.text = NetworkSession.local_name
+	$ProfileOverlay/ProfileCard/Rows/PlayerName.text_changed.connect(NetworkSession.save_player_name)
 	add_child(settings)
 	crew_menu = CrewMenu.new()
 	add_child(crew_menu)
-	var crew_button := HarborTheme.button("Sail with a crew", func() -> void: crew_menu.open())
-	$MenuCard/Rows.add_child(crew_button)
-	$MenuCard/Rows.move_child(crew_button, 2)
-	$MenuCard.position.y = 125
-	$MenuCard.size.y = 460
+	crew_menu.solo_requested.connect(start_voyage)
 	if not NetworkSession.status.is_empty():
 		crew_menu.open()
 	play_button.grab_focus()
@@ -67,8 +65,21 @@ func start_voyage() -> void:
 	var tween := create_tween()
 	tween.tween_property(curtain, "color:a", 1.0, 0.05 if GameWindow.preferences.reduced_motion else 0.3)
 	await tween.finished
-	GameWindow.stop_menu_music()
+	GameWindow.start_voyage_music()
 	get_tree().change_scene_to_file("res://scenes/main.tscn")
 
 func quit_game() -> void:
 	GameWindow.quit_game()
+
+func open_customize() -> void:
+	$ProfileOverlay.show()
+	$ProfileOverlay/ProfileCard/Rows/PlayerName.grab_focus()
+
+func close_customize() -> void:
+	$ProfileOverlay.hide()
+	$CustomizeButton.grab_focus()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if $ProfileOverlay.visible and event.is_action_pressed("ui_cancel"):
+		close_customize()
+		get_viewport().set_input_as_handled()

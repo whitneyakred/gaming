@@ -13,6 +13,7 @@ type Room = {
   password: string;
   protocol: string;
   nextPeer: number;
+  ended?: boolean;
 };
 type Session = {
   leaveKey?: string;
@@ -103,6 +104,10 @@ export class CrewDirectory extends DurableObject<Env> {
     );
   }
   async publish(entry: Listing) {
+    if (entry.count <= 0) return;
+    // A late close callback must never resurrect an ended listing.
+    const prior = this.ctx.storage.sql.exec<{data:string,expires:number}>("SELECT data,expires FROM crews WHERE id=?", entry.id).toArray()[0];
+    if (prior?.data === "{}" && prior.expires > Date.now()) return;
     this.ctx.storage.sql.exec(
       "DELETE FROM crews WHERE expires < ?",
       Date.now(),
@@ -116,12 +121,12 @@ export class CrewDirectory extends DurableObject<Env> {
     await this.ctx.storage.setAlarm(Date.now() + 120000);
   }
   remove(id: string) {
-    this.ctx.storage.sql.exec("DELETE FROM crews WHERE id=?", id);
+    this.ctx.storage.sql.exec("INSERT OR REPLACE INTO crews VALUES(?,?,?)", id, "{}", Date.now() + 180000);
   }
   list(): Listing[] {
     return this.ctx.storage.sql
       .exec<{ data: string }>(
-        "SELECT data FROM crews WHERE expires>? ORDER BY id LIMIT 100",
+        "SELECT data FROM crews WHERE expires>? AND data != '{}' AND json_extract(data, '$.count') > 0 ORDER BY id LIMIT 100",
         Date.now(),
       )
       .toArray()
@@ -183,7 +188,7 @@ export class VoyageRoom extends DurableObject<Env> {
     const room = await this.ctx.storage.get<Room>("room");
     const sockets = this.sessions();
     if (
-      !room ||
+      !room || room.ended ||
       !sockets.some((ws) => (ws.deserializeAttachment() as Session).peer === 1)
     )
       return error("This voyage has ended. Refresh the crew list.", 404);
@@ -201,7 +206,7 @@ export class VoyageRoom extends DurableObject<Env> {
     const key = "ticket:" + (await hash(value));
     return this.ctx.storage.transaction(async (txn) => {
       const current = await txn.get<Room>("room");
-      if (!current) return error("This voyage has ended.", 404);
+      if (!current || current.ended) return error("This voyage has ended.", 404);
       const pending = [
         ...(await txn.list<Ticket>({ prefix: "ticket:" })).values(),
       ].filter((t) => t.expires > Date.now());
@@ -288,6 +293,7 @@ export class VoyageRoom extends DurableObject<Env> {
     return new Response(null, { status: 101, webSocket: client });
   }
   private async publish(room: Room) {
+    if (room.ended || !this.sessions().some(ws => (ws.deserializeAttachment() as Session).peer === 1)) return;
     await this.env.DIRECTORY.getByName(shard(room.id)).publish({
       id: room.id,
       title: room.title,
@@ -402,8 +408,13 @@ export class VoyageRoom extends DurableObject<Env> {
   }
   private async end() {
     const room = await this.ctx.storage.get<Room>("room");
-    for (const socket of this.sessions())
+    if (room) { room.ended = true; await this.ctx.storage.put("room", room); }
+    for (const socket of this.sessions()) {
+      const state = socket.deserializeAttachment() as Session;
+      state.departed = true;
+      socket.serializeAttachment(state);
       socket.close(1000, "The captain ended this voyage.");
+    }
     if (room)
       await this.env.DIRECTORY.getByName(shard(room.id)).remove(room.id);
     await this.ctx.storage.deleteAll();

@@ -4,7 +4,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 const base = process.env.HARBOR_TEST_URL ?? 'http://127.0.0.1:8787';
 const token = () => randomBytes(24).toString('hex');
 async function post(path, data) {
-  const response = await fetch(base + path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({protocol:'holy-ship-coop-4', password:'', token:token(), ...data})});
+  const response = await fetch(base + path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({protocol:'holy-ship-coop-9', password:'', token:token(), ...data})});
   assert.equal(response.status, 200, await response.clone().text());
   return response.json();
 }
@@ -42,4 +42,19 @@ test('Departure frees identity immediately and old departure cannot close a rejo
     list = await (await fetch(base + '/api/crews')).json();
     assert.ok(!list.crews.some(c => c.id === room.id));
   } finally {host.close();guest.close();replacement?.close();}
+});
+
+test('Host and guest departures cannot republish an empty ended crew', async () => {
+  const room = await post('/api/crews', {title:'Close race'});
+  const host = await connect(room);
+  const tickets = await Promise.all([0,1,2].map(() => post('/api/crews/' + room.id + '/join', {})));
+  const guests = await Promise.all(tickets.map(connect));
+  try {
+    await Promise.all([room, ...tickets].map(t => post('/api/crews/' + room.id + '/leave', {ticket:t.ticket})));
+    for (const delay of [0, 100, 500, 2500]) {
+      await new Promise(r => setTimeout(r, delay));
+      const listing = await (await fetch(base + '/api/crews')).json();
+      assert.ok(!listing.crews.some(c => c.id === room.id), 'Ended crew must stay absent after late close handlers');
+    }
+  } finally { host.close(); guests.forEach(ws => ws.close()); }
 });

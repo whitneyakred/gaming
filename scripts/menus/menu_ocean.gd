@@ -18,10 +18,15 @@ func _draw() -> void:
 			var color := Color("426477")
 			color.a = 0.2 + 0.12 * sin(_time * 0.3 + phase)
 			draw_line(point, point + Vector2(9 + posmod(row + column, 4) * 3, 0), color, 2)
-	# Restrained chart rings and compass ticks, drawn without external textures.
-	var origin := Vector2(330, 330)
-	for radius in [220, 290, 360]:
-		draw_arc(origin, radius, 0, TAU, 96, Color(0.6, 0.7, 0.65, 0.07), 1)
-	for i in 32:
-		var direction := Vector2.from_angle(i * TAU / 32)
-		draw_line(origin + direction * 288, origin + direction * (302 if i % 4 == 0 else 295), Color(0.8, 0.7, 0.45, 0.15), 2)
+	# Expanding elliptical ripples follow the decorative ship's bobbing cycle.
+	var title := get_parent()
+	var origin: Vector2 = title.logo_ship.position + Vector2(title.logo_ship.size.x * 0.5, title.logo_ship.size.y * 0.83)
+	for ring in 4:
+		var phase := fposmod(_time * title.ship_bob_speed / TAU + float(ring) / 4.0, 1.0)
+		var radius := lerpf(70.0, 270.0, phase)
+		var opacity := sin(phase * PI) * 0.22
+		var points := PackedVector2Array()
+		for i in 97:
+			var angle := float(i) / 96.0 * TAU
+			points.append(origin + Vector2(cos(angle) * radius, sin(angle) * radius * 0.12))
+		draw_polyline(points, Color(0.48, 0.76, 0.82, opacity), 1.5, true)

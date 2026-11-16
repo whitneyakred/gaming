@@ -37,6 +37,13 @@ func _ready() -> void:
 	hud = get_node("InventoryHUD")
 	publish()
 	hud.bind_service(self)
+	var held_item := HeldItem.new()
+	held_item.service = self
+	player.add_child(held_item)
+	var eating = load("res://scripts/inventory/eating.gd").new()
+	eating.name = "Eating"
+	eating.service = self
+	add_child(eating)
 
 func _exit_tree() -> void:
 	if inventory != null and inventory.inventory_changed.is_connected(publish):
@@ -45,6 +52,7 @@ func _exit_tree() -> void:
 		storage.inventory_changed.disconnect(publish)
 
 func can_handle_items() -> bool:
+	if is_instance_valid(player) and player.health <= 0: return false
 	if not is_instance_valid(player) or not player.is_physics_processing() or player.using_station or (player.is_overboard and not player.on_land):
 		return false
 	if NetworkSession.online:
@@ -55,6 +63,18 @@ func can_handle_items() -> bool:
 
 func near_storage() -> bool:
 	return chest_enabled and not player.is_overboard and can_handle_items() and player.position.distance_to(storage_position) <= interaction_distance
+
+func grill_is_nearest() -> bool:
+	var grill := get_parent().get_node_or_null("Cooking") as ShipGrill
+	if grill == null or not grill.near(self):
+		return false
+	var distance := player.global_position.distance_to(grill.global_position)
+	if near_storage() and player.position.distance_to(storage_position) < distance:
+		return false
+	for node in get_parent().get_children():
+		if node is ShipStation and node.name != "Galley" and node.can_interact(player) and node.global_position.distance_to(player.global_position) < distance:
+			return false
+	return true
 
 func chest_is_nearest() -> bool:
 	if not near_storage():
@@ -109,24 +129,6 @@ func _spawn_drop(entry: Dictionary, point: Vector2) -> void:
 	drops[next_drop_id] = {"id": entry.id, "quantity": entry.quantity, "position": point, "world": player.is_overboard}
 	pickup_inside[next_drop_id] = player.position.distance_to(point) <= pickup_distance
 	next_drop_id += 1
-
-func prepare_fish() -> bool:
-	if not inventory.try_remove(&"fish_cod", 1):
-		feedback.emit("Catch a sea bass first.")
-		return false
-	# Removing the ingredient may itself free a slot. Only test capacity afterward.
-	if inventory.try_add(&"dried_fish"):
-		feedback.emit("Prepared dried fish!")
-	else:
-		# Merge overflow when possible, avoiding extra floor stacks for repeated meals.
-		for entry: Dictionary in drops.values():
-			if entry.id == &"dried_fish" and entry.get("world", false) == player.is_overboard and entry.position.distance_to(player.position) < 32:
-				entry.quantity += 1
-				feedback.emit("Prepared fish dropped beside you.")
-				return true
-		_spawn_drop({"id": &"dried_fish", "quantity": 1}, player.position)
-		feedback.emit("Prepared fish dropped beside you.")
-	return true
 
 func _physics_process(_delta: float) -> void:
 	if not NetworkSession.online:

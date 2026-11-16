@@ -19,7 +19,7 @@ Input is normally sent every 0.05 seconds. Direction changes send immediately,
 so starting and stopping do not wait for the next scheduled send. The sequence
 number is the client's physics-frame number. The host accepts only increasing
 sequences and includes its last accepted sequence as `crew[id].ack` in snapshots.
-The current network protocol is `holy-ship-coop-4`; old clients must reload.
+The current network protocol is `holy-ship-coop-6`; old clients must reload.
 
 Each guest retains at most 120 predicted frames, with position, sail trim and
 wheel angle. `_reconcile_local()` discards frames through the acknowledgement
@@ -140,6 +140,29 @@ Export the game and deploy Pages for changes to GDScript or menu/game assets.
 Deploy the harbor Worker for relay code changes. For changes spanning both,
 deploy the backend and matching game as described in the
 [release guide](online-services-setup.md), then have players reload.
-The departure change is compatible with protocol 4 and did not require another
-protocol bump. Prediction required protocol 4 because it depends on host input
-acknowledgements. Save loading still accepts protocols 1, 2 and 3.
+Protocol 6 adds local fishing input replay. Both game and Worker must use the
+matching protocol; existing players must reload. Save loading accepts protocols 1–6.
+
+
+## November 15 update: protocol 6
+
+Guest fishing runs locally at 60 Hz. Reliable batches of six hold/release inputs
+are sent at 10 Hz; the host replays the seeded fight and alone awards catches.
+Snapshots do not overwrite the local tension bar. Stale, duplicate and excessively
+fast input is rejected. Bite timing includes 750 ms transport grace.
+
+Host departure marks the room ended before closing guest sockets. The directory
+keeps a three-minute hidden tombstone so late guest disconnects cannot republish
+the listing. Normal departure is immediate; crashes still rely on timeout cleanup.
+
+Hosts now select one of three dated local saves. Browser storage is synchronous
+localStorage; desktop saves use atomic files. Autosave runs every 20 seconds and
+on normal exit/page navigation. Old native single saves migrate once. Protocols
+1–6 load. See [save slots](save-slots.md) for persistence and capacity details.
+
+
+## World survival update (protocol 8)
+
+The bounded seeded world, shared sharks, health, death and sinking rules are
+implemented in [world survival](world-survival.md). Protocol 8 is current; both
+game and harbor must match. Saves from protocols 1–7 remain loadable.

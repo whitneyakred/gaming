@@ -4,6 +4,8 @@ const HOTBAR_SLOTS: int = 4
 var service: InventoryService
 var selected: int = 0
 var storage_open: bool = false
+var grill_open: bool = false
+var grill_panel: Control
 var hotbar: Control
 var chest_panel: PanelContainer
 var panels: HBoxContainer
@@ -48,6 +50,15 @@ func bind_service(value: InventoryService) -> void:
 	panels.offset_bottom = 120
 	panels.add_theme_constant_override("separation", 14)
 	chest_panel = _container("SHIP'S CHEST", "Shift-click to transfer · E / Esc to close")
+	grill_panel = preload("res://scripts/inventory/grill_panel.gd").new()
+	grill_panel.hud = self
+	add_child(grill_panel)
+	grill_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	grill_panel.offset_left = -402
+	grill_panel.offset_right = -24
+	grill_panel.offset_top = -240
+	grill_panel.offset_bottom = 198
+	grill_panel.hide()
 	hint = _label("", 14, Color("ead7ad"))
 	add_child(hint)
 	hint.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -122,8 +133,21 @@ func _refresh() -> void:
 	for button in chest_buttons:
 		button.set_entry(service.storage_view[button.slot_index], "", false)
 
+func request_grill(args: Dictionary) -> void:
+	if NetworkSession.online:
+		GameWindow.play_ui("grill_place")
+		NetworkSession.command("grill", args)
+	elif service.get_parent().get_node("Cooking").handle(service, args):
+		GameWindow.play_ui("grill_place")
+
 func quick_transfer(index: int, from_storage: bool) -> void:
-	if storage_open:
+	if grill_open and not from_storage:
+		var entry: Dictionary = service.local_slots[index]
+		var id: StringName = entry.get("id", &"")
+		var model: ShipGrill = service.get_parent().get_node("Cooking")
+		var n := model.fish.size()
+		request_grill({"action": "fuel" if id in [&"wood", &"coal"] else "fish", "index": index, "revision": service.view_revision, "point": Vector2(0.12 + (n % 4) * 0.25, 0.3 + (n / 4) * 0.45)})
+	elif storage_open:
 		service.request("take" if from_storage else "store", index)
 
 func valid_drag(data: Variant) -> bool:
@@ -131,13 +155,14 @@ func valid_drag(data: Variant) -> bool:
 
 func _can_drop_on_deck(_position: Vector2, data: Variant) -> bool:
 	var mouse := drop_zone.get_global_transform() * _position
-	return valid_drag(data) and not hotbar.get_global_rect().has_point(mouse) and not (panels.visible and panels.get_global_rect().has_point(mouse))
+	return valid_drag(data) and not hotbar.get_global_rect().has_point(mouse) and not (grill_panel.visible and grill_panel.get_global_rect().has_point(mouse)) and not (panels.visible and panels.get_global_rect().has_point(mouse))
 
 func _drop_on_deck(_position: Vector2, data: Variant) -> void:
 	service.request_drag(data)
 
 func close() -> void:
 	storage_open = false
+	grill_open = false
 	if is_instance_valid(service.player):
 		service.player.set("inventory_open", false)
 
@@ -148,8 +173,11 @@ func _process(delta: float) -> void:
 		close()
 	if storage_open and not service.near_storage():
 		close()
-	service.player.set("inventory_open", storage_open)
+	service.player.set("inventory_open", storage_open or grill_open)
 	hotbar.visible = not MapState.map_open
+	if grill_open and not service.get_parent().get_node("Cooking").near(service):
+		close()
+	grill_panel.visible = grill_open
 	panels.visible = storage_open
 	chest_panel.visible = storage_open
 	drop_zone.mouse_filter = Control.MOUSE_FILTER_STOP if service.can_handle_items() and get_viewport().gui_is_dragging() else Control.MOUSE_FILTER_IGNORE
@@ -161,7 +189,7 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if service == null or event.is_echo():
 		return
-	if event.is_action_pressed("ui_cancel") and storage_open:
+	if event.is_action_pressed("ui_cancel") and (storage_open or grill_open):
 		if NetworkSession.online:
 			NetworkSession.command("close")
 		close()
@@ -169,14 +197,23 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not service.can_handle_items():
 		return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not storage_open and not grill_open and not get_viewport().gui_is_dragging():
+		var item_id: StringName = service.local_slots[selected].get("id", &"")
+		if item_id in [&"fish_cod", &"dried_fish"]:
+			service.get_node("Eating").start()
+			get_viewport().set_input_as_handled()
+			return
 	var handled := false
 	if event.is_action_pressed("interact"):
 		if NetworkSession.online:
 			NetworkSession.command("interact")
 			get_viewport().set_input_as_handled()
 			return
-		if storage_open:
+		if storage_open or grill_open:
 			close()
+			handled = true
+		elif service.grill_is_nearest():
+			grill_open = true
 			handled = true
 		elif service.chest_is_nearest():
 			storage_open = true
@@ -192,6 +229,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	if handled:
 		if NetworkSession.online:
 			NetworkSession.command("select", {"index": selected})
-		service.player.set("inventory_open", storage_open)
+		service.player.set("inventory_open", storage_open or grill_open)
 		_refresh()
 		get_viewport().set_input_as_handled()
