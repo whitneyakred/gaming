@@ -137,13 +137,30 @@ func _unhandled_input(event: InputEvent) -> void:
 func cast(point: Vector2) -> bool:
 	if state != State.IDLE or not can_fish():
 		return false
-	var distance := service.player.global_position.distance_to(point)
-	if distance < minimum_cast_distance or distance > cast_range:
-		service.feedback.emit("Too far away — cast into closer water." if distance > cast_range else "Aim a little farther out into the water.")
-		return false
 	if not is_water(point):
 		service.feedback.emit("Aim the bobber at open water.")
 		return false
+	var origin := service.player.global_position
+	var direction := (point - origin).normalized()
+	var distance := minf(origin.distance_to(point), cast_range)
+	point = origin + direction * distance
+	# A distant click may clamp onto a shoreline: find water along the cast first.
+	while distance > 4.0 and not is_water(point):
+		distance -= 4.0
+		point = origin + direction * distance
+	if not is_water(point):
+		# If the hull blocks that whole direction, use the nearest reachable water
+		# to the requested bearing instead of putting a bobber on the deck.
+		var found := false
+		for step in range(1, 19):
+			for side in [-1, 1]:
+				var candidate := origin + direction.rotated(deg_to_rad(step * 10.0 * side)) * cast_range
+				if is_water(candidate):
+					point = candidate
+					found = true
+					break
+			if found: break
+		if not found: return false
 	cast_origin = service.player.global_position + Vector2(8, -18)
 	target = point
 	_cast_from_ship = is_instance_valid(_ship) and not service.player.is_overboard

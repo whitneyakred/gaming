@@ -56,7 +56,10 @@ func run() -> void:
 	var source := service.player.global_position
 	var water := source + Vector2(230, 0)
 	check(not fishing.cast(source), "Cannot cast onto deck")
-	check(not fishing.cast(source + Vector2(900, 0)), "Out of range cast rejected")
+	check(fishing.cast(source + Vector2(900, 0)), "Distant water click casts successfully")
+	check(source.distance_to(fishing.target) <= fishing.cast_range + 0.1, "Distant cast stays within rod range")
+	check(fishing.is_water(fishing.target), "Clamped bobber lands in water")
+	fishing.cancel()
 	check(fishing.is_water(water), "Nearby ocean recognized as water")
 	for waiting in [false, true]:
 		fishing.cast(water)
