@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 const base = process.env.HARBOR_TEST_URL ?? "http://127.0.0.1:8787";
-const protocol = "holy-ship-coop-3";
+const protocol = "holy-ship-coop-4";
 const token = () => randomBytes(24).toString("hex");
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 async function api(path, data) {

@@ -181,6 +181,9 @@ func client_tests() -> void:
 		match current:
 			"move":
 				if role == "Alpha":
+					var before: Vector2 = service.player.position
+					NetworkSession._predict_local(Vector2.RIGHT, 1.0 / 60.0)
+					check(service.player.position.x > before.x, "Local movement responds before a host snapshot")
 					Input.action_press("move_right")
 					await wait(0.3)
 					Input.action_release("move_right")

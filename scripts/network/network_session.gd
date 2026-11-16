@@ -1,7 +1,7 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-3"
+const PROTOCOL := "holy-ship-coop-4"
 const DEFAULT_PORT := 24567
 const MAX_CREW := 4
 var online: bool = false
@@ -37,6 +37,9 @@ var _restored: Dictionary = {}
 var _snapshot_serial: int = 0
 var _received_serial: int = -1
 var _badge: Label
+var _prediction: Array[Dictionary] = []
+var _prediction_error := Vector2.ZERO
+var _last_local_move := Vector2.ZERO
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -469,9 +472,11 @@ func _physics_process(delta: float) -> void:
 			inputs[local_id].merge({"move": move, "held": held, "blocked": blocked, "stamp": Time.get_ticks_msec()}, true)
 		else:
 			_input_clock += delta
-			if _input_clock >= 0.05:
+			_predict_local(move, delta)
+			if _input_clock >= 0.05 or move != _last_local_move:
 				_input_clock = 0
 				input_frame.rpc_id(1, move, held, blocked, Engine.get_physics_frames())
+			_last_local_move = move
 	if not multiplayer.is_server():
 		_interpolate(delta)
 		return
@@ -498,15 +503,7 @@ func _physics_process(delta: float) -> void:
 			var cooking: float = data.get("cooking", 0.0) + delta
 			inputs[id]["cooking"] = cooking
 			if cooking >= 3.0:
-				var food := ItemDatabase.get_item(&"dried_fish")
-				if service.inventory.get_quantity(&"fish_cod") <= 0:
-					service.feedback.emit("Catch a sea bass first.")
-				elif service.inventory.capacity_for(food) == 0:
-					service.feedback.emit("Make room for the prepared fish first.")
-				else:
-					service.inventory.try_remove(&"fish_cod", 1)
-					service.inventory.try_add(&"dried_fish")
-					service.feedback.emit("Prepared dried fish!")
+				service.prepare_fish()
 				player.active_station.release_control()
 		player.move_crew(move, delta)
 		player.get_node("CrewName").rotation = -player.global_rotation
@@ -538,7 +535,7 @@ func _send_snapshot() -> void:
 		var player: CharacterBody2D = players[id]
 		var service: InventoryService = services[id]
 		var fishing: RodFishing = service.get_node("Fishing")
-		crew[id] = {"name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
+		crew[id] = {"ack": inputs[id].get("sequence", -1), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
 			"station": str(player.active_station.name) if player.using_station else "", "inventory": service.inventory.capture(),
 			"selected": service.hud.selected, "chest": service.hud.storage_open, "revision": service.view_revision,
 			"fish": {"state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
@@ -610,8 +607,6 @@ func apply_snapshot(data: Dictionary) -> void:
 	drops.merge(data.drops, true)
 	ship.wind_velocity = data.wind
 	ship.set_sail_level(data.sail)
-	ship.set_sail_angle(data.trim)
-	ship.set_wheel_angle(data.wheel)
 	ship.anchor_deployed = data.anchor
 	for station_name in ["Helm", "Sail", "Anchor", "Galley"]:
 		ship.get_node(station_name).operator = null
@@ -619,6 +614,7 @@ func apply_snapshot(data: Dictionary) -> void:
 		var entry: Dictionary = data.crew[id]
 		var player: CharacterBody2D = players[id]
 		var service: InventoryService = services[id]
+		var transition: bool = player.is_overboard != entry.outside or (str(player.active_station.name) if player.using_station else "") != entry.station
 		player.set_overboard(entry.outside)
 		player.update_land(entry.land)
 		player.active_station = ship.get_node_or_null(NodePath(entry.station)) if entry.station != "" else null
@@ -629,6 +625,7 @@ func apply_snapshot(data: Dictionary) -> void:
 		service.inventory.restore(slots)
 		service.hud.selected = entry.selected
 		service.hud.storage_open = entry.chest
+		player.inventory_open = entry.chest
 		service.view_revision = entry.revision
 		service.hud._refresh()
 		var fishing: RodFishing = service.get_node("Fishing")
@@ -650,6 +647,8 @@ func apply_snapshot(data: Dictionary) -> void:
 		fishing.fight.danger = fish.danger
 		player.fishing_active = fish.state != 0
 		if id == local_id:
+			_reconcile_local(entry, transition)
+		if id == local_id:
 			if previous != fish.state:
 				if fish.state == RodFishing.State.CASTING: fishing.sound.play("cast")
 				elif fish.state == RodFishing.State.WAITING: fishing.sound.play("splash")
@@ -663,12 +662,58 @@ func _interpolate(delta: float) -> void:
 	var weight := 1.0 - exp(-18 * delta)
 	ship.global_position = ship.global_position.lerp(_last_snapshot.position, weight) if ship.global_position.distance_to(_last_snapshot.position) < 500 else _last_snapshot.position
 	ship.global_rotation = lerp_angle(ship.global_rotation, _last_snapshot.rotation, weight)
+	var local_player: Node = players.get(local_id)
+	var station := str(local_player.active_station.name) if is_instance_valid(local_player) and local_player.using_station else ""
+	# Interpolate remote controls instead of stepping them at snapshot frequency.
+	if station != "Sail": ship.set_sail_angle(lerpf(ship.sail_angle_degrees, _last_snapshot.trim, weight))
+	if station != "Helm": ship.set_wheel_angle(lerpf(ship.wheel_angle_degrees, _last_snapshot.wheel, weight))
 	for id: int in players:
 		if _last_snapshot.crew.has(id):
 			var player: Node2D = players[id]
 			var target: Vector2 = _last_snapshot.crew[id].position
-			player.position = player.position.lerp(target, weight) if player.position.distance_to(target) < 150 else target
+			if id != local_id:
+				player.position = player.position.lerp(target, weight) if player.position.distance_to(target) < 150 else target
 			player.get_node("CrewName").rotation = -player.global_rotation
+
+func _predict_local(move: Vector2, delta: float) -> void:
+	var player: CharacterBody2D = players[local_id]
+	var correction := _prediction_error * (1.0 - exp(-12.0 * delta))
+	player.position += correction
+	_prediction_error -= correction
+	for frame: Dictionary in _prediction:
+		frame.position += correction
+	player.move_crew(move, delta)
+	if player.active_station == ship.get_node("Sail"):
+		ship.set_sail_angle(ship.sail_angle_degrees + move.x * 34.0 * delta)
+	elif player.active_station == ship.get_node("Helm"):
+		ship.set_wheel_angle(ship.wheel_angle_degrees + move.x * 165.0 * delta)
+	_prediction.append({"sequence": Engine.get_physics_frames(), "position": player.position, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees})
+	if _prediction.size() > 120: _prediction.pop_front()
+
+func _reconcile_local(entry: Dictionary, transition: bool) -> void:
+	var player: CharacterBody2D = players[local_id]
+	if transition or _prediction.is_empty() or player.position.distance_to(entry.position) > 150:
+		player.position = entry.position
+		_prediction.clear()
+		_prediction_error = Vector2.ZERO
+		ship.set_sail_angle(_last_snapshot.trim)
+		ship.set_wheel_angle(_last_snapshot.wheel)
+		return
+	var ack := int(entry.get("ack", -1))
+	var acknowledged: Dictionary = {}
+	while not _prediction.is_empty() and int(_prediction[0].sequence) <= ack:
+		acknowledged = _prediction.pop_front()
+	if acknowledged.is_empty(): return
+	_prediction_error = Vector2(entry.position) - Vector2(acknowledged.position)
+	# Preserve controls applied since the acknowledged input, correcting only drift.
+	if entry.station == "Sail":
+		var error := float(_last_snapshot.trim) - float(acknowledged.trim)
+		ship.set_sail_angle(ship.sail_angle_degrees + error * 0.25)
+		for frame: Dictionary in _prediction: frame.trim += error * 0.25
+	elif entry.station == "Helm":
+		var error := float(_last_snapshot.wheel) - float(acknowledged.wheel)
+		ship.set_wheel_angle(ship.wheel_angle_degrees + error * 0.25)
+		for frame: Dictionary in _prediction: frame.wheel += error * 0.25
 
 func _peer_left(id: int) -> void:
 	if not online or not multiplayer.is_server():
@@ -723,7 +768,7 @@ func load_world() -> void:
 	if file == null:
 		return
 	var data: Variant = file.get_var(false)
-	if data is Dictionary and data.get("version") in [PROTOCOL, "holy-ship-coop-2", "holy-ship-coop-1"]:
+	if data is Dictionary and data.get("version") in [PROTOCOL, "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
 		_restored = data
 		accounts = data.get("accounts", {})
 
@@ -746,6 +791,9 @@ func leave(message: String = "") -> void:
 	_pending.clear()
 	_rate.clear()
 	_last_snapshot.clear()
+	_prediction.clear()
+	_prediction_error = Vector2.ZERO
+	_last_local_move = Vector2.ZERO
 	_received_serial = -1
 	_connect_clock = 0
 	local_id = 1

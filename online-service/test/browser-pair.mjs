@@ -41,10 +41,10 @@ try {
   const host = await game("Web Captain");
   await host.page.mouse.click(450, 180);
   await host.page.waitForTimeout(500);
-  await host.page.mouse.click(500, 277);
+  await host.page.mouse.click(500, 242);
   await host.page.keyboard.press("Control+A");
   await host.page.keyboard.type("Browser smoke");
-  await host.page.mouse.click(640, 426);
+  await host.page.mouse.click(640, 394);
   await host.page.waitForTimeout(3500);
   await host.page.screenshot({ path: "../.godot/browser-host-game.png" });
   const list = await (await fetch(base + "/api/crews")).json();

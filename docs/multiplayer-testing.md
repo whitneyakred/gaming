@@ -44,8 +44,10 @@ browsers have different sailors. Editor/native saves use the Godot user-data
 folder. Old EOS identities do not automatically migrate to new browser sailors;
 world/chest data from protocols 1 and 2 remains readable.
 
-The host must remain connected and awake. There is no host migration, movement
-prediction, moderation console, mobile touch support, or persistent cloud world.
+The host must remain connected and awake. Local movement and sail/helm controls
+are predicted immediately, with host acknowledgements correcting drift. Remote
+controls interpolate between snapshots. There is no host migration, moderation
+console, mobile touch support, or persistent cloud world.
 The browser avoids macOS native signing requirements; the old ad-hoc Mac ZIP is
 not the recommended player distribution. This is an early-access release, not a
 claim that all future bugs or arbitrary public load have been eliminated.
