@@ -4,7 +4,8 @@ extends IslandGame
 ## "Collect them all, then get back to the rowboat" island.
 ## Used by the coconut island; reuse it for any pickup game by putting your
 ## pickups in a group and setting Pickup Group / Item Id in the Inspector.
-## Each pickup needs a `collected` signal (scenes/coconut.tscn has one).
+## Each pickup must be a WorldItem, which emits `picked_up` after its inventory
+## transfer succeeds.
 
 @export_group("Pickups")
 ## Every node in this group counts toward the goal.
@@ -24,11 +25,11 @@ func _setup_game() -> void:
 	var pickups := get_tree().get_nodes_in_group(pickup_group)
 	total_count = pickups.size()
 	for pickup in pickups:
-		if pickup.has_signal("collected"):
-			pickup.collected.connect(_on_item_collected)
+		if pickup is WorldItem:
+			pickup.picked_up.connect(_on_item_picked_up)
 
 
-func _on_item_collected(_item_id: StringName) -> void:
+func _on_item_picked_up(_item_id: StringName, _quantity: int, _picker: Node2D) -> void:
 	collected_count += 1
 	refresh_hud()
 

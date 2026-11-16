@@ -72,6 +72,8 @@ func _ready() -> void:
 		hud.set_timer_visible(has_time_limit())
 		hud.set_threat_label(threat_label)
 		hud.set_inventory(get_inventory())
+	if player and player.has_signal("feedback_requested"):
+		player.connect("feedback_requested", Callable(self, "show_message"))
 
 	var bag := get_inventory()
 	if bag:
