@@ -36,6 +36,8 @@ func _ready() -> void:
 	rows.add_child(notice)
 	notice.hide()
 	tabs = TabContainer.new()
+	# Reserve room for both tabs, including the private-password fields.
+	tabs.custom_minimum_size.y = 380
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	rows.add_child(tabs)
 	var browse := page("Browse crews")

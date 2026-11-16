@@ -37,7 +37,7 @@ func _ready() -> void:
 	_sounds["hover"] = _tone(720.0, 0.045, 0.12)
 	_sounds["click"] = _tone(440.0, 0.09, 0.3)
 	_sounds["back"] = _tone(290.0, 0.12, 0.22)
-	music_player.stream = _make_music()
+	# Menu soundtrack intentionally disabled until the replacement track is ready.
 	apply_preferences()
 
 func load_preferences(path: String) -> void:
@@ -116,7 +116,7 @@ func play_ui(kind: String = "click") -> void:
 		return
 	sound_player.stream = _sounds.get(kind, _sounds.click)
 	sound_player.play()
-	if not _music_started and kind != "hover":
+	if not _music_started and kind != "hover" and music_player.stream != null:
 		_music_started = true
 		music_player.play()
 
