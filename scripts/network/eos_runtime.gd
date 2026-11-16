@@ -17,8 +17,14 @@ func _run_online_check() -> void:
 
 func ensure_backend() -> bool:
 	if backend != null: return true
-	if OS.has_feature("web") or not ClassDB.class_exists("EOSGMultiplayerPeer"):
+	if OS.has_feature("web"):
 		set_status("Online crews require the desktop build with EOS installed.")
+		return false
+	if not ClassDB.class_exists("EOSGMultiplayerPeer"):
+		if OS.has_feature("editor"):
+			set_status("EOS extension is not loaded. Install the project’s native EOS files, restart Godot, and check the Output panel for loading errors.")
+		else:
+			set_status("The networking library could not load. Extract the complete game package, then try again.")
 		return false
 	var script = load("res://scripts/network/eos/online_backend.gd")
 	if script == null: return false

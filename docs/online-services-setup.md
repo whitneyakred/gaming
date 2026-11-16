@@ -17,6 +17,16 @@ checkout, then restart Godot so it loads the native extension. The installer
 pins EOSG 2.3.1 and downloads Windows, macOS, and Linux native dependencies.
 Only the low-level wrapper is used; no Epic overlay or microphone is enabled.
 
+On a Mac checkout, close Godot and run `bash tools/install-eos-macos.sh` from
+the project folder in Terminal. This downloads and checksum-verifies the pinned
+Mac native libraries, preserving framework structure. Copy `.local/eos.cfg`
+privately from your Windows project to the same relative location on the Mac;
+Finder's Command+Shift+Period shortcut shows hidden folders. Neither dependency
+binaries nor local configuration arrives through Git. Reopen Godot after setup.
+If the extension still fails to load, inspect the Output panel's first
+GDExtension/dynamic-library error; missing files and macOS loading rejection
+need different fixes. This setup is for developers, not exported-game players.
+
 The Holy Ship export plugin embeds the game-client configuration in desktop
 packages as res://online/eos.cfg. These are untrusted game-client credentials,
 not administrative/server credentials. Do not replace the client policy with a
