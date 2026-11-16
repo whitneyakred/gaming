@@ -5,13 +5,13 @@
 **Project:** Holy Ship
 **Team:** Team 13 (Gaming)
 **Area:** `UC-PROG` (Progress & Session)
-**Status:** Proposed future design; questions test answered; requirement decisions remain blocked; no PROG code exists.
+**Status:** Proposed future design; questions test answered; requirement decisions remain blocked; `UC-PROG-pause-game`'s single-player slice is built (2026-10-28); no other PROG code exists.
 **Draft date:** 2026-10-14
 
 > **Realizes:** `UC-PROG-track-progress`, `UC-PROG-reach-paradise`, `UC-PROG-quit-voyage`, `UC-PROG-start-voyage`, `UC-PROG-host-join`, `UC-PROG-pause-game`, `UC-PROG-choose-character`. No supplied `FR-PROG-*` identifiers.
-> **Depends on:** `BR-host-ends-session`, `BR-host-controls-session`, `BR-session-cap-4`; architecture `KD-deployment-shape`, `KD-local-first`, `KD-station-components`, `KD-world-chunks`; related use cases are cited below.
+> **Depends on:** `BR-host-ends-session`, `BR-host-controls-session`, `BR-session-cap-4`, `BR-pause-fatigue-presentation`; specification `UI-pause-menu`; architecture `KD-deployment-shape`, `KD-local-first`, `KD-station-components`, `KD-world-chunks`; related use cases are cited below.
 > **See:** [use cases](../requirements/use-cases.md), [business rules](../requirements/business-rules.md), [specification](../requirements/software-requirements-specification.md), [architecture-of-record](architectural-design.md). Repository links now point to the checked-in requirements and architecture.
-> **Designed against:** Supplied use-cases-draft(4).docx v0.2, business-rules (2)(2).md v0.2, and architectural-design(3).md v0.2. No source checkout or main commit supplied; no code inspection claimed.
+> **Designed against:** Supplied use-cases-draft(4).docx v0.2, business-rules (2)(2).md v0.2, and architectural-design(3).md v0.2. No source checkout or main commit supplied; no code inspection claimed. **Pause single-player slice:** designed against `main` @ `dc39f33`, with the code it touches inspected (`project.godot`, `scripts/ship.gd`, `scripts/islands/island_game.gd`, `scripts/galley_cooking.gd`, `scripts/onion_chopping.gd`).
 
 ---
 
@@ -98,7 +98,9 @@ classDiagram
     CharacterSelection --> SessionCoordinator
 ```
 
-- `scripts/progress/session_coordinator.gd` (new): owns membership, Host identity, pause state, and termination; validates session actions.
+- `scenes/pause_menu.tscn`, `scripts/pause_menu.gd` (new, single-player slice): the `PauseMenu` autoload, a CanvasLayer whose process mode is Always. It owns the local pause state and the pause screen until `SessionCoordinator` and `SessionUI` exist; at that point pause moves behind `set_paused` without changing the freeze mechanism. Registered in `project.godot` next to `VoyageState`, with a `pause` input action bound to P.
+- Godot `SceneTree.paused` (reused): the freeze for every gameplay node on the default (pausable) process mode: `Ship`/`ShipMotion`, ship stations, the player, the `IslandGame` challenge timer, and the cooking minigames. No owner gets its own pause hook.
+- `scripts/progress/session_coordinator.gd` (new, deferred for pause): owns membership, Host identity, pause state, and termination; validates session actions.
 - `scripts/progress/voyage_coordinator.gd` (new): prepares and replaces voyage state, tracks generation identity/completion, and coordinates initialization through other areas.
 - `scripts/progress/progress_tracker.gd` (new): derives map distance from current ship/Paradise positions and delegates arrival detection to the voyage owner.
 - `scripts/progress/character_selection.gd` (new): validates cosmetic presets, assigns per-member selection/fallback, and publishes changes.
@@ -278,6 +280,25 @@ Membership admission is serialized on the Host. Failed joining must leave sessio
 
 ### UC-PROG-pause-game: Pause the game
 
+**Single-player slice (build now).** The local player holds the Host's pause permissions (`BR-host-controls-session`, single-player applicability). Extensions 1a and 4b are deferred co-op. Extension 4a is deferred until `UC-PROG-quit-voyage` exists, so the pause screen has Resume only.
+
+```mermaid
+sequenceDiagram
+    actor Player as Local player
+    participant Menu as PauseMenu (process mode Always)
+    participant Tree as SceneTree
+    participant Owners as Gameplay nodes (pausable)
+    Player->>Menu: Press pause (step 1)
+    Menu->>Tree: paused = true (step 2)
+    Tree-->>Owners: Stop process, physics, and input (step 2)
+    Menu-->>Player: Show pause screen (step 3)
+    Player->>Menu: Resume, or press pause again (step 4)
+    Menu->>Tree: paused = false (step 5)
+    Tree-->>Owners: Continue from the frozen values (step 5, POST-1)
+```
+
+**Deferred co-op flow** (kept for the networking stage):
+
 ```mermaid
 sequenceDiagram
     actor Player
@@ -353,7 +374,10 @@ Proposed typed Godot methods/signals follow architecture 8.2.3. They are not HTT
 | `host_session` / host-join | Local player creating session | Host intent | LAN session, Host membership, lobby | LAN discovery/transport and host-creation failures need adapter definition. |
 | `discover_sessions` / host-join | Joining player on LAN | Discovery or refresh intent | Current session choices | 4a empty result plus refresh; 6b connection failure returns to list. |
 | `join_session` / host-join | Connecting LAN player through adapter | Selected session and connection-bound identity | Serialized admission and lobby update | 6a deny at four members. 6b failure leaves membership unchanged. 6c current voyage sync, full stats, inventory, deck placement. |
-| `set_paused` / pause-game | Host only, valid running voyage | Pause or Resume intent | Whole-crew simulation freeze/resume and UI update | 1a non-Host does not pause, menu TBD. 4a delegates quit. 4b removes disconnected crew and updates screen; Host loss terminates. |
+| `pause` input action / pause-game steps 1 and 4 | Local player, in any gameplay scene | P key press, echo ignored | Toggles pause | Pressing it while the state is already changing has no partial effect (8.2.1). |
+| `PauseMenu.pause()`, `PauseMenu.resume()` / pause-game steps 2–5 | Pause screen, pause input, tests | None | Tree paused or unpaused; pause screen shown or hidden; `pause_changed(is_paused)` emitted | Calling it in the current state is a no-op: nothing changes and nothing is emitted. |
+| `PauseMenu.is_paused()` / pause-game | Any reader | None | Current pause state | — |
+| `set_paused` / pause-game (deferred co-op) | Host only, valid running voyage | Pause or Resume intent | Whole-crew simulation freeze/resume and UI update | 1a non-Host does not pause, menu TBD. 4a delegates quit. 4b removes disconnected crew and updates screen; Host loss terminates. |
 | `choose_preset` / choose-character | Lobby member for themselves | Preset ID from bundled valid list | Assign own cosmetic appearance and publish | 3a fallback on start/late join. Invalid preset/non-lobby selection rejected with no assignment. |
 | `assign_fallback` / choose-character 3a | Session owner | Member with no chosen preset | Valid default appearance for voyage | Missing valid default/catalog: configuration failure, no invented appearance. |
 
@@ -373,6 +397,12 @@ _A decision that affects the whole system rather than this area is an architectu
 
 **Freeze simulation, retain session controls.** Separate pausable simulation processing from always-available UI and connection processing. Rejected: stopping the entire application event loop, because Resume, Quit, and paused disconnect handling must work. Exact Godot process modes must be verified against implementation.
 
+**Pause with `SceneTree.paused`** (single-player slice). The `PauseMenu` autoload runs with process mode Always and everything else stays pausable. Rejected: a pause flag that every owner checks, because every existing and future timer would need wiring and one missed check breaks `BR-host-controls-session`. Paused nodes receive no input, so gameplay input is dropped rather than queued, as the pause contract below requires. `get_tree().create_timer()` is the one gameplay clock that ignores the tree pause by default, so every gameplay or HUD timer passes `process_always = false` (`create_timer(seconds, false)`); found in the build and fixed in `island_game.gd`, `island_hud.gd`, `tiki_totems.gd`, and `cooking_minigame.gd`. Node-bound tweens (`create_tween()`) already follow their node's pause.
+
+**One autoload for pause, not a menu per scene.** Rejected: a pause node in `main.tscn`, because island and cooking scenes replace it and pause must work in all of them.
+
+**Pause on P, not Escape.** Rejected: Escape, because `ui_cancel` already closes galley cooking (`scripts/galley_cooking.gd`) and onion chopping (`scripts/onion_chopping.gd`), so one press would do two things.
+
 **Derive distance from current state.** Recalculate on authoritative position changes, including reset. Rejected: storing traveled distance as progress, because the use case asks distance to Paradise and resets can change it abruptly. Straight-line versus route distance remains a requirement decision, not an assumed formula.
 
 **One completion transition.** Guard completion by current voyage identity and a once-only transition, then delegate the agreed victory sequence. Rejected: playing victory on every frame inside arrival range, because completion is set once. Absent-crew and end-screen policies remain unresolved.
@@ -383,7 +413,7 @@ _A decision that affects the whole system rather than this area is an architectu
 
 _[The **change** this area makes to the data: new tables or entities, new columns, the migration that adds them. Draw an ER diagram when there is more than one new table. Do not redraw the domain model; your [specification](../requirements/software-requirements-specification.md) owns it, so link it and show only the change. If the area changes nothing, say "No change" and give the reason in one line; that is a design decision too.]_
 
-New in-memory state and bundled configuration only; no database tables or migrations. The [specification](../requirements/software-requirements-specification.md) owns the full domain model, but was not supplied.
+New in-memory state and bundled configuration only; no database tables or migrations. The pause slice adds no data: its state is `SceneTree.paused`, and nothing is saved. The [specification](../requirements/software-requirements-specification.md) owns the full domain model, but was not supplied.
 
 | Addition | Data / relationships | Invariant / lifetime |
 |---|---|---|
@@ -439,10 +469,15 @@ Planned tests only; no code or executed runtime checks are claimed. Tests whose 
 | Host-join 6a | Unit | Four members deny join without state changes; concurrent admission cannot create a fifth. |
 | Host-join 6b | Integration | Connection failure explains error, returns to discovery, and leaves membership unchanged. |
 | Host-join 6c | Integration | Late join uses current voyage, deck placement, full stats, starting inventory, valid fallback appearance, and current synchronized world. |
-| UC-PROG-pause-game main | Integration | Host freezes movement/stats/wind/waves/all simulation timers; Resume preserves frozen values and remaining durations. UI still responds. |
-| Pause-game 1a | Unit, presentation blocked | Non-Host input never changes global pause; local presentation follows agreed menu policy. |
-| Pause-game 4a | Integration | Host Quit delegates confirmation/termination and returns all crew to menu. |
-| Pause-game 4b | Integration | Disconnect while paused removes member, releases claims, updates screen, and leaves remaining simulation paused. |
+| UC-PROG-pause-game main: pause (single-player) | Integration | P pauses the tree and shows the pause screen; ship and player stop processing; wind and ship position are unchanged over many paused frames. |
+| Pause-game main: resume by button (single-player) | Integration | Resume unpauses the tree, hides the screen, and the ship processes again from the same values. |
+| Pause-game main: resume by key (single-player) | Integration | Pressing P while paused resumes. |
+| Pause-game: island timer frozen (single-player) | Integration | In an island scene, the challenge's time left is unchanged while paused and counts down again after resume. |
+| Pause-game: repeated calls (single-player) | Unit | `pause()` while paused and `resume()` while running change nothing and emit nothing. |
+| UC-PROG-pause-game main (deferred co-op) | Integration | Host freezes movement/stats/wind/waves/all simulation timers; Resume preserves frozen values and remaining durations. UI still responds. |
+| Pause-game 1a (deferred co-op) | Unit, presentation blocked | Non-Host input never changes global pause; local presentation follows agreed menu policy. |
+| Pause-game 4a (deferred until quit-voyage exists) | Integration | Host Quit delegates confirmation/termination and returns all crew to menu. |
+| Pause-game 4b (deferred co-op) | Integration | Disconnect while paused removes member, releases claims, updates screen, and leaves remaining simulation paused. |
 | UC-PROG-choose-character main | Integration | Valid lobby selection updates everyone and voyage appearance; duplicates allowed; stats unchanged. |
 | Choose-character 3a | Unit | No choice or late join receives configured valid default with no stat changes. |
 | Host authorization | Unit | Non-Host cannot start/restart/pause/resume; caller cannot alter another member's appearance/departure. |
@@ -463,6 +498,9 @@ The remaining companion interface updates below are proposals requiring review b
 - Section 8.2.2 now records the simulation freeze; UI/session-control and deferred networking details still require integration.
 - Identifiers/11.2 now acknowledge the full use-case list and no-save scope; transport and recovery gaps remain open.
 - Section 6: add PROG runtime views when implementation exists; current sailing/island prototype remains distinct.
+
+- Section 5.3 (pause slice, made in this change): lists `scripts/pause_menu.gd` and `scenes/pause_menu.tscn` as designed, not yet built, and the `PauseMenu` autoload.
+- Section 8.2.2 (pause slice, made in this change): names `SceneTree.paused` as the shared pause gate, and says presentation that must keep animating during pause opts out with its own process mode.
 
 No external server, online matchmaking, account service, database, save format, or new deployment container is proposed.
 
@@ -537,6 +575,10 @@ Team 13 owns product decisions. Area owners agree cross-component interfaces. Mi
 | Arrival range and trigger evaluation | Team 13 + PROG/world | Define range, metric, and detection boundary before completion checks. |
 | Victory sequence and absent crew | Team 13 | Source leaves end screen/stats/credits/lobby and wait-or-include open; blocks reach-paradise and post-victory transitions. |
 | Starting inventory | Team 13 + SYS | Define items/quantities/pool categories before start and late-join acceptance. Do not turn examples into approved loadout. |
+| Pause screen Quit (4a) | Team 13 + PROG | Deferred until `UC-PROG-quit-voyage` and `UI-main-menu` exist; the single-player pause screen has Resume only. Recorded as OI-21. |
+| Wobble during pause | SURV/FTG owner | `BR-pause-fatigue-presentation` keeps wobble animating while paused. A full tree pause freezes it, so the wobble node must use its own process mode when it's built. No wobble exists yet. |
+| "Voyage in progress" precondition | PROG | No voyage lifecycle exists yet, so pause is allowed in any gameplay scene. Revisit with `UC-PROG-start-voyage`. |
+| Pause during a scene change | PROG implementer | Pausing during the rowboat scene change is untested. The autoload outlives the change, so the screen stays consistent. |
 | Non-Host pause-input presentation | Team 13 + UI | Local menu is marked TBD in source; global pause remains Host-only regardless. |
 | Preset assets/default | Team 13 + presentation | Configure a valid cosmetic default; session choices carry into restart and are not saved between sessions. |
 | LAN discovery/transport, connection identity, snapshot acknowledgments and retries | PROG/network owner | Must specify adapter before network implementation; choose retry/deadline/error behavior without adding online services. |

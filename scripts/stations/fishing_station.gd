@@ -32,7 +32,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not is_player_in_range:
 		return
 
-	if event.is_action_pressed("fish") and state == State.IDLE:
+	if event.is_action_pressed("fish") and not event.is_echo() and state == State.IDLE:
 		start_attempt()
 	elif event.is_action_released("fish"):
 		if state == State.HOLDING:
@@ -41,6 +41,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			complete_attempt()
 
 func start_attempt() -> void:
+	if not is_instance_valid(interacting_player) or interacting_player.get("using_station"):
+		return
 	if not interacting_player_has_fishing_rod():
 		status_label.text = "Fishing rod required"
 		status_label.show()
@@ -49,13 +51,15 @@ func start_attempt() -> void:
 	if loot_ids.is_empty():
 		push_warning("Fishing station has no loot IDs configured.")
 		return
+	if not interacting_player.call("try_use_station", self):
+		return
 
 	var hold_duration := randf_range(minimum_hold_seconds, maximum_hold_seconds)
 	hold_timer.start(hold_duration)
 	progress_bar.max_value = hold_duration
 	progress_bar.value = 0.0
 	progress_bar.show()
-	status_label.text = "Hold E..."
+	status_label.text = "Hold E / Space..."
 	status_label.show()
 	state = State.HOLDING
 
@@ -95,6 +99,8 @@ func cancel_attempt() -> void:
 	reset_attempt()
 
 func reset_attempt() -> void:
+	if is_instance_valid(interacting_player):
+		interacting_player.call("leave_station", self)
 	state = State.IDLE
 	hold_timer.stop()
 	progress_bar.hide()
@@ -112,7 +118,7 @@ func get_interacting_player_inventory() -> PlayerInventory:
 
 func update_idle_prompt() -> void:
 	if interacting_player_has_fishing_rod():
-		status_label.text = "Hold E to fish"
+		status_label.text = "Hold E / Space to fish"
 	else:
 		status_label.text = "Fishing rod required"
 
@@ -120,15 +126,16 @@ func _on_body_entered(body: Node2D) -> void:
 	if body is CharacterBody2D:
 		is_player_in_range = true
 		interacting_player = body
-		if state == State.IDLE:
-			update_idle_prompt()
-			status_label.show()
 
 func _on_body_exited(body: Node2D) -> void:
 	if body is CharacterBody2D:
 		is_player_in_range = false
-		interacting_player = null
 		if state != State.IDLE:
 			cancel_attempt()
 		else:
 			status_label.hide()
+		interacting_player = null
+
+func _exit_tree() -> void:
+	if is_instance_valid(interacting_player):
+		interacting_player.call("leave_station", self)

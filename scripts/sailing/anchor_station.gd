@@ -19,11 +19,7 @@ func try_take_control(crew: CharacterBody2D) -> bool:
 	return true
 
 func _process(_delta: float) -> void:
-	prompt.visible = is_instance_valid(ship) and ship.stations_enabled \
-		and can_interact(local_player) and not local_player.get("using_station") \
-		and local_player.is_physics_processing()
-	if prompt.visible:
-		prompt.text = "E: Raise anchor" if ship.anchor_deployed else "E: Lower anchor"
+	prompt.visible = false
 
 func _update_artwork(_deployed: bool) -> void:
 	artwork.visible = not is_instance_valid(ship) or not ship.anchor_deployed

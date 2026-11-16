@@ -55,7 +55,7 @@ func _origin() -> Vector2:
 	return (size - Vector2(720, 720) * _scale_factor()) * 0.5
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel") and not closed:
+	if (event.is_action_pressed("ui_cancel") or event.is_action_pressed("interact")) and not event.is_echo() and not closed:
 		closed = true
 		cancelled.emit()
 		queue_free()

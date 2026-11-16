@@ -100,7 +100,7 @@ func _on_body_exited(body: Node2D) -> void:
 
 func _update_display() -> void:
 	progress.visible = state == State.COOKING
-	prompt.visible = not crew_nearby.is_empty()
+	prompt.visible = false
 	var stock := "Raw: %d | Collected: %d" % [raw_fish, cooked_fish]
 	match state:
 		State.IDLE:

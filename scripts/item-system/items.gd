@@ -38,6 +38,97 @@ func _ready() -> void:
 		COCONUT_WHOLE_ICON
 	))
 
+	# --- Island rewards ---
+	ItemDatabase.register_item(make_item(
+		&"gold_coin",
+		"Gold Coin",
+		"Pirate gold from an island treasure.",
+		999
+	))
+	ItemDatabase.register_item(make_item(
+		&"wood",
+		"Wood",
+		"Chopped timber. Used to patch leaks in the hull.",
+		30
+	))
+	ItemDatabase.register_item(make_item(
+		&"crab_meat",
+		"Crab Meat",
+		"Sweet meat from a beach crab.",
+		10
+	))
+	ItemDatabase.register_item(make_item(
+		&"mango",
+		"Mango",
+		"A ripe island mango.",
+		10
+	))
+	ItemDatabase.register_item(make_item(
+		&"banana",
+		"Banana",
+		"A bunch-fresh banana.",
+		10
+	))
+	ItemDatabase.register_item(make_item(
+		&"papaya",
+		"Papaya",
+		"A soft, sweet papaya.",
+		10
+	))
+	ItemDatabase.register_item(make_item(
+		&"fresh_water",
+		"Fresh Water",
+		"A flask of drinkable spring water.",
+		10
+	))
+	ItemDatabase.register_item(make_item(
+		&"compass",
+		"Lost Compass",
+		"An old brass compass recovered from the jungle."
+	))
+	ItemDatabase.register_item(make_item(
+		&"gunpowder",
+		"Gunpowder",
+		"A pouch of black powder saved from a burning keg.",
+		30,
+		ItemData.Category.MATERIAL
+	))
+	ItemDatabase.register_item(make_item(
+		&"dried_fish",
+		"Dried Fish",
+		"Salted fish dried on a seaside rack. Keeps for the whole voyage.",
+		20,
+		ItemData.Category.FOOD
+	))
+	ItemDatabase.register_item(make_item(
+		&"glow_jar",
+		"Glow Jar",
+		"A jar of fireflies that lights the deck at night.",
+		1,
+		ItemData.Category.TOOL
+	))
+	ItemDatabase.register_item(make_item(
+		&"cannonball",
+		"Cannonball",
+		"Iron shot salvaged from the target rafts.",
+		30,
+		ItemData.Category.MATERIAL
+	))
+	ItemDatabase.register_item(make_item(
+		&"torch",
+		"Torch",
+		"A pitch torch from the marsh. Keeps the bugs away.",
+		3,
+		ItemData.Category.TOOL
+	))
+	ItemDatabase.register_item(make_item(
+		&"honey",
+		"Honey",
+		"A comb of wild honey, sticky and sweet.",
+		10,
+		ItemData.Category.FOOD
+	))
+
 func make_item(
 	item_id: StringName,
 	item_display_name: String,
