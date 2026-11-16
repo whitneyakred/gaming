@@ -127,8 +127,12 @@ func _run() -> void:
 		quit(1)
 		return
 	var island_game = current_scene
+	var island_player := island_game.get_node("World/Player") as CharacterBody2D
 	for coconut in get_nodes_in_group("coconuts"):
-		island_game._on_item_collected(&"coconut")
+		coconut.call(&"_on_body_entered", island_player)
+	await process_frame
+	var island_inventory := island_player.get("player_inventory") as PlayerInventory
+	_check(island_inventory != null and island_inventory.get_quantity(&"coconut") == 10, "Island pickups must enter the player inventory before returning")
 	island_game.try_escape()
 	for frame in range(600):
 		await process_frame
@@ -149,6 +153,7 @@ func _run() -> void:
 	_check(ship.get_nearest_island() != ship.get_island(&"CoconutIsland"), "A finished island must no longer count as the nearest island")
 	_check(not ship.status_label.text.contains(" m away"), "Sailing again must not show nearest-island text")
 	_check(ship.player.visible and not ship.player.using_station, "Returning must restore player movement")
+	_check(ship.player.player_inventory.get_quantity(&"coconut") == 10, "Island inventory must persist after returning to the ship")
 	_check(ship.has_node("Cooking") and ship.has_node("Sail") and ship.has_node("Helm"), "All stations must survive the island round trip")
 	_check(ship.get_node("Camera2D").is_current(), "Returning directly to the ship must retain the camera")
 	initial_position = ship.global_position

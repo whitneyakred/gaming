@@ -1,12 +1,13 @@
 [gd_scene format=3 uid="uid://btnn028kxo443"]
 
-[ext_resource type="Script" uid="uid://c33xxvrmnoi01" path="res://scripts/coconut.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/items/world_item.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/coconut.png" id="2"]
 
 [sub_resource type="CircleShape2D" id="CoconutShape"]
 
 [node name="Coconut" type="Area2D" unique_id=351201162]
 script = ExtResource("1")
+item_id = &"coconut"
 
 [node name="Sprite" type="Sprite2D" parent="." unique_id=1593034422]
 texture_filter = 1

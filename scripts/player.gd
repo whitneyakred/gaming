@@ -1,7 +1,11 @@
 extends CharacterBody2D
 
+signal feedback_requested(text: String)
+
 # Exposed as Walk Speed in the Inspector (pixels per second).
 @export var walk_speed: float = 145.0
+@export var drop_distance: float = 32.0
+@export var world_item_scene: PackedScene = preload("res://scenes/items/world_item.tscn")
 @export var swim_speed: float = 65.0
 var is_overboard: bool = false
 var _deck_mask: int
@@ -13,6 +17,7 @@ var using_station: bool:
 
 # Stations claim movement through this small interface, without player-to-helm coupling.
 var active_station: Node = null
+var facing_direction := Vector2.DOWN
 
 func try_use_station(station: Node) -> bool:
 	if is_overboard or not is_instance_valid(station) or using_station or not is_physics_processing():
@@ -34,12 +39,9 @@ func leave_station(station: Node) -> void:
 
 
 func _ready() -> void:
-	# The voyage keeps one inventory per crew member, so what you collect on
-	# an island is still in your bag back on the ship (scripts/voyage_state.gd).
-	var player_id: StringName = &"player_1"
-	if player_inventory != null and not player_inventory.player_id.is_empty():
-		player_id = player_inventory.player_id
-	player_inventory = VoyageState.get_inventory(player_id)
+	var initial_inventory := player_inventory
+	var player_id := initial_inventory.player_id if initial_inventory != null else &"player_1"
+	player_inventory = VoyageState.get_player_inventory(player_id, initial_inventory)
 
 	# The prototype starts each crew member with the tool needed for its only
 	# available station. Other acquisition systems can add this item later.
@@ -53,6 +55,8 @@ func _physics_process(_delta: float) -> void:
 		return
 	# Read WASD / arrow keys; diagonal movement stays the same speed.
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	if not direction.is_zero_approx():
+		facing_direction = direction.normalized()
 	if is_overboard:
 		velocity = direction * swim_speed
 		var next := global_position + velocity * _delta
@@ -66,6 +70,40 @@ func _physics_process(_delta: float) -> void:
 	velocity = direction * walk_speed
 	# Godot moves the body and handles collisions with the deck boundary.
 	move_and_slide()
+
+## Called by the hotbar when the player presses B with a selected item.
+func request_drop_item(item_id: StringName) -> void:
+	if is_overboard:
+		show_feedback("Can't drop items in the water")
+		return
+	if player_inventory == null or player_inventory.get_quantity(item_id) < 1:
+		show_feedback("No item selected")
+		return
+	if world_item_scene == null or get_parent() == null:
+		push_warning("Cannot drop item without a world-item scene and parent.")
+		return
+
+	var dropped_item := world_item_scene.instantiate() as WorldItem
+	if dropped_item == null:
+		push_warning("World-item scene must instantiate a WorldItem.")
+		return
+
+	dropped_item.setup(item_id, 1, self)
+	get_parent().add_child(dropped_item)
+	dropped_item.global_position = global_position + facing_direction * drop_distance
+	if not player_inventory.try_remove(item_id, 1):
+		dropped_item.queue_free()
+		return
+	show_feedback("Dropped %s" % _get_item_name(item_id))
+
+
+func show_feedback(text: String) -> void:
+	feedback_requested.emit(text)
+
+
+func _get_item_name(item_id: StringName) -> String:
+	var item := ItemDatabase.get_item(item_id)
+	return item.display_name if item != null else String(item_id)
 
 func set_overboard(value: bool) -> void:
 	if value == is_overboard:
