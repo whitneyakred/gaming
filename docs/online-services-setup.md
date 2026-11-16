@@ -1,5 +1,7 @@
 # Holy Ship online release
 
+For the complete explanation, see [Multiplayer system and operations guide](multiplayer-system.md).
+
 Live website and shared harbor: https://holy-ship.pages.dev
 
 ## Players

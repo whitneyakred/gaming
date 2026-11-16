@@ -3,6 +3,7 @@
 Team 13's top-down 2D Godot 4 sailing/survival game. The current early-access build supports solo play and browser/desktop co-op for up to four sailors. Islands are reached by swimming ashore in the sailing world.
 
 - [Play free in your browser](https://holy-ship.pages.dev)
+- [Multiplayer system: architecture, hosting, saves, deployment and troubleshooting](docs/multiplayer-system.md)
 - [Online service and release setup](docs/online-services-setup.md)
 - [Run and inspect the prototype](docs/minimal-mvp.md)
 - [Co-op hosting, internet setup, saves, and testing limits](docs/multiplayer-testing.md)

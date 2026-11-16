@@ -1,5 +1,7 @@
 # Holy Ship browser and desktop multiplayer tests
 
+Architecture and release workflow: [Multiplayer system and operations guide](multiplayer-system.md).
+
 Open https://holy-ship.pages.dev on Windows and Mac.
 No downloads, developer accounts, EOS setup, or router configuration are needed.
 Use different browser profiles/devices so each has its own persistent sailor.
