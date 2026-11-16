@@ -16,6 +16,9 @@ extends Node
 const INVENTORY_SLOTS: int = 12
 
 var _inventories: Dictionary[StringName, PlayerInventory] = {}
+## Ship-owned containers are kept separately from crew bags.  Every player
+## resolves a chest by the same ID, so they see one shared set of contents.
+var _shared_inventories: Dictionary[StringName, PlayerInventory] = {}
 
 
 ## The same PlayerInventory instance for the whole voyage. An unknown id gets
@@ -32,6 +35,22 @@ func get_inventory(player_id: StringName) -> PlayerInventory:
 ## Empties every inventory (for a new voyage or BR-capsize-reset later).
 func reset() -> void:
 	_inventories.clear()
+	_shared_inventories.clear()
+
+
+## Returns the canonical inventory for a shared world container.  This uses
+## the established inventory-system Resource and its stack rules; a chest is
+## distinguished by ownership, not by a duplicate storage implementation.
+func get_shared_inventory(container_id: StringName, capacity: int = INVENTORY_SLOTS) -> PlayerInventory:
+	if container_id.is_empty():
+		push_warning("Shared inventory requires a non-empty container ID.")
+		return null
+	if not _shared_inventories.has(container_id):
+		var inventory := PlayerInventory.new()
+		inventory.player_id = container_id
+		inventory.max_inv_space = maxi(1, capacity)
+		_shared_inventories[container_id] = inventory
+	return _shared_inventories[container_id]
 
 
 func get_player_inventory(player_id: StringName, initial_inventory: PlayerInventory = null) -> PlayerInventory:
