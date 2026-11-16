@@ -15,6 +15,18 @@ func _ready() -> void:
 	endpoint = str(ProjectSettings.get_setting("network/harbor_url", "")).trim_suffix("/")
 	if OS.has_feature("web"):
 		endpoint = str(JavaScriptBridge.eval("window.location.origin"))
+		# pagehide covers Back, reload and closing a tab, without treating tab switches as exits.
+		JavaScriptBridge.eval("""
+		window.holyShipLeave = () => {
+		  const departure = window.holyShipDeparture;
+		  if (!departure) return;
+		  window.holyShipDeparture = null;
+		  const body = JSON.stringify({ticket: departure.ticket});
+		  const queued = navigator.sendBeacon(departure.url, new Blob([body], {type: 'application/json'}));
+		  if (!queued) fetch(departure.url, {method:'POST', body, headers:{'Content-Type':'application/json'}, keepalive:true}).catch(() => {});
+		};
+		window.addEventListener('pagehide', window.holyShipLeave);
+		""")
 	# Local test override is deliberately unavailable in normal browser builds.
 	elif "--settings-test" in OS.get_cmdline_user_args():
 		endpoint = ""
@@ -111,6 +123,9 @@ func connect_result(result: Dictionary, hosting: bool, title: String, password: 
 		status(str(result.error))
 		return
 	peer = HarborPeer.new()
+	if OS.has_feature("web"):
+		var departure := {"url": endpoint + "/api/crews/" + str(result.id) + "/leave", "ticket": result.ticket}
+		JavaScriptBridge.eval("window.holyShipDeparture = " + JSON.stringify(departure) + ";")
 	var url := endpoint.replace("https://", "wss://").replace("http://", "ws://") + "/api/socket/" + str(result.id) + "?ticket=" + str(result.ticket).uri_encode()
 	var code := peer.connect_url(url)
 	if code == OK:
@@ -131,6 +146,8 @@ func connect_result(result: Dictionary, hosting: bool, title: String, password: 
 	changed.emit()
 
 func leave() -> void:
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("if (window.holyShipLeave) window.holyShipLeave();")
 	if peer != null:
 		peer.close()
 		closing_peers.append({"peer": peer, "until": Time.get_ticks_msec() + 3000})

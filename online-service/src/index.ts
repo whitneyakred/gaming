@@ -15,6 +15,8 @@ type Room = {
   nextPeer: number;
 };
 type Session = {
+  leaveKey?: string;
+  departed?: boolean;
   peer: number;
   identity: string;
   lastSeen: number;
@@ -130,10 +132,22 @@ export class CrewDirectory extends DurableObject<Env> {
   }
 }
 export class VoyageRoom extends DurableObject<Env> {
+  async leaveTicket(value: string): Promise<Response> {
+    if (!validId(value)) return error("Invalid departure ticket.", 400);
+    const key = await hash(value);
+    await this.ctx.storage.delete("ticket:" + key);
+    for (const ws of this.sessions()) {
+      if ((ws.deserializeAttachment() as Session).leaveKey === key) {
+        await this.depart(ws);
+        ws.close(1000, "Left voyage");
+      }
+    }
+    return Response.json({ ok: true });
+  }
   private sessions() {
     return this.ctx
       .getWebSockets()
-      .filter((ws) => ws.readyState === WebSocket.OPEN);
+      .filter((ws) => ws.readyState === WebSocket.OPEN && !(ws.deserializeAttachment() as Session)?.departed);
   }
   private async ticket(peer: number, identity: string): Promise<string> {
     const value = crypto.randomUUID();
@@ -241,6 +255,7 @@ export class VoyageRoom extends DurableObject<Env> {
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server, [String(ticket.peer)]);
     server.serializeAttachment({
+      leaveKey: await hash(value),
       peer: ticket.peer,
       identity: ticket.identity,
       lastSeen: Date.now(),
@@ -284,6 +299,7 @@ export class VoyageRoom extends DurableObject<Env> {
   }
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer) {
     const session = ws.deserializeAttachment() as Session;
+    if (session.departed) return;
     if (Date.now() - session.window > 1000) {
       session.window = Date.now();
       session.packets = 0;
@@ -315,6 +331,11 @@ export class VoyageRoom extends DurableObject<Env> {
       }
       if (command.type === "heartbeat") {
         ws.send('{"type":"heartbeat"}');
+        return;
+      }
+      if (command.type === "leave") {
+        await this.depart(ws);
+        ws.close(1000, "Left voyage");
         return;
       }
       if (
@@ -366,7 +387,9 @@ export class VoyageRoom extends DurableObject<Env> {
   }
   private async depart(ws: WebSocket) {
     const session = ws.deserializeAttachment() as Session | null;
-    if (!session) return;
+    if (!session || session.departed) return;
+    session.departed = true;
+    ws.serializeAttachment(session);
     if (session.peer === 1) {
       await this.end();
       return;
@@ -436,6 +459,11 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   if (url.pathname === "/api/health")
     return Response.json({ ok: true, protocol: env.PROTOCOL });
   const parts = url.pathname.split("/").filter(Boolean);
+  if (request.method === "POST" && parts.length === 4 && parts[1] === "crews" && validId(parts[2]) && parts[3] === "leave") {
+    let data: Record<string, unknown>;
+    try { data = await body(request); } catch { return error("Invalid request."); }
+    return env.ROOMS.getByName(parts[2]).leaveTicket(String(data.ticket ?? ""));
+  }
   if (parts.length === 3 && parts[1] === "socket" && validId(parts[2]))
     return env.ROOMS.getByName(parts[2]).fetch(request);
   const action =

@@ -70,6 +70,24 @@ try {
   await host.page.screenshot({ path: "../.godot/browser-two-players.png" });
   assert.equal(errors.length, 0, errors.join("\n"));
   console.log("PASS no browser runtime errors");
+  if (process.env.DEPARTURE_CHECK === '1') {
+    // Keep the browser profile/identity while navigating away like browser Back.
+    await guest.page.goto('about:blank');
+    await guest.page.waitForTimeout(1000);
+    const departed = await (await fetch(base + '/api/crews')).json();
+    assert.equal(departed.crews.find(c => c.id === room.id)?.count, 1);
+    console.log('PASS page navigation releases guest within one second');
+    await guest.page.goto(base + '/play/');
+    await guest.page.waitForTimeout(16000);
+    await guest.page.mouse.click(680, 260);
+    await guest.page.waitForTimeout(1000);
+    await guest.page.mouse.click(600, 222);
+    await guest.page.waitForTimeout(3500);
+    const rejoined = await (await fetch(base + '/api/crews')).json();
+    assert.equal(rejoined.crews.find(c => c.id === room.id)?.count, 2);
+    assert.equal(errors.length, 0, errors.join('\n'));
+    console.log('PASS same browser identity rejoins after navigation');
+  }
   await host.context.close();
   await guest.page.waitForTimeout(2000);
   await guest.page.screenshot({ path: "../.godot/browser-host-left.png" });

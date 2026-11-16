@@ -123,5 +123,6 @@ func _close() -> void:
 	incoming.clear()
 	events.clear()
 	if socket.get_ready_state() == WebSocketPeer.STATE_OPEN:
+		socket.send_text('{"type":"leave"}')
 		socket.close(1000, "Left voyage")
 		socket.poll()

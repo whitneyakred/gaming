@@ -198,6 +198,15 @@ stale listings. Client heartbeats occur every five seconds, with a 20-second
 client silence timeout. Server alarms check for sockets silent for 60 seconds.
 These are different safeguards, not a guarantee of immediate failure detection.
 
+Normal exits additionally send a WebSocket `leave` message. Browser Back, reload
+and tab closing send a one-time `pagehide` beacon to
+`POST /api/crews/{id}/leave`. Its original connection ticket authorizes only that
+connection's departure (the server retains its hash); delayed/repeated beacons
+cannot close a later rejoin. Departed sockets are excluded from membership
+immediately and their directory entry is updated. This adds no periodic polling.
+Switching tabs does not send a departure. Crashes, lost internet and browser
+shutdowns that suppress the beacon still rely on socket closure/timeouts.
+
 Current application limits include eight host attempts per hour, 20 join
 attempts per minute, and 30 browse requests per minute per IP. Players behind
 the same public IP share these limits. API JSON is bounded to 2 KB. Socket
