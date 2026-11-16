@@ -1,6 +1,6 @@
 # Holy Ship online release
 
-Live website and shared harbor: https://holy-ship-harbor.petersonleiton.workers.dev
+Live website and shared harbor: https://holy-ship.pages.dev
 
 ## Players
 
@@ -52,7 +52,17 @@ Release from the project root:
 
 This validates configuration, exports the game, prepares compressed web assets,
 and runs the service type check/dry run. It does not deploy. Then run
-npm run deploy from online-service/ to publish. All files under public/ are
+npm run deploy from online-service/ to publish the backend. Then, from web-site/:
+
+    ../online-service/node_modules/.bin/wrangler pages deploy dist --project-name holy-ship --branch systems-revamp --force
+
+The --force flag selects Pages rather than Wrangler's automatic Workers migration.
+Pages serves static files directly and forwards only /api/* and /play/index.wasm
+through its HARBOR service binding. Browser users stay on holy-ship.pages.dev;
+the native game still connects directly to the same backend. Changing website
+origins does not migrate browser-local saves or sailor identities.
+
+All files under public/ and web-site/dist/ are
 reproducible generated output and ignored by Git. The 38 MB WebAssembly file is
 stored compressed below Cloudflare's per-asset limit; the Worker serves it with
 manual gzip encoding so browsers decode it exactly once.

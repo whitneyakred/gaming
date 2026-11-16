@@ -1,6 +1,6 @@
 # Holy Ship browser and desktop multiplayer tests
 
-Open https://holy-ship-harbor.petersonleiton.workers.dev on Windows and Mac.
+Open https://holy-ship.pages.dev on Windows and Mac.
 No downloads, developer accounts, EOS setup, or router configuration are needed.
 Use different browser profiles/devices so each has its own persistent sailor.
 Two tabs in one profile share identity and cannot join the same voyage twice.

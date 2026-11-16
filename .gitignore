@@ -29,3 +29,7 @@ online-service/.dev.vars
 online-service/dist/
 online-service/public/
 web-site/dist/
+
+# Pages local development cache
+.wrangler/
+web-site/.wrangler/

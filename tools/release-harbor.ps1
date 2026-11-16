@@ -17,6 +17,8 @@ foreach ($target in @(@('Web Multiplayer','builds/web/index.html'),@('Windows De
 }
 node tools/build-web-site.mjs
 if ($LASTEXITCODE -ne 0) { throw 'Website assembly failed.' }
+node tools/build-pages-site.mjs
+if ($LASTEXITCODE -ne 0) { throw 'Pages assembly failed.' }
 Push-Location online-service
 try {
  npm.cmd run check
