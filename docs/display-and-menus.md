@@ -8,9 +8,9 @@ asks for confirmation because voyage progress is not saved to disk.
 
 ## Consistent display
 
-The project uses a 1280 × 720 design canvas, `canvas_items` scaling and `keep`
-aspect ratio. World and HUD scale together, keeping the same camera coverage and
-composition in 16:9 windows. Other aspect ratios get letterboxing/pillarboxing.
+The project uses a 1280 × 720 design canvas, `canvas_items` scaling and `expand`
+aspect ratio. World and HUD scale proportionally. Wider or taller screens extend
+the visible area instead of adding black bars, cropping, or stretching artwork.
 Artwork uses nearest filtering where appropriate; fractional scaling fits normal
 laptop screens, so individual pixel widths can vary at non-integer scales.
 
@@ -22,7 +22,7 @@ The Compatibility renderer remains enabled.
 
 On Web, Play requests fullscreen during the user gesture when the preference is
 on. Audio begins with a user click. Quit and desktop-only window controls are
-hidden or disabled; browser refresh controls VSync. Browser policy can decline a
+hidden; the browser manages refresh/VSync. Browser policy can decline a
 fullscreen request, and the game remains playable in its canvas.
 
 ## Preferences

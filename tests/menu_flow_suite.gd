@@ -54,7 +54,9 @@ func run() -> void:
 		get_window().size = dimensions
 		await frames(5)
 		check(title.logo.get_global_rect() == logo_rect, "Logo layout stays constant at %s" % dimensions)
-		check(get_viewport().get_visible_rect().size.is_equal_approx(Vector2(1280, 720)), "Visible design area stays constant at %s" % dimensions)
+		var expected_scale := minf(dimensions.x / 1280.0, dimensions.y / 720.0)
+		var expected_view := Vector2(dimensions) / expected_scale
+		check(get_viewport().get_visible_rect().size.is_equal_approx(expected_view), "View expands without letterboxing at %s" % dimensions)
 		await screenshot("title-%dx%d" % [dimensions.x, dimensions.y])
 	get_window().size = Vector2i(1280, 720)
 	title.crew_menu.open()

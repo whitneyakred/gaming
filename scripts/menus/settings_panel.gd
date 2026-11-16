@@ -62,6 +62,7 @@ func _build_tabs() -> void:
 	var display := _page("Display")
 	_toggle(display, "Fullscreen", "fullscreen")
 	var row := HBoxContainer.new()
+	row.visible = not OS.has_feature("web")
 	display.add_child(row)
 	var caption := HarborTheme.label("Windowed size")
 	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -79,7 +80,9 @@ func _build_tabs() -> void:
 		_toggle(display, "VSync", "vsync")
 	else:
 		display.add_child(HarborTheme.label("Display refresh is managed by your browser.", 16))
-	display.add_child(HarborTheme.label("A consistent 16:9 view on every screen.\nBlack bars preserve the picture on wider or taller displays.\nF11 toggles fullscreen. Windowed size applies in windowed mode.", 15, Color("aebdb7")))
+	var display_help := "The view fits your screen without stretching the artwork.\nWider or taller screens show more of the world.\n"
+	display_help += "Resize your browser or use Fullscreen to change the game area." if OS.has_feature("web") else "F11 toggles fullscreen. Windowed size applies in windowed mode."
+	display.add_child(HarborTheme.label(display_help, 15, Color("aebdb7")))
 	var audio := _page("Audio")
 	for key in ["master", "music", "effects"]:
 		_volume(audio, key)
