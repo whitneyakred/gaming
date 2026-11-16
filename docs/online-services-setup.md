@@ -1,38 +1,63 @@
-# Internet crews: setup handoff
+# Holy Ship internet crews
 
-The current browser discovers LAN games. It is not an internet directory.
-The next integration is Epic Online Services (EOS) Lobbies plus P2P transport,
-so a player can host a named crew and others can browse and join without addresses.
+Internet crew browsing and relay transport are integrated using EOSG 2.3.1 and
+Epic Online Services Connect + Lobbies + P2P. Game code remains GDScript.
+The host device runs the simulation and must stay awake. This is not an
+always-running cloud server; ending the host session ends the voyage for guests.
 
-EOS describes its services as free and engine/platform agnostic:
-https://dev.epicgames.com/docs/epic-online-services/eos-overview
+## Project setup
 
-## Project owner: first step
+The Holy Ship product and HolyShip-Game client already exist in Epic's portal.
+The current client uses the Peer2Peer policy. Its five SDK values are stored in
+`.local/eos.cfg` (ignored by Git): product_id, sandbox_id, deployment_id,
+client_id, client_secret under an [eos] section. Never commit this file.
 
-1. Sign in at https://dev.epicgames.com/portal with your Epic account.
-2. Create/select your development organization and create a product called **Holy Ship**.
-3. Open **Product Settings**. Keep the development sandbox/deployment for testing.
-4. Tell the coding assistant the product is created. Do not send your account
-   password or account recovery information. Client policy/SDK configuration comes
-   next, after checking the selected Godot integration's requirements.
+Run `powershell -File tools/install-eos.ps1` from the project root on a new
+checkout, then restart Godot so it loads the native extension. The installer
+pins EOSG 2.3.1 and downloads Windows, macOS, and Linux native dependencies.
+Only the low-level wrapper is used; no Epic overlay or microphone is enabled.
 
-Official product setup reference:
-https://dev.epicgames.com/docs/dev-portal/product-management
+The Holy Ship export plugin embeds the game-client configuration in desktop
+packages as res://online/eos.cfg. These are untrusted game-client credentials,
+not administrative/server credentials. Do not replace the client policy with a
+trusted-server policy. Web Solo excludes both the native adapter and credentials.
+Native binaries and export templates are ignored by Git and must be installed
+on the machine doing exports.
 
-## Implementation still required
+## Connections and identity
 
-- Select and validate a maintained Godot EOS native extension against Godot 4.7.2
-  and Windows/Linux/macOS. Game code stays GDScript; browser solo remains independent.
-- Configure the game client and narrowly scoped policies for Connect, Lobbies and P2P.
-- Authenticate game instances, publish/update crew name, capacity and current occupancy,
-  search compatible lobbies, and clean up on graceful leave or timeout.
-- Replace direct ENet for online sessions with EOS P2P/relay transport while preserving
-  server authority, peer 1 assumptions, three RPC channels and existing gameplay validation.
-- Preserve local discovery and direct connect as fallback paths.
-- Verify editor-to-editor and exported clients across separate internet connections,
-  full/private crews, disconnects, reconnect identity, and deployment access restrictions.
+Online hosting and browsing are the default. EOS relay routing is forced for
+these sessions, so the planned hotspot playtest exercises the relay route.
+Players do not enter IP addresses, ports, or Epic account passwords. Device
+login identifies each OS user. Two processes under the same OS account share
+that online identity and cannot join each other online; use separate devices,
+separate OS accounts, or the LAN test path instead. --crew-profile only separates
+LAN/save profiles, not Epic's device identity.
 
-Do not advertise global browsing as available until those tests pass. EOS removes
-the need to operate our own lobby/relay service, but introduces a service dependency
-and native plugin maintenance. The player's hosting device still runs the world
-simulation and must stay online; this is not an always-running hosted world.
+Crew names, occupancy, and password markers are published in compatible lobbies.
+New/closed listings can take several seconds to appear/disappear in Epic's search
+index. Use Refresh crews. The password itself is not a lobby attribute. The host
+checks the password and capacity before admitting a player to the world.
+
+A host leaving destroys its lobby; guests leaving release their membership.
+Authentication refreshes before token expiry. Failed sign-in, join, and server
+loss return an explanation to the player. Host migration is intentionally off.
+
+## Validation and limits
+
+Verified on Windows: live device sign-in, native host creation, game loading,
+searchable crew metadata, removal, and clean SDK shutdown. Local three-process
+checks exercise gameplay through the relay-sized snapshot packet format.
+Windows and macOS packages are provided for a real two-device hotspot playtest.
+Actual Windows-to-Mac relay traffic and macOS runtime behavior still need that
+external test. Do not call this a verified public release until it passes.
+
+Small invited crews are the testing scope. Movement prediction, moderation,
+host migration, and persistent cloud hosting are not implemented. Browser play
+remains solo. The CLI dedicated server remains ENet/direct-connect, not an EOS
+lobby host.
+
+Dependency and service references:
+- https://github.com/3ddelano/epic-online-services-godot/tree/56238973e2cd7ac9ac99ca14f88934465f0a8997
+- https://dev.epicgames.com/docs/game-services/lobbies-and-sessions/lobbies
+- https://dev.epicgames.com/docs/game-services/p-2-p

@@ -61,6 +61,7 @@ func run() -> void:
 	await frames()
 	check(title.crew_menu.visible, "Crew menu opens from the title")
 	await screenshot("crew-menu")
+	title.crew_menu.nearby.button_pressed = true
 	title.crew_menu.tabs.current_tab = 1
 	await frames()
 	await screenshot("crew-browser")

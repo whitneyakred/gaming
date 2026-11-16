@@ -30,7 +30,7 @@ func query() -> void:
 
 func _process(delta: float) -> void:
 	if OS.has_feature("web"): return
-	var hosting: bool = NetworkSession.online and NetworkSession.local_id == 1 and NetworkSession.world_ready
+	var hosting: bool = NetworkSession.online and not NetworkSession.internet and NetworkSession.local_id == 1 and NetworkSession.world_ready
 	if hosting and not listener.is_bound():
 		if listener.bind(DISCOVERY_PORT) != OK:
 			return # Only one advertised host per device; direct connections still work.

@@ -8,6 +8,8 @@ var resume_box: CheckBox
 var message: Label
 var list: VBoxContainer
 var tabs: TabContainer
+var nearby: CheckBox
+var host_nearby: CheckBox
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -35,21 +37,30 @@ func _ready() -> void:
 	crew_name = field(host, "Crew name", "The Wandering Ship")
 	crew_name.max_length = 32
 	host.add_child(HarborTheme.label("Crew password · optional", 16))
-	secret = field(host, "Anyone nearby can join when left empty", "")
+	secret = field(host, "Anyone browsing can join when left empty", "")
 	secret.secret = true
 	secret.max_length = 64
 	resume_box = CheckBox.new()
 	resume_box.text = "Continue my saved voyage"
 	resume_box.button_pressed = true
 	host.add_child(resume_box)
-	host.add_child(HarborTheme.label("Visible to nearby players on your network.\nKeep the game open while your crew is sailing.", 16))
+	host_nearby = CheckBox.new()
+	host_nearby.text = "Local network only"
+	host.add_child(host_nearby)
+	host.add_child(HarborTheme.label("Keep the game open while your crew is sailing.", 16))
 	host.add_child(HarborTheme.button("Launch crew", func() -> void:
 		NetworkSession.crew_title = crew_name.text.strip_edges().left(32)
 		if NetworkSession.crew_title.is_empty(): NetworkSession.crew_title = "The Wandering Ship"
-		NetworkSession.host_session(NetworkSession.local_name, NetworkSession.DEFAULT_PORT, secret.text, resume_box.button_pressed)))
+		if host_nearby.button_pressed:
+			NetworkSession.host_session(NetworkSession.local_name, NetworkSession.DEFAULT_PORT, secret.text, resume_box.button_pressed)
+		else:
+			EOSGRuntime.host(NetworkSession.crew_title, secret.text, resume_box.button_pressed)))
 	var browse := page("Browse crews")
-	browse.add_child(HarborTheme.label("NEARBY CREWS", 18))
-	browse.add_child(HarborTheme.label("Same network · Internet crew discovery is not connected yet", 15))
+	browse.add_child(HarborTheme.label("CREWS AT SEA", 18))
+	nearby = CheckBox.new()
+	nearby.text = "Search my local network instead"
+	browse.add_child(nearby)
+	nearby.toggled.connect(func(_value: bool): search_crews())
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size.y = 225
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -58,7 +69,7 @@ func _ready() -> void:
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	list.add_theme_constant_override("separation", 8)
 	scroll.add_child(list)
-	browse.add_child(HarborTheme.button("Refresh crews", func() -> void: NetworkSession.discovery.browse()))
+	browse.add_child(HarborTheme.button("Refresh crews", search_crews))
 	var direct := page("Direct connect")
 	direct.add_child(HarborTheme.label("For invited internet playtests and custom servers", 17))
 	address = field(direct, "Host or tunnel address", "")
@@ -82,7 +93,9 @@ func _ready() -> void:
 	rows.add_child(HarborTheme.button("Back to harbor", close))
 	NetworkSession.status_changed.connect(func(text: String) -> void: message.text = text)
 	NetworkSession.discovery.changed.connect(refresh_list)
-	tabs.tab_changed.connect(func(_index: int) -> void: NetworkSession.discovery.browse())
+	EOSGRuntime.changed.connect(refresh_list)
+	tabs.tab_changed.connect(func(index: int) -> void:
+		if index == 1: search_crews())
 	hide()
 
 func page(caption: String) -> VBoxContainer:
@@ -106,14 +119,15 @@ func refresh_list() -> void:
 	for child in list.get_children():
 		list.remove_child(child)
 		child.queue_free()
-	if NetworkSession.discovery.crews.is_empty():
-		list.add_child(HarborTheme.label("No nearby crews yet.\nAsk a friend on this network to launch a crew.", 18))
-	for entry in NetworkSession.discovery.crews.values():
+	var crews: Dictionary = NetworkSession.discovery.crews if nearby.button_pressed else EOSGRuntime.crews
+	if crews.is_empty():
+		list.add_child(HarborTheme.label("Looking for crews…" if EOSGRuntime.busy else "No crews listed yet.\nLaunch a crew, or refresh to look again.", 18))
+	for entry in crews.values():
 		var data: Dictionary = entry.duplicate()
 		var caption := "%s   ·   %d / 4 sailors%s" % [str(data.title).left(32), int(data.count), "   ·   Password" if data.get("locked", false) else ""]
 		var button := HarborTheme.button(caption, func() -> void: join_listing(data))
 		list.add_child(button)
-		button.disabled = int(data.count) >= NetworkSession.MAX_CREW
+		button.disabled = int(data.count) >= NetworkSession.MAX_CREW or EOSGRuntime.busy
 		button.add_theme_font_size_override("font_size", 18)
 
 func join_listing(data: Dictionary) -> void:
@@ -128,23 +142,39 @@ func join_listing(data: Dictionary) -> void:
 		dialog.add_child(input)
 		add_child(dialog)
 		dialog.confirmed.connect(func() -> void:
-			NetworkSession.join_session(data.address, int(data.port), NetworkSession.local_name, input.text)
+			connect_listing(data, input.text)
 			dialog.queue_free())
 		dialog.canceled.connect(dialog.queue_free)
 		dialog.popup_centered(Vector2i(400, 140))
 		input.grab_focus()
 	else:
-		NetworkSession.join_session(data.address, int(data.port), NetworkSession.local_name)
+		connect_listing(data, "")
+
+func connect_listing(data: Dictionary, password: String) -> void:
+	if data.get("internet", false):
+		EOSGRuntime.join_crew(data.id, password)
+	else:
+		NetworkSession.join_session(data.address, int(data.port), NetworkSession.local_name, password)
+
+func search_crews() -> void:
+	if nearby.button_pressed:
+		NetworkSession.discovery.browse()
+	else:
+		NetworkSession.discovery.browsing = false
+		EOSGRuntime.browse()
+	refresh_list()
 
 func open() -> void:
 	show()
-	NetworkSession.discovery.browse()
 	refresh_list()
 	crew_name.grab_focus()
 	message.text = NetworkSession.status if not NetworkSession.status.is_empty() else NetworkSession.discovery.notice
 	if OS.has_feature("web"): message.text = "Co-op requires the desktop game. Solo is available in your browser."
 
 func close() -> void:
+	if EOSGRuntime.busy:
+		message.text = "Finishing the online request…"
+		return
 	NetworkSession.discovery.browsing = false
 	if NetworkSession.online and not NetworkSession.world_ready:
 		NetworkSession.leave("Connection cancelled.")

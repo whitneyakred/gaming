@@ -23,6 +23,7 @@ MapState="*res://scripts/map_system/MapState.gd"
 VoyageState="*res://scripts/voyage_state.gd"
 GameWindow="*res://scripts/game_window.gd"
 PauseMenu="*res://scenes/pause_menu.tscn"
+EOSGRuntime="*res://scripts/network/eos_runtime.gd"
 NetworkSession="*res://scripts/network/network_session.gd"
 
 [display]
@@ -113,3 +114,6 @@ renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_s3tc_bptc=true
 textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.0784314, 0.184314, 0.25098, 1)
+
+[editor_plugins]
+enabled=PackedStringArray("res://addons/holy_ship_export/plugin.cfg")

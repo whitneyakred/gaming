@@ -148,6 +148,11 @@ func quit_game() -> void:
 	if _quitting:
 		return
 	_quitting = true
+	await EOSGRuntime.leave_lobby()
+	if NetworkSession.online:
+		NetworkSession.multiplayer.multiplayer_peer.close()
+	NetworkSession.multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+	EOSGRuntime.shutdown()
 	save_preferences()
 	shutdown_audio()
 	await get_tree().create_timer(0.15).timeout

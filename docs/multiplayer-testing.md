@@ -1,138 +1,97 @@
-# Holy Ship co-op public-test build
+# Holy Ship multiplayer testing
 
-This is a small, invite-based desktop playtest for up to four people. The host
-simulates the shared boat, players, stations, inventory and fishing. Browser
-exports remain solo-only. There is no public server directory or host migration.
+This is an invited desktop playtest for up to four sailors. Internet crews use
+Epic's lobby directory and relay networking. No IP address, router port forwarding,
+or tunnel is needed for the default Host a crew / Browse crews flow.
 
-## Host & Play
+## Windows + Mac hotspot test
 
-1. Start `HolyShip.exe` (or press **F6** with `title_screen.tscn` open in Godot).
-2. Enter your name on the **Your Sailor** card. It is saved and used as your nametag.
-3. Choose **Sail with a crew > Host a crew**, name your crew, and optionally add a password.
-4. Leave **Continue my saved voyage** checked to resume the previous hosted
-   world. Uncheck it to start a new hosted voyage, replacing the current save.
-5. Click **Launch crew**. The host PC must remain awake with the game running.
+1. Windows: extract all of HolyShip-Online-Windows.zip into a folder, then run
+   HolyShip.exe. Keep the PCK and all DLLs beside the executable.
+2. Mac: transfer HolyShip-Online-Mac.zip to the Mac and extract it there. Open
+   Holy Ship.app. This is an ad-hoc signed test build, not notarized. If macOS
+   blocks it, use System Settings > Privacy & Security > Open Anyway for this
+   app after trying to open it. Do not disable Gatekeeper globally.
+3. Connect the Mac to the phone's hotspot; leave Windows on its normal internet.
+   Give each sailor a different name on the title-screen character card.
+4. Windows: Sail with a crew > Host a crew. Name it, optionally set a password,
+   leave Local network only unchecked, then Launch crew. For a new test voyage,
+   uncheck Continue my saved voyage (this replaces that host's hosted save).
+5. Mac: Sail with a crew > Browse crews. Leave Search my local network instead
+   unchecked. Wait a few seconds and use Refresh crews, then select the crew.
+6. Confirm both players appear with the right names. Move on both devices;
+   operate helm and sail; transfer chest items; drop and collect an item;
+   fish while moving and confirm the other player sees the line and bobber;
+   swim to an island and walk ashore.
+7. Have the Mac leave and rejoin. Confirm its inventory returns without duplicate
+   starter tools. Have the host leave: the Mac should return to the harbor with
+   an explanation. Refresh browsing: the old listing should disappear shortly.
+8. Repeat with the Mac hosting and Windows joining. Try a wrong password as well
+   as the correct one. Up to four distinct devices can join the same crew.
 
-Friends on the same network choose **Sail with a crew > Browse crews** and click
-your named crew. The list shows occupied slots and password protection. Full crews
-cannot be selected; closed crews disappear within about seven seconds.
+Keep the host awake and running. Hosting ends when that game closes. Everyone
+must use this same build/protocol. If a connection fails, record the on-screen
+message and which device hosted. Logs are under Godot's user-data folder:
+Windows: %APPDATA%\Godot\app_userdata\Holy Ship\logs\godot.log
+macOS: ~/Library/Application Support/Godot/app_userdata/Holy Ship/logs/godot.log
 
-For internet tunnels or manual connections choose **Direct connect**, enter the
-host address, public UDP port, and password, then click **Join crew**.
-Everyone must use the same build. Local testing uses address `127.0.0.1` only
-when both game processes are on the same computer; other PCs use your LAN IP or
-public/tunnel address. Each normal OS user has a persistent crew identity.
+## Godot editor and local fallback
 
-Nearby discovery uses UDP 24566; hosting uses UDP 24567. One advertised host is
-supported per computer. Firewall rules or guest Wi-Fi isolation may prevent LAN
-discovery. Editor Play and exported games use the same networking. Separate PCs
-need no editor-specific setup. For two clients under the same OS user, launch
-the second with `-- --crew-profile second` to give it a separate persistent
-identity. Automated tests use isolated profiles via `--settings-test`.
+Install the pinned native dependency with tools/install-eos.ps1, restart Godot,
+and press F5 (Run Project). Editor and exported builds use the same online
+service and can find each other. Editor configuration is .local/eos.cfg;
+desktop exports embed it via the project's export plugin.
 
-Internet-wide browsing and automatic relay connections are **not integrated yet**.
-The planned provider is Epic Online Services; see [the setup handoff](online-services-setup.md).
+For LAN play, check Local network only on the host and Search my local network
+instead on clients. LAN discovery uses UDP 24566 and hosting UDP 24567; firewall
+or guest Wi-Fi isolation may block it. Direct connect remains an advanced ENet
+fallback. The headless --server command also uses ENet, not EOS browsing.
 
-## Friends on different Wi-Fi networks: free UDP tunnel
+Two processes under the same OS user have the same Epic device identity. Use
+LAN for same-PC tests, passing -- --crew-profile second to the second instance.
+Use separate devices/OS accounts for online testing.
 
-The game does not automatically make your home PC publicly reachable.
+## Shared gameplay and saves
 
-1. Create/sign in to a playit.gg account and download its agent from
-   https://playit.gg/ . Only the host needs the agent.
-2. Run the agent and link it to your account using the link it provides.
-3. Create a **UDP** tunnel targeting **127.0.0.1**, local port **24567** (or the
-   local port chosen when hosting). Generic UDP is currently listed on the free
-   tier; custom TCP and TCP+UDP require Premium. No paid service is required by
-   Holy Ship itself.
-4. Keep both the agent and Holy Ship running.
-5. Give friends the **public hostname and public port** shown by playit. The
-   public port can differ from your local port. Put the hostname alone in the
-   address box and the public port in **UDP port**.
-6. Have someone outside your network join. Test walking, helm/sail ownership,
-   shared chest transfers, drops, fishing, swimming and reconnecting.
+The host authoritatively simulates the boat, wind, sails, wheel, anchor, crew,
+station ownership, chest, inventory transfers, dropped items, fishing and catches.
+Fishing lines, bobbers and reel state are visible to other players. Swimming
+onto islands is seamless. Cameras, spyglass, map and menus stay local.
+Pause/settings do not freeze an online voyage for other players.
 
-Alternative: forward your chosen **UDP** port on your router to the host PC and
-share your public IP and port. ISP carrier-grade NAT may prevent that route;
-use a UDP tunnel instead. If Windows asks, allow the game through the firewall
-for the network on which you intend to host. No router/firewall rules are changed
-by the game or by this repository's setup.
+The host saves every 20 seconds and on graceful leave/quit and disconnection.
+Saves include boat location, chest, floor items and crew bags. Resumed boats are
+anchored. Returning online players are identified by their EOS product-user ID;
+LAN saves use the local crew identity. These are separate identities. Do not
+expect an old LAN bag to automatically become your online bag.
 
-## Dedicated server on your PC or a spare PC
+There is one hosted-voyage.save per normal OS user. In Godot, Project > Open User
+Data Folder opens the data folder. Saves remain on the host, not in the cloud.
+Solo voyages still do not persist. There is no host migration or movement
+prediction, so high latency is noticeable. Browser exports remain solo-only.
 
-The same executable can run without graphics. Open PowerShell in the game folder:
+## Validation
 
-```powershell
-$env:HOLY_SHIP_PASSWORD = 'choose-a-session-password'
-.\HolyShip.exe --headless -- --server --port 24567
-```
+- Live Windows EOS lifecycle: sign-in, host/world startup, crew search, occupancy,
+  password marker, lobby destruction, and clean process exit.
+- Three local processes with --snapshot-chunks: movement, chest contention,
+  dropping/pickup, station ownership, fishing/catch, swimming/land and reconnect.
+- Menu flow regression: 46 checks passed.
+- Actual Windows-to-Mac internet gameplay and macOS launch require the above
+  hotspot test. This is ready for that test, not a claim it already passed.
 
-On Linux use `./HolyShip.x86_64 --headless -- --server --port 24567` and set
-`HOLY_SHIP_PASSWORD` in the shell environment first if desired. The Linux binary
-is cross-exported and needs Linux runtime testing. The server resumes its saved
-world. Add `--new-world` to deliberately replace it with a new voyage. Connect
-from another game instance using `127.0.0.1` on the same machine or the tunnel
-address from elsewhere. A dedicated server does not occupy a crew slot.
+Developer scripts: tests/eos_lifecycle.gd uses live EOS; tests/eos_network.gd
+has --test-host/client roles for two distinct online identities;
+tests/network_smoke.gd uses --test-host, --test-alpha, --test-beta over local UDP
+24678. Always add --settings-test to isolate test saves. Add --snapshot-chunks
+to exercise the EOS-sized packet format through local ENet.
 
-## What is shared
+Rollback checkpoint: commit 38ca32e, tag pre-multiplayer. Inspect it using a
+separate worktree/branch rather than resetting ongoing work.
 
-- Server-driven boat position/rotation, wind, sail level/trim, wheel and anchor.
-- Four independently controlled crew, with names and per-player inventories.
-- Exclusive helm, sail and galley occupancy. E takes/releases a station;
-  A/D steers/trims, W/S cycles sail deployment. Anchor is a one-press toggle.
-- The ship chest, item transfers, drops, pickup and open/closed chest artwork.
-- Fishing rods, lines, bobbers, reeling state and catch animations. The server
-  checks cast range, bite timing and tension, and awards the catch once.
-- Swimming and walking directly on world islands. Islands no longer launch
-  minigames or rowboat cutscenes. Use the port plank to enter the water and the
-  ladder to return. Islands currently have no new objectives or resources.
-- Galley: interact near the kitchen; after three seconds, one sea bass becomes
-  dried fish if there is inventory room. The old solo recipe UI remains solo-only.
-
-Cameras, spyglass, map UI and menus stay local. Opening pause/settings does not
-freeze an online voyage: your controls stop and your station/fishing interaction
-is released while the other players keep going. Server loss returns clients to
-the title with a message; it does not silently create a new solo voyage.
-
-## Saves and reconnects
-
-The host autosaves every 20 seconds and on graceful leaving/quitting and player
-disconnection. Saves include boat location, chest, floor items and crew bags.
-The resumed boat is anchored. Rejoining players spawn safely aboard with their
-previous inventory; their rod and spyglass are not duplicated.
-
-Use **Project > Open User Data Folder** in Godot to find the active user-data
-folder. Exported Windows builds normally use
-`%APPDATA%\Godot\app_userdata\Holy Ship\`. `hosted-voyage.save` is the hosted
-world; `crew_identity.cfg` identifies this installation to hosts. Keep that
-identity file to retain your bag across reconnects. Saves are local to the host,
-not uploaded. There is one hosted save per OS user. A separate dedicated-server
-OS account gives it a separate save. Solo voyages are still not saved to disk.
-
-## Scope and remaining external verification
-
-This build is intended for small invited playtests, not unattended anonymous
-public hosting. Session passwords are access gates, not encrypted account login.
-There is no Steam/account service, voice chat, matchmaking, moderation UI, or
-host migration. Clients use server snapshots with visual interpolation; high
-latency will be noticeable because movement prediction is not implemented yet.
-
-Local UDP tests cover three simultaneous instances, chest contention, drops and
-pickup, station ownership, fishing replication, seamless land travel, reconnect,
-password rejection, dedicated server operation and save reload. Windows rendered
-clients were inspected. An actual off-network playit/router test and Linux/macOS
-runtime tests require those environments. The current workstation lacks the
-macOS export template, so no Mac binary is included.
-
-## Developer checks
-
-- `tests/network_smoke.gd`: start host with `--test-host` and two clients with
-  `--test-alpha` / `--test-beta`, each using `--settings-test`. Uses UDP 24678.
-- `tests/network_access.gd`: host/client roles on UDP 24679; checks passwords,
-  dedicated hosting and save reload. Always add `--settings-test`.
-- `tests/fishing_test.tscn`, `tests/inventory_integration.tscn`,
-  `tests/spyglass_test.tscn`, and `tests/menu_flow.gd` cover solo regressions.
-- Test identities and saves live under `.godot/`, leaving player data untouched.
-
-Rollback checkpoint: commit `38ca32e` and tag **pre-multiplayer**. To inspect the
-old game without losing current work, use a separate Git worktree or branch at
-that tag rather than resetting this branch.
+Exported diagnostics (close other Holy Ship instances first):
+Windows: HolyShip.exe --headless -- --settings-test --online-check
+Mac: ./"Holy Ship.app"/Contents/MacOS/"Holy Ship" --headless -- --settings-test --online-check
+This creates a temporary password-protected test lobby, checks discovery and
+removal, then exits. It does not prove a second device can join. Test files are
+isolated under .godot; launch from an extracted, writable folder.

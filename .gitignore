@@ -15,3 +15,9 @@ desktop.ini
 
 # Exported game builds
 builds/
+
+# Local online-services credentials (never commit)
+.local/
+# Downloaded native SDK dependencies and export templates; use tools/install-eos.ps1.
+addons/epic-online-services-godot/bin/
+export_templates/

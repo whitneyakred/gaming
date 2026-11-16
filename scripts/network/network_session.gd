@@ -1,10 +1,12 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-1"
+const PROTOCOL := "holy-ship-coop-2"
 const DEFAULT_PORT := 24567
 const MAX_CREW := 4
 var online: bool = false
+var internet: bool = false
+var _snapshot_parts: Dictionary = {}
 var dedicated: bool = false
 var world_ready: bool = false
 var applying: bool = false
@@ -89,20 +91,25 @@ func host_session(name_text: String, port_number: int, secret: String = "", resu
 		set_status("Cannot host on UDP port %d (error %d)." % [port_number, error])
 		return error
 	multiplayer.multiplayer_peer = peer
+	port = port_number
+	local_name = clean_name(name_text)
+	start_host_peer(peer, secret, resume_world, false)
+	return OK
+
+func start_host_peer(peer: MultiplayerPeer, secret: String, resume_world: bool, via_internet: bool) -> void:
+	multiplayer.multiplayer_peer = peer
+	internet = via_internet
 	online = true
 	local_id = 1
-	port = port_number
 	password = secret.left(64)
-	local_name = clean_name(name_text)
 	accounts.clear()
 	_restored.clear()
 	if resume_world:
 		load_world()
 	if not dedicated:
-		identities[1] = {"name": local_name, "token": local_token}
+		identities[1] = {"name": local_name, "token": EOSGRuntime.local_product_user_id.sha256_text().left(48) if internet else local_token}
 	set_status("Your crew is sailing. Nearby players can find it in Browse crews.")
 	load_game.call_deferred()
-	return OK
 
 func join_session(address: String, port_number: int, name_text: String, secret: String = "") -> Error:
 	if OS.has_feature("web") or online:
@@ -112,14 +119,18 @@ func join_session(address: String, port_number: int, name_text: String, secret: 
 	if error != OK:
 		set_status("Cannot start connection (error %d)." % error)
 		return error
-	online = true
 	local_name = clean_name(name_text)
-	password = secret.left(64)
 	port = port_number
+	start_client_peer(peer, secret, false)
+	return OK
+
+func start_client_peer(peer: MultiplayerPeer, secret: String, via_internet: bool) -> void:
+	internet = via_internet
+	online = true
+	password = secret.left(64)
 	_connect_clock = 0
 	multiplayer.multiplayer_peer = peer
 	set_status("Connecting…")
-	return OK
 
 func _drop_rejected(id: int) -> void:
 	await get_tree().create_timer(0.4).timeout
@@ -141,6 +152,10 @@ func hello(version: String, crew_name: String, token: String, secret: String) ->
 	var id := multiplayer.get_remote_sender_id()
 	if identities.has(id):
 		return
+	if internet:
+		var authenticated: String = multiplayer.multiplayer_peer.call("get_peer_user_id", id)
+		if authenticated.is_empty(): return
+		token = authenticated.sha256_text().left(48)
 	var reason := ""
 	if version != PROTOCOL:
 		reason = "Different game version. Everyone must use the same build."
@@ -412,12 +427,13 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 				service.request_drag(data, int(args.get("destination", -1)), bool(args.get("to_storage", false)))
 			applying = false
 
-@rpc("any_peer", "call_remote", "unreliable_ordered", 1)
-func input_frame(direction: Vector2, held: bool, blocked: bool) -> void:
+@rpc("any_peer", "call_remote", "unreliable", 1)
+func input_frame(direction: Vector2, held: bool, blocked: bool, sequence: int) -> void:
 	if not multiplayer.is_server() or not direction.is_finite():
 		return
 	var id := multiplayer.get_remote_sender_id()
-	if inputs.has(id):
+	if inputs.has(id) and sequence > int(inputs[id].get("sequence", -1)):
+		inputs[id]["sequence"] = sequence
 		inputs[id].merge({"move": direction.limit_length(), "held": held, "blocked": blocked, "stamp": Time.get_ticks_msec()}, true)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -447,7 +463,7 @@ func _physics_process(delta: float) -> void:
 		if multiplayer.is_server():
 			inputs[local_id].merge({"move": move, "held": held, "blocked": blocked, "stamp": Time.get_ticks_msec()}, true)
 		else:
-			input_frame.rpc_id(1, move, held, blocked)
+			input_frame.rpc_id(1, move, held, blocked, Engine.get_physics_frames())
 	if not multiplayer.is_server():
 		_interpolate(delta)
 		return
@@ -527,17 +543,36 @@ func _send_snapshot() -> void:
 	for id: int in identities:
 		if id != 1 and players.has(id):
 			var packed := var_to_bytes(data).compress(FileAccess.COMPRESSION_GZIP)
-			if packed.size() > 1100:
+			if internet or "--snapshot-chunks" in OS.get_cmdline_user_args():
+				var count := ceili(packed.size() / 850.0)
+				for part in count:
+					snapshot_part.rpc_id(id, _snapshot_serial, part, count, packed.slice(part * 850, (part + 1) * 850))
+			elif packed.size() > 1100:
 				large_snapshot.rpc_id(id, packed)
 			else:
 				world_snapshot.rpc_id(id, packed)
 
-@rpc("authority", "call_remote", "unreliable_ordered", 2)
+@rpc("authority", "call_remote", "unreliable", 2)
 func world_snapshot(packed: PackedByteArray) -> void:
 	var bytes := packed.decompress_dynamic(1048576, FileAccess.COMPRESSION_GZIP)
 	var decoded: Variant = bytes_to_var(bytes)
 	if decoded is Dictionary:
 		apply_snapshot(decoded)
+
+@rpc("authority", "call_remote", "unreliable", 2)
+func snapshot_part(serial: int, index: int, count: int, bytes: PackedByteArray) -> void:
+	if serial <= _received_serial or count < 1 or count > 128 or index < 0 or index >= count or bytes.size() > 850: return
+	for old in _snapshot_parts.keys():
+		if old < serial - 4: _snapshot_parts.erase(old)
+	if not _snapshot_parts.has(serial): _snapshot_parts[serial] = {}
+	_snapshot_parts[serial][index] = bytes
+	if _snapshot_parts[serial].size() != count: return
+	var packed := PackedByteArray()
+	for part in count:
+		if not _snapshot_parts[serial].has(part): return
+		packed.append_array(_snapshot_parts[serial][part])
+	_snapshot_parts.erase(serial)
+	world_snapshot(packed)
 
 @rpc("authority", "call_remote", "reliable", 2)
 func large_snapshot(packed: PackedByteArray) -> void:
@@ -678,12 +713,18 @@ func load_world() -> void:
 	if file == null:
 		return
 	var data: Variant = file.get_var(false)
-	if data is Dictionary and data.get("version") == PROTOCOL:
+	if data is Dictionary and data.get("version") in [PROTOCOL, "holy-ship-coop-1"]:
 		_restored = data
 		accounts = data.get("accounts", {})
 
 func leave(message: String = "") -> void:
 	save_world()
+	if online:
+		multiplayer.multiplayer_peer.close()
+	if internet:
+		EOSGRuntime.leave_lobby()
+	internet = false
+	_snapshot_parts.clear()
 	online = false
 	world_ready = false
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
@@ -704,6 +745,7 @@ func leave(message: String = "") -> void:
 
 func _exit_tree() -> void:
 	save_world()
+	if online: multiplayer.multiplayer_peer.close()
 
 func _start_cli() -> void:
 	var args := OS.get_cmdline_user_args()
