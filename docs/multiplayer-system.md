@@ -4,6 +4,9 @@ Implementation reference as of November 15, 2026. Start here to understand the
 system; use [release setup](online-services-setup.md) for setup and
 [multiplayer testing](multiplayer-testing.md) for the play-test checklist.
 
+For implementation and testing details of the latest client prediction and
+browser departure changes, see [Networking responsiveness](networking-responsiveness.md).
+
 ## 1. What runs where
 
 Holy Ship is a Godot 4.7.2 game using GDScript and the Compatibility renderer.
