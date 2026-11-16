@@ -31,10 +31,10 @@ func _resume_button() -> Button:
 	return PauseMenu.get_node("Screen/Center/Box/ResumeButton") as Button
 
 
-# Presses and releases the P key, as the player would.
-func _press_p(echo: bool = false) -> void:
+# Presses and releases the ESC key, as the player would.
+func _press_escape(echo: bool = false) -> void:
 	var event := InputEventKey.new()
-	event.physical_keycode = KEY_P
+	event.physical_keycode = KEY_ESCAPE
 	event.pressed = true
 	event.echo = echo
 	Input.parse_input_event(event)
@@ -42,7 +42,7 @@ func _press_p(echo: bool = false) -> void:
 	if echo:
 		return
 	event = InputEventKey.new()
-	event.physical_keycode = KEY_P
+	event.physical_keycode = KEY_ESCAPE
 	Input.parse_input_event(event)
 	await _frames(2)
 
@@ -123,9 +123,9 @@ func _test_pause_freezes_ship() -> void:
 	await _wait(1.0)
 	_check(ship.speed > 0.0, "Setup: the ship must be under way before pausing")
 
-	# Steps 1-3: P pauses the tree and shows the pause screen.
-	await _press_p()
-	_check(get_tree().paused and PauseMenu.is_paused(), "P must pause the game")
+	# Steps 1-3: ESC pauses the tree and shows the pause screen.
+	await _press_escape()
+	_check(get_tree().paused and PauseMenu.is_paused(), "ESC must pause the game")
 	_check(_screen_visible(), "Pausing must show the pause screen")
 
 	var frozen_position := ship.global_position
@@ -138,8 +138,8 @@ func _test_pause_freezes_ship() -> void:
 	for frame in range(90):
 		await get_tree().physics_frame
 	Input.action_release("move_right")
-	await _press_p(true)
-	_check(get_tree().paused, "Holding P (an echo) must not resume")
+	await _press_escape(true)
+	_check(get_tree().paused, "Holding ESC (an echo) must not resume")
 	_check(ship.global_position == frozen_position and ship.global_rotation == frozen_rotation,
 		"The ship must not move while paused")
 	_check(ship.speed == frozen_speed, "The ship's speed must not change while paused")
@@ -156,11 +156,11 @@ func _test_pause_freezes_ship() -> void:
 	_check(ship.global_position != frozen_position, "The ship must sail on after Resume")
 	_check(ship.wind_velocity != frozen_wind, "The wind must change again after Resume")
 
-	# Step 4 by key: P while paused resumes.
+	# Step 4 by key: ESC while paused resumes.
 	PauseMenu.pause()
 	await _frames(2)
-	await _press_p()
-	_check(not get_tree().paused and not _screen_visible(), "P while paused must resume")
+	await _press_escape()
+	_check(not get_tree().paused and not _screen_visible(), "ESC while paused must resume")
 
 
 # Row "Pause-game: island timer frozen" (integration).

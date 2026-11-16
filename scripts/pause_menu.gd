@@ -17,8 +17,7 @@ extends CanvasLayer
 ## pause() or resume() is called in the state the game is already in.
 signal pause_changed(is_paused: bool)
 
-## Input action that toggles pause. Bound to P in project.godot (not Escape:
-## ui_cancel already closes the cooking minigames).
+## Input action that toggles pause. Bound to ESC in project.godot
 const PAUSE_ACTION: StringName = &"pause"
 
 @onready var _screen: Control = $Screen
