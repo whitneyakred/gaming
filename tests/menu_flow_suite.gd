@@ -61,8 +61,13 @@ func run() -> void:
 	await frames()
 	check(title.crew_menu.visible, "Crew menu opens from the title")
 	await screenshot("crew-menu")
-	title.crew_menu.nearby.button_pressed = true
+	check(title.crew_menu.tabs.current_tab == 0, "Crew browser opens first")
+	check(title.crew_menu.tabs.get_tab_count() == 2, "Only browse and host tabs are shown")
 	title.crew_menu.tabs.current_tab = 1
+	check(title.crew_menu.privacy.selected == 0 and not title.crew_menu.password_row.visible, "Public voyage defaults to no password field")
+	title.crew_menu.privacy.select(1)
+	title.crew_menu.privacy.item_selected.emit(1)
+	check(title.crew_menu.password_row.visible and title.crew_menu.secret.text == "123", "Private voyage reveals prefilled password")
 	await frames()
 	await screenshot("crew-browser")
 	title.crew_menu.hide()

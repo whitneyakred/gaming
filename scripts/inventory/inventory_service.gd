@@ -94,6 +94,9 @@ func request_drag(data: Dictionary, destination: int = -1, to_storage: bool = fa
 	if destination >= 0:
 		source.move_to(index, target, destination)
 	elif index >= 0 and index < source.slots.size() and not source.slots[index].is_empty():
+		if NetworkSession.online and drops.size() >= 256:
+			feedback.emit("Too many items on the ground. Pick some up before dropping more.")
+			return
 		var entry := source.slots[index].duplicate()
 		_spawn_drop(entry, player.position)
 		source.remove(index, entry.quantity)

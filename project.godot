@@ -24,6 +24,7 @@ VoyageState="*res://scripts/voyage_state.gd"
 GameWindow="*res://scripts/game_window.gd"
 PauseMenu="*res://scenes/pause_menu.tscn"
 EOSGRuntime="*res://scripts/network/eos_runtime.gd"
+HarborService="*res://scripts/network/harbor_service.gd"
 NetworkSession="*res://scripts/network/network_session.gd"
 
 [display]
@@ -37,6 +38,10 @@ window/size/min_width=800
 window/size/min_height=450
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/holy_ship_export/plugin.cfg")
 
 [input]
 
@@ -115,5 +120,6 @@ textures/vram_compression/import_s3tc_bptc=true
 textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.0784314, 0.184314, 0.25098, 1)
 
-[editor_plugins]
-enabled=PackedStringArray("res://addons/holy_ship_export/plugin.cfg")
+[network]
+
+harbor_url="https://holy-ship-harbor.petersonleiton.workers.dev"

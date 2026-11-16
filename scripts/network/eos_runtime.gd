@@ -8,13 +8,6 @@ var busy: bool = false
 var crews: Dictionary = {}
 var status: String = ""
 
-func _ready() -> void:
-	if "--online-check" in OS.get_cmdline_user_args() and "--settings-test" in OS.get_cmdline_user_args():
-		_run_online_check.call_deferred()
-
-func _run_online_check() -> void:
-	get_tree().root.add_child(load("res://scripts/network/online_check.gd").new())
-
 func ensure_backend() -> bool:
 	if backend != null: return true
 	if OS.has_feature("web"):

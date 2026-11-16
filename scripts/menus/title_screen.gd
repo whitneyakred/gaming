@@ -28,7 +28,7 @@ func _ready() -> void:
 	add_child(crew_menu)
 	var crew_button := HarborTheme.button("Sail with a crew", func() -> void: crew_menu.open())
 	$MenuCard/Rows.add_child(crew_button)
-	$MenuCard/Rows.move_child(crew_button, 3)
+	$MenuCard/Rows.move_child(crew_button, 2)
 	$MenuCard.position.y = 125
 	$MenuCard.size.y = 460
 	if not NetworkSession.status.is_empty():

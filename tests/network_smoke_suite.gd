@@ -28,11 +28,15 @@ func run() -> void:
 	role = "host" if "--test-host" in args else ("Alpha" if "--test-alpha" in args else "Beta")
 	if role == "host":
 		phase("")
-		NetworkSession.host_session("Captain", 24678, "test", false)
+		if "--relay-test" in args:
+			NetworkSession.local_name = "Captain"
+			await HarborService.host("Relay smoke", "test")
+		else:
+			NetworkSession.host_session("Captain", 24678, "test", false)
 		await host_tests()
 	else:
 		await wait(1 if role == "Alpha" else 2)
-		NetworkSession.join_session("127.0.0.1", 24678, role, "test")
+		await join_test()
 		await client_tests()
 	print("NETWORK ", role, ": ", checks, " checks, ", failures, " failures")
 	if NetworkSession.online:
@@ -40,6 +44,17 @@ func run() -> void:
 	GameWindow.shutdown_audio()
 	await wait(0.2)
 	get_tree().quit(0 if failures == 0 else 1)
+
+func join_test() -> void:
+	if "--relay-test" in OS.get_cmdline_user_args():
+		NetworkSession.local_name = role
+		await HarborService.browse()
+		for crew: Dictionary in HarborService.crews.values():
+			if crew.title == "Relay smoke":
+				await HarborService.join_crew(crew.id, "test")
+				return
+	else:
+		NetworkSession.join_session("127.0.0.1", 24678, role, "test")
 func host_tests() -> void:
 	for i in 100:
 		if NetworkSession.players.size() == 3:
@@ -222,5 +237,5 @@ func client_tests() -> void:
 					rejoined = true
 					NetworkSession.leave()
 					await wait(0.4)
-					NetworkSession.join_session("127.0.0.1", 24678, role, "test")
+					await join_test()
 	check(false, "Test timed out")

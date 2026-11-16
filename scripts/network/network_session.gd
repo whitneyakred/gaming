@@ -1,7 +1,7 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-2"
+const PROTOCOL := "holy-ship-coop-3"
 const DEFAULT_PORT := 24567
 const MAX_CREW := 4
 var online: bool = false
@@ -27,6 +27,7 @@ var profile_path: String = "user://crew_identity.cfg"
 var discovery: Node
 var dropped_id: int = 1
 var _send_clock: float = 0.0
+var _input_clock: float = 0.0
 var _save_clock: float = 0.0
 var _connect_clock: float = 0.0
 var _pending: Dictionary = {}
@@ -41,7 +42,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	process_physics_priority = 50
 	multiplayer.connected_to_server.connect(_connected)
-	multiplayer.connection_failed.connect(func() -> void: leave("Could not connect. Check address, UDP port and host/tunnel."))
+	multiplayer.connection_failed.connect(func() -> void: leave("Could not connect to the voyage. Refresh the crew list and try again."))
 	multiplayer.server_disconnected.connect(func() -> void: leave("The host disconnected. Your crew session has ended."))
 	multiplayer.peer_disconnected.connect(_peer_left)
 	multiplayer.peer_connected.connect(func(id: int) -> void:
@@ -107,8 +108,12 @@ func start_host_peer(peer: MultiplayerPeer, secret: String, resume_world: bool, 
 	if resume_world:
 		load_world()
 	if not dedicated:
-		identities[1] = {"name": local_name, "token": EOSGRuntime.local_product_user_id.sha256_text().left(48) if internet else local_token}
-	set_status("Your crew is sailing. Nearby players can find it in Browse crews.")
+		var identity := local_token
+		if internet:
+			var user_id: String = peer.get_peer_user_id(1) if peer is HarborPeer else EOSGRuntime.local_product_user_id
+			identity = user_id.sha256_text().left(48)
+		identities[1] = {"name": local_name, "token": identity}
+	set_status("Your voyage is open. Friends can find it in Browse crews.")
 	load_game.call_deferred()
 
 func join_session(address: String, port_number: int, name_text: String, secret: String = "") -> Error:
@@ -463,7 +468,10 @@ func _physics_process(delta: float) -> void:
 		if multiplayer.is_server():
 			inputs[local_id].merge({"move": move, "held": held, "blocked": blocked, "stamp": Time.get_ticks_msec()}, true)
 		else:
-			input_frame.rpc_id(1, move, held, blocked, Engine.get_physics_frames())
+			_input_clock += delta
+			if _input_clock >= 0.05:
+				_input_clock = 0
+				input_frame.rpc_id(1, move, held, blocked, Engine.get_physics_frames())
 	if not multiplayer.is_server():
 		_interpolate(delta)
 		return
@@ -540,10 +548,12 @@ func _send_snapshot() -> void:
 	var data := {"serial": _snapshot_serial, "position": ship.global_position, "rotation": ship.global_rotation, "wind": ship.wind_velocity,
 		"sail": ship.sail_level, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees, "anchor": ship.anchor_deployed,
 		"crew": crew, "storage": VoyageState.get_ship_storage().capture(), "drops": VoyageState.floor_items.get("ship", {})}
+	var packed := var_to_bytes(data).compress(FileAccess.COMPRESSION_GZIP)
 	for id: int in identities:
 		if id != 1 and players.has(id):
-			var packed := var_to_bytes(data).compress(FileAccess.COMPRESSION_GZIP)
-			if internet or "--snapshot-chunks" in OS.get_cmdline_user_args():
+			if multiplayer.multiplayer_peer is HarborPeer and packed.size() < 64000:
+				world_snapshot.rpc_id(id, packed)
+			elif internet or "--snapshot-chunks" in OS.get_cmdline_user_args():
 				var count := ceili(packed.size() / 850.0)
 				for part in count:
 					snapshot_part.rpc_id(id, _snapshot_serial, part, count, packed.slice(part * 850, (part + 1) * 850))
@@ -713,7 +723,7 @@ func load_world() -> void:
 	if file == null:
 		return
 	var data: Variant = file.get_var(false)
-	if data is Dictionary and data.get("version") in [PROTOCOL, "holy-ship-coop-1"]:
+	if data is Dictionary and data.get("version") in [PROTOCOL, "holy-ship-coop-2", "holy-ship-coop-1"]:
 		_restored = data
 		accounts = data.get("accounts", {})
 
@@ -722,6 +732,7 @@ func leave(message: String = "") -> void:
 	if online:
 		multiplayer.multiplayer_peer.close()
 	if internet:
+		HarborService.leave()
 		EOSGRuntime.leave_lobby()
 	internet = false
 	_snapshot_parts.clear()

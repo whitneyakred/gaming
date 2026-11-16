@@ -149,6 +149,7 @@ func quit_game() -> void:
 		return
 	_quitting = true
 	await EOSGRuntime.leave_lobby()
+	HarborService.leave()
 	if NetworkSession.online:
 		NetworkSession.multiplayer.multiplayer_peer.close()
 	NetworkSession.multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()

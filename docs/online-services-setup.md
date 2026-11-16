@@ -1,73 +1,69 @@
-# Holy Ship internet crews
+# Holy Ship online release
 
-Internet crew browsing and relay transport are integrated using EOSG 2.3.1 and
-Epic Online Services Connect + Lobbies + P2P. Game code remains GDScript.
-The host device runs the simulation and must stay awake. This is not an
-always-running cloud server; ending the host session ends the voyage for guests.
+Live website and shared harbor: https://holy-ship-harbor.petersonleiton.workers.dev
 
-## Project setup
+## Players
 
-The Holy Ship product and HolyShip-Game client already exist in Epic's portal.
-The current client uses the Peer2Peer policy. Its five SDK values are stored in
-`.local/eos.cfg` (ignored by Git): product_id, sandbox_id, deployment_id,
-client_id, client_secret under an [eos] section. Never commit this file.
+Open the website, choose Play Free, and use Sail with a crew. Browse crews opens
+first. Hosting asks for a voyage name and Public / Private; Private reveals a
+password prefilled with 123. Public voyages have no password. Private voyages
+remain listed but require the password. The captain's previous hosted voyage
+resumes automatically. There is no IP address, direct-connect, or LAN UI.
 
-Run `powershell -File tools/install-eos.ps1` from the project root on a new
-checkout, then restart Godot so it loads the native extension. The installer
-pins EOSG 2.3.1 and downloads Windows, macOS, and Linux native dependencies.
-Only the low-level wrapper is used; no Epic overlay or microphone is enabled.
+Use a desktop browser with WebGL 2, keyboard, and mouse. The host must keep the
+game tab in the foreground and the device awake. Leaving ends the voyage for
+everyone. Mac browser play does not require an Apple developer account, EOS
+installation, or downloaded-app security exceptions. Native Mac distributions
+still require their own signing/notarization process before public release.
 
-On a Mac checkout, close Godot and run `bash tools/install-eos-macos.sh` from
-the project folder in Terminal. This downloads and checksum-verifies the pinned
-Mac native libraries, preserving framework structure. Copy `.local/eos.cfg`
-privately from your Windows project to the same relative location on the Mac;
-Finder's Command+Shift+Period shortcut shows hidden folders. Neither dependency
-binaries nor local configuration arrives through Git. Reopen Godot after setup.
-If the extension still fails to load, inspect the Output panel's first
-GDExtension/dynamic-library error; missing files and macOS loading rejection
-need different fixes. This setup is for developers, not exported-game players.
+## Teammates
 
-The Holy Ship export plugin embeds the game-client configuration in desktop
-packages as res://online/eos.cfg. These are untrusted game-client credentials,
-not administrative/server credentials. Do not replace the client policy with a
-trusted-server policy. Web Solo excludes both the native adapter and credentials.
-Native binaries and export templates are ignored by Git and must be installed
-on the machine doing exports.
+Clone/pull the repository, open project.godot in Godot 4.7.2, and press F5.
+The public harbor URL is a normal Project Settings value, not a secret.
+No Epic project, EOS library install, or private .local/eos.cfg is needed for the
+current game. The old EOS adapter and vendor folder have .gdignore files and
+are excluded from releases. Their installer scripts are legacy rollback tools.
+Editor, desktop, and browser players share the same directory and protocol.
 
-## Connections and identity
+## Service and release setup
 
-Online hosting and browsing are the default. EOS relay routing is forced for
-these sessions, so the planned hotspot playtest exercises the relay route.
-Players do not enter IP addresses, ports, or Epic account passwords. Device
-login identifies each OS user. Two processes under the same OS account share
-that online identity and cannot join each other online; use separate devices,
-separate OS accounts, or the LAN test path instead. --crew-profile only separates
-LAN/save profiles, not Epic's device identity.
+The Cloudflare service lives in online-service/. It uses SQLite Durable Objects:
+one room per voyage, four directory shards, and per-IP request gates. The host
+still simulates the game; Cloudflare relays packets and handles room admission.
+It assigns packet sources and never permits a guest to impersonate the captain.
+Room tickets are short-lived, single-use, and issued only after password/capacity
+checks. Persistent sailor tokens are sent only in HTTPS bodies. Temporary
+hashed IP identifiers enforce request limits; game traffic is not logged.
 
-Crew names, occupancy, and password markers are published in compatible lobbies.
-New/closed listings can take several seconds to appear/disappear in Epic's search
-index. Use Refresh crews. The password itself is not a lobby attribute. The host
-checks the password and capacity before admitting a player to the world.
+Development commands from online-service/:
 
-A host leaving destroys its lobby; guests leaving release their membership.
-Authentication refreshes before token expiry. Failed sign-in, join, and server
-loss return an explanation to the player. Host migration is intentionally off.
+    npm ci
+    npm run dev
+    npm run check
+    npm test
 
-## Validation and limits
+The tests expect wrangler dev on 127.0.0.1:8787. Authentication for deployment is
+wrangler login; do not share tokens in Git. wrangler.jsonc contains only public
+configuration. Use npm run types after modifying bindings.
 
-Verified on Windows: live device sign-in, native host creation, game loading,
-searchable crew metadata, removal, and clean SDK shutdown. Local three-process
-checks exercise gameplay through the relay-sized snapshot packet format.
-Windows and macOS packages are provided for a real two-device hotspot playtest.
-Actual Windows-to-Mac relay traffic and macOS runtime behavior still need that
-external test. Do not call this a verified public release until it passes.
+Release from the project root:
 
-Small invited crews are the testing scope. Movement prediction, moderation,
-host migration, and persistent cloud hosting are not implemented. Browser play
-remains solo. The CLI dedicated server remains ENet/direct-connect, not an EOS
-lobby host.
+    powershell -File tools/release-harbor.ps1 -GodotPath "path/to/Godot_console.exe"
 
-Dependency and service references:
-- https://github.com/3ddelano/epic-online-services-godot/tree/56238973e2cd7ac9ac99ca14f88934465f0a8997
-- https://dev.epicgames.com/docs/game-services/lobbies-and-sessions/lobbies
-- https://dev.epicgames.com/docs/game-services/p-2-p
+This validates configuration, exports the game, prepares compressed web assets,
+and runs the service type check/dry run. It does not deploy. Then run
+npm run deploy from online-service/ to publish. All files under public/ are
+reproducible generated output and ignored by Git. The 38 MB WebAssembly file is
+stored compressed below Cloudflare's per-asset limit; the Worker serves it with
+manual gzip encoding so browsers decode it exactly once.
+
+The free Workers plan has daily request, duration, and storage limits. It does
+not guarantee unlimited public multiplayer. This deployment did not purchase a
+domain or enable a paid plan. Stay on Free to avoid usage billing; reaching a
+limit can make online play unavailable until reset. Track Cloudflare's usage
+before expanding promotion. No permanent server or host migration is provided.
+
+References:
+- https://developers.cloudflare.com/durable-objects/platform/pricing/
+- https://developers.cloudflare.com/workers/platform/limits/
+- https://docs.godotengine.org/en/stable/classes/class_multiplayerpeerextension.html
