@@ -226,14 +226,9 @@ func _get_shore_normal(at: Vector2) -> Vector2:
 	var away := at - _aground_island.get_nearest_coast_point(at)
 	return away.normalized() if away.length() > 0.01 else Vector2.ZERO
 
-# While voyaging the status line stays empty: no nearest-island name,
-# distance, or arrow. It only speaks up when the anchor is down out at sea.
-# Anchoring and rowing use it for their own messages.
+# Anchor interaction remains local to the station, without a persistent banner.
 func _update_sailing_status() -> void:
-	if anchor_deployed:
-		_set_status("Anchor lowered. Press E at the anchor to sail again.")
-	else:
-		_set_status("")
+	_set_status("")
 
 # --- Anchoring and the rowboat -------------------------------------------------
 

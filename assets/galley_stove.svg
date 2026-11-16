@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="32" viewBox="0 0 48 32" shape-rendering="crispEdges">
+<!-- Compact overhead ship galley: weathered timber, iron stove, copper pot. -->
+<path fill="#352b28" d="M2 3h44v26H2zM5 29h6v3H5zm32 0h6v3h-6z"/>
+<path fill="#71513e" d="M3 4h42v24H3z"/><path fill="#bc9670" d="M4 4h40v19H4z"/>
+<path fill="#d8ba91" d="M4 4h40v2H4z"/><path fill="#987454" d="M4 12h40v1H4zM4 20h40v1H4z"/>
+<path fill="#4a3930" d="M4 24h40v3H4z"/><path fill="#a6825d" d="M5 24h38v1H5z"/>
+<path fill="#343b3d" d="M5 6h22v16H5z"/><path fill="#69706a" d="M6 6h20v2H6zM6 8h2v12H6z"/>
+<path fill="#202b30" d="M9 9h14v11H9z"/><path fill="#ad7951" d="M11 8h10v2h3v8h-3v2H11v-2H8v-8h3z"/>
+<path fill="#e0b17a" d="M11 8h10v2H11zM9 10h2v7H9z"/><path fill="#6e4935" d="M11 17h11v2H11z"/>
+<path fill="#454b45" d="M12 10h9v7h-9z"/><path fill="#89907a" d="M13 11h7v2h-7z"/>
+<path fill="#352b28" d="M5 12h4v3H5zM23 12h4v3h-4z"/>
+<path fill="#d0ac7a" d="M29 7h12v12H29z"/><path fill="#8e6646" d="M30 8h1v10h-1zM39 8h1v10h-1z"/>
+<path fill="#e6d3a6" d="M32 9h5v2h-5zM33 11h4v2h-4z"/><path fill="#6d8055" d="M32 14h3v2h-3zM35 15h3v2h-3z"/>
+<path fill="#d4dbcd" d="M38 11h2v5h-2z"/><path fill="#513d30" d="M38 16h2v3h-2z"/>
+<path fill="#242e32" d="M7 24h17v3H7z"/><path fill="#bd7546" d="M10 25h3v1h-3zM17 25h3v1h-3z"/>
+<path fill="#ead0a0" d="M31 24h7v1h-7z"/>
+</svg>
