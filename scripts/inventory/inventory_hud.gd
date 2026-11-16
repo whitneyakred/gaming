@@ -154,12 +154,9 @@ func _process(delta: float) -> void:
 	chest_panel.visible = storage_open
 	drop_zone.mouse_filter = Control.MOUSE_FILTER_STOP if service.can_handle_items() and get_viewport().gui_is_dragging() else Control.MOUSE_FILTER_IGNORE
 	message_time = maxf(0, message_time - delta)
-	hint.visible = not MapState.map_open
-	hint.text = message if message_time > 0 else ("E / Space  Open ship's chest" if service.chest_is_nearest() and not storage_open else "1–4 / Wheel  Select  ·  Drag outside to drop")
-	if message_time <= 0 and not storage_open and selected < service.local_slots.size() and service.local_slots[selected].get("id", &"") == &"spyglass":
-		hint.text = "Spyglass  ·  Hold left-click and move mouse to scout  ·  Release to return"
-	elif message_time <= 0 and not storage_open and selected < service.local_slots.size() and service.local_slots[selected].get("id", &"") == &"fishing_rod":
-		hint.text = "Fishing rod  ·  Click nearby water to cast  ·  Right-click to cancel"
+	# Show brief action feedback only; controls remain in How to play.
+	hint.visible = not MapState.map_open and message_time > 0
+	hint.text = message if message_time > 0 else ""
 
 func _unhandled_input(event: InputEvent) -> void:
 	if service == null or event.is_echo():

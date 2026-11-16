@@ -56,7 +56,8 @@ text = "Wind"
 horizontal_alignment = 1
 
 [node name="Arrow" type="TextureRect" parent="HUD/Wind"]
-texture_filter = 1
+texture_filter = 4
+expand_mode = 1
 offset_left = 33.5
 offset_top = 42.0
 offset_right = 81.5
