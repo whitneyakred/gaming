@@ -115,9 +115,10 @@ func _draw() -> void:
 		draw_arc(Vector2(0, 3), 12, 0.0, PI, 16, Color(0.7, 0.9, 1.0, 0.6), 1.5)
 
 func play_fishing_animation() -> void:
-	idle_sprite.hide()
-	fishing_animation.show()
-	fishing_animation.play(&"fishing_side")
+	# Keep the normal sailor visible; the line and bobber provide fishing feedback.
+	fishing_animation.stop()
+	fishing_animation.hide()
+	idle_sprite.show()
 
 func _on_fishing_animation_animation_finished() -> void:
 	fishing_animation.hide()

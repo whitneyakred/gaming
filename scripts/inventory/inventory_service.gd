@@ -110,6 +110,24 @@ func _spawn_drop(entry: Dictionary, point: Vector2) -> void:
 	pickup_inside[next_drop_id] = player.position.distance_to(point) <= pickup_distance
 	next_drop_id += 1
 
+func prepare_fish() -> bool:
+	if not inventory.try_remove(&"fish_cod", 1):
+		feedback.emit("Catch a sea bass first.")
+		return false
+	# Removing the ingredient may itself free a slot. Only test capacity afterward.
+	if inventory.try_add(&"dried_fish"):
+		feedback.emit("Prepared dried fish!")
+	else:
+		# Merge overflow when possible, avoiding extra floor stacks for repeated meals.
+		for entry: Dictionary in drops.values():
+			if entry.id == &"dried_fish" and entry.get("world", false) == player.is_overboard and entry.position.distance_to(player.position) < 32:
+				entry.quantity += 1
+				feedback.emit("Prepared fish dropped beside you.")
+				return true
+		_spawn_drop({"id": &"dried_fish", "quantity": 1}, player.position)
+		feedback.emit("Prepared fish dropped beside you.")
+	return true
+
 func _physics_process(_delta: float) -> void:
 	if not NetworkSession.online:
 		server_pickups()

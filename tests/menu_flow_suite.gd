@@ -124,6 +124,15 @@ func run() -> void:
 	check(VoyageState.get_inventory(&"player_1").get_quantity(&"rope") == 0, "New voyage clears carried items")
 	var ship := get_tree().current_scene.get_node("Ship")
 	var service := ship.get_node("InventorySystem")
+	var cooking_inventory: Array[Dictionary] = [{"id": &"fish_cod", "quantity": 2}, {"id": &"fishing_rod", "quantity": 1}, {"id": &"spyglass", "quantity": 1}, {"id": &"rope", "quantity": 1}]
+	service.inventory.restore(cooking_inventory)
+	var floor_before: int = service.drops.size()
+	check(service.prepare_fish(), "A full inventory can prepare fish")
+	check(service.inventory.get_quantity(&"fish_cod") == 1 and service.drops.size() == floor_before + 1, "Full bag consumes one ingredient and drops one cooked fish")
+	check(service.prepare_fish() and service.inventory.get_quantity(&"dried_fish") == 1, "Last ingredient frees a slot for cooked fish")
+	check(not service.prepare_fish(), "No meal is created without a raw fish")
+	service.player.play_fishing_animation()
+	check(service.player.idle_sprite.visible and not service.player.fishing_animation.visible, "Fishing leaves the normal sailor visible")
 	service.player.position = service.storage_position
 	service.hud.storage_open = true
 	for dimensions in [Vector2i(960, 540), Vector2i(1280, 720), Vector2i(1920, 1080)]:
