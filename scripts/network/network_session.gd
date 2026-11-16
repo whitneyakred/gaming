@@ -740,7 +740,7 @@ func _interpolate(delta: float) -> void:
 	var local_player: Node = players.get(local_id)
 	var station := str(local_player.active_station.name) if is_instance_valid(local_player) and local_player.using_station else ""
 	# Interpolate remote controls instead of stepping them at snapshot frequency.
-	if station != "Sail": ship.set_sail_angle(lerpf(ship.sail_angle_degrees, _last_snapshot.trim, weight))
+	if station != "Sail": ship.set_sail_angle(rad_to_deg(lerp_angle(deg_to_rad(ship.sail_angle_degrees), deg_to_rad(_last_snapshot.trim), weight)))
 	if station != "Helm": ship.set_wheel_angle(lerpf(ship.wheel_angle_degrees, _last_snapshot.wheel, weight))
 	for id: int in players:
 		if _last_snapshot.crew.has(id):
@@ -782,7 +782,7 @@ func _reconcile_local(entry: Dictionary, transition: bool) -> void:
 	_prediction_error = Vector2(entry.position) - Vector2(acknowledged.position)
 	# Preserve controls applied since the acknowledged input, correcting only drift.
 	if entry.station == "Sail":
-		var error := float(_last_snapshot.trim) - float(acknowledged.trim)
+		var error := wrapf(float(_last_snapshot.trim) - float(acknowledged.trim), -180.0, 180.0)
 		ship.set_sail_angle(ship.sail_angle_degrees + error * 0.25)
 		for frame: Dictionary in _prediction: frame.trim += error * 0.25
 	elif entry.station == "Helm":

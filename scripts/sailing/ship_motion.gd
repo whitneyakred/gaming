@@ -94,7 +94,7 @@ func set_sail_level(level: int) -> void:
 		sail_changed.emit()
 
 func set_sail_angle(degrees: float) -> void:
-	var bounded_angle := clampf(degrees, -60.0, 60.0)
+	var bounded_angle := wrapf(degrees, -180.0, 180.0)
 	if not is_equal_approx(sail_angle_degrees, bounded_angle):
 		sail_angle_degrees = bounded_angle
 		sail_changed.emit()
