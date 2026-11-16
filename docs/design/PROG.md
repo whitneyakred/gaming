@@ -98,7 +98,7 @@ classDiagram
     CharacterSelection --> SessionCoordinator
 ```
 
-- `scenes/pause_menu.tscn`, `scripts/pause_menu.gd` (new, single-player slice): the `PauseMenu` autoload, a CanvasLayer whose process mode is Always. It owns the local pause state and the pause screen until `SessionCoordinator` and `SessionUI` exist; at that point pause moves behind `set_paused` without changing the freeze mechanism. Registered in `project.godot` next to `VoyageState`, with a `pause` input action bound to P.
+- `scenes/pause_menu.tscn`, `scripts/pause_menu.gd` (new, single-player slice): the `PauseMenu` autoload, a CanvasLayer whose process mode is Always. It owns the local pause state and the pause screen until `SessionCoordinator` and `SessionUI` exist; at that point pause moves behind `set_paused` without changing the freeze mechanism. Registered in `project.godot` next to `VoyageState`, with a `pause` input action bound to ESC.
 - Godot `SceneTree.paused` (reused): the freeze for every gameplay node on the default (pausable) process mode: `Ship`/`ShipMotion`, ship stations, the player, the `IslandGame` challenge timer, and the cooking minigames. No owner gets its own pause hook.
 - `scripts/progress/session_coordinator.gd` (new, deferred for pause): owns membership, Host identity, pause state, and termination; validates session actions.
 - `scripts/progress/voyage_coordinator.gd` (new): prepares and replaces voyage state, tracks generation identity/completion, and coordinates initialization through other areas.
@@ -374,7 +374,7 @@ Proposed typed Godot methods/signals follow architecture 8.2.3. They are not HTT
 | `host_session` / host-join | Local player creating session | Host intent | LAN session, Host membership, lobby | LAN discovery/transport and host-creation failures need adapter definition. |
 | `discover_sessions` / host-join | Joining player on LAN | Discovery or refresh intent | Current session choices | 4a empty result plus refresh; 6b connection failure returns to list. |
 | `join_session` / host-join | Connecting LAN player through adapter | Selected session and connection-bound identity | Serialized admission and lobby update | 6a deny at four members. 6b failure leaves membership unchanged. 6c current voyage sync, full stats, inventory, deck placement. |
-| `pause` input action / pause-game steps 1 and 4 | Local player, in any gameplay scene | P key press, echo ignored | Toggles pause | Pressing it while the state is already changing has no partial effect (8.2.1). |
+| `pause` input action / pause-game steps 1 and 4 | Local player, in any gameplay scene | ESC key press, echo ignored | Toggles pause | Pressing it while the state is already changing has no partial effect (8.2.1). |
 | `PauseMenu.pause()`, `PauseMenu.resume()` / pause-game steps 2–5 | Pause screen, pause input, tests | None | Tree paused or unpaused; pause screen shown or hidden; `pause_changed(is_paused)` emitted | Calling it in the current state is a no-op: nothing changes and nothing is emitted. |
 | `PauseMenu.is_paused()` / pause-game | Any reader | None | Current pause state | — |
 | `set_paused` / pause-game (deferred co-op) | Host only, valid running voyage | Pause or Resume intent | Whole-crew simulation freeze/resume and UI update | 1a non-Host does not pause, menu TBD. 4a delegates quit. 4b removes disconnected crew and updates screen; Host loss terminates. |
@@ -401,7 +401,7 @@ _A decision that affects the whole system rather than this area is an architectu
 
 **One autoload for pause, not a menu per scene.** Rejected: a pause node in `main.tscn`, because island and cooking scenes replace it and pause must work in all of them.
 
-**Pause on P, not Escape.** Rejected: Escape, because `ui_cancel` already closes galley cooking (`scripts/galley_cooking.gd`) and onion chopping (`scripts/onion_chopping.gd`), so one press would do two things.
+**Pause on ESC.** The `pause` input action uses Escape to pause and resume the game. Cooking minigame input behavior is handled separately.
 
 **Derive distance from current state.** Recalculate on authoritative position changes, including reset. Rejected: storing traveled distance as progress, because the use case asks distance to Paradise and resets can change it abruptly. Straight-line versus route distance remains a requirement decision, not an assumed formula.
 
@@ -469,9 +469,9 @@ Planned tests only; no code or executed runtime checks are claimed. Tests whose 
 | Host-join 6a | Unit | Four members deny join without state changes; concurrent admission cannot create a fifth. |
 | Host-join 6b | Integration | Connection failure explains error, returns to discovery, and leaves membership unchanged. |
 | Host-join 6c | Integration | Late join uses current voyage, deck placement, full stats, starting inventory, valid fallback appearance, and current synchronized world. |
-| UC-PROG-pause-game main: pause (single-player) | Integration | P pauses the tree and shows the pause screen; ship and player stop processing; wind and ship position are unchanged over many paused frames. |
+| UC-PROG-pause-game main: pause (single-player) | Integration | ESC pauses the tree and shows the pause screen; ship and player stop processing; wind and ship position are unchanged over many paused frames. |
 | Pause-game main: resume by button (single-player) | Integration | Resume unpauses the tree, hides the screen, and the ship processes again from the same values. |
-| Pause-game main: resume by key (single-player) | Integration | Pressing P while paused resumes. |
+| Pause-game main: resume by key (single-player) | Integration | Pressing ESC while paused resumes. |
 | Pause-game: island timer frozen (single-player) | Integration | In an island scene, the challenge's time left is unchanged while paused and counts down again after resume. |
 | Pause-game: repeated calls (single-player) | Unit | `pause()` while paused and `resume()` while running change nothing and emit nothing. |
 | UC-PROG-pause-game main (deferred co-op) | Integration | Host freezes movement/stats/wind/waves/all simulation timers; Resume preserves frozen values and remaining durations. UI still responds. |
