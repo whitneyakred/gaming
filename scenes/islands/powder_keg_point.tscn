@@ -1,0 +1,76 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/islands/powder_keg_point.gd" id="game"]
+[ext_resource type="Script" path="res://scripts/ocean.gd" id="ocean"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_art.tscn" id="terrain"]
+[ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="player"]
+[ext_resource type="Script" uid="uid://d0p5ddal0wg2" path="res://scripts/rowboat.gd" id="rowboat"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_hud.tscn" id="hud"]
+
+[sub_resource type="RectangleShape2D" id="RowboatShape"]
+size = Vector2(110, 40)
+
+[node name="PowderKegPoint" type="Node2D"]
+script = ExtResource("game")
+time_limit_seconds = 50.0
+intro_message = "Fuses are catching on the powder kegs!
+Press E next to a burning keg to stamp it out."
+intro_message_seconds = 4.0
+win_message = "You rowed off with a bag of gunpowder!"
+incomplete_message = "Keep those kegs from blowing until time's up!"
+
+[node name="Ocean" type="Node2D" parent="."]
+z_index = -20
+script = ExtResource("ocean")
+scroll_speed = 6.0
+cover_size = Vector2(1600, 1400)
+
+[node name="Terrain" parent="." instance=ExtResource("terrain")]
+
+[node name="Rowboat" type="Area2D" parent="."]
+position = Vector2(30, 392)
+script = ExtResource("rowboat")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Rowboat"]
+shape = SubResource("RowboatShape")
+
+[node name="World" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Player" parent="World" instance=ExtResource("player")]
+position = Vector2(1, 320)
+
+[node name="Camera2D" type="Camera2D" parent="World/Player"]
+limit_left = -640
+limit_top = -520
+limit_right = 640
+limit_bottom = 520
+position_smoothing_enabled = true
+
+[node name="Kegs" type="Node2D" parent="World"]
+
+[node name="Keg1" type="Marker2D" parent="World/Kegs"]
+position = Vector2(-230, -60)
+
+[node name="Keg2" type="Marker2D" parent="World/Kegs"]
+position = Vector2(-120, -180)
+
+[node name="Keg3" type="Marker2D" parent="World/Kegs"]
+position = Vector2(20, -150)
+
+[node name="Keg4" type="Marker2D" parent="World/Kegs"]
+position = Vector2(160, -170)
+
+[node name="Keg5" type="Marker2D" parent="World/Kegs"]
+position = Vector2(240, -40)
+
+[node name="Keg6" type="Marker2D" parent="World/Kegs"]
+position = Vector2(-170, 90)
+
+[node name="Keg7" type="Marker2D" parent="World/Kegs"]
+position = Vector2(40, 40)
+
+[node name="Keg8" type="Marker2D" parent="World/Kegs"]
+position = Vector2(165, 105)
+
+[node name="IslandHUD" parent="." instance=ExtResource("hud")]

@@ -5,18 +5,48 @@ extends Node2D
 @export var helm: HelmStation
 @export var camera: Camera2D
 @export var draw_ocean_marks: bool = true
+@export_range(1.0, 3.0) var station_zoom_multiplier: float = 1.2
+@export_range(1.0, 3.0) var helm_zoom_multiplier: float = 1.05
+@export_range(0.0, 0.5) var station_vignette_opacity: float = 0.22
+@export_range(1.0, 20.0) var camera_response: float = 7.0
+var _normal_zoom: Vector2 = Vector2.ONE
+var _focus_offset: Vector2 = Vector2.ZERO
+## Rowboat framing is controlled by the ship during island travel.
+var view_offset: Vector2 = Vector2.ZERO
 @onready var wind_arrow: Label = $HUD/Wind/Arrow
 @onready var helm_wheel: HelmWheelWidget = $HUD/HelmWheel
+@onready var vignette: ColorRect = $StationOverlay/Vignette
 
-func _process(_delta: float) -> void:
+func _ready() -> void:
+	if is_instance_valid(camera):
+		_normal_zoom = camera.zoom
+
+func _process(delta: float) -> void:
 	if not is_instance_valid(ship):
 		return
-	camera.global_position = ship.global_position
+	_update_camera(delta)
 	# Show the actual smoothed wind, not its next random target. The camera does not rotate.
 	wind_arrow.rotation = ship.wind_velocity.angle() + PI / 2.0
 	wind_arrow.visible = not ship.wind_velocity.is_zero_approx()
 	helm_wheel.set_helm_state(is_instance_valid(helm.operator), ship.wheel_angle_degrees)
 	queue_redraw()
+
+func _update_camera(delta: float) -> void:
+	if not is_instance_valid(camera):
+		return
+	var station: Node2D = null
+	if is_instance_valid(helm) and is_instance_valid(helm.local_player):
+		station = helm.local_player.get("active_station") as Node2D
+	# Rowboat travel also claims the player; only focus on actual deck stations.
+	var focused := is_instance_valid(station) and station != ship and ship.stations_enabled
+	var target_offset := station.global_position - ship.global_position if focused and station != helm else Vector2.ZERO
+	var multiplier := helm_zoom_multiplier if station == helm else station_zoom_multiplier
+	var target_zoom := _normal_zoom * multiplier if focused else _normal_zoom
+	var weight := 1.0 - exp(-camera_response * delta)
+	_focus_offset = _focus_offset.lerp(target_offset, weight)
+	camera.global_position = ship.global_position + _focus_offset + view_offset
+	camera.zoom = camera.zoom.lerp(target_zoom, weight)
+	vignette.modulate.a = lerpf(vignette.modulate.a, station_vignette_opacity if focused else 0.0, weight)
 
 func _draw() -> void:
 	if not draw_ocean_marks or not is_instance_valid(camera):

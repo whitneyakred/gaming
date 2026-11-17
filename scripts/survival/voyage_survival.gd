@@ -28,7 +28,7 @@ var meals: Array[Dictionary] = []
 var ready_meal: Dictionary = {}
 var gathered_pickups: Dictionary = {}
 var discovered_recipes: Dictionary = {}
-var reduced_motion: bool = false
+@export var reduced_motion: bool = false
 var hunger_warning: bool = false
 var fatigue: float = 0.0
 var visual_offset := Vector2.ZERO
@@ -44,7 +44,7 @@ func _ready() -> void:
 	add_child(hud)
 
 func _new_inventory() -> PlayerInventory:
-	var stock := PlayerInventory.new()
+	var stock := VoyageState.get_player_inventory(&"player_1")
 	for id: StringName in [&"fishing_rod", &"fish_cod", &"potato"]:
 		var count: int = 1 if id == &"fishing_rod" else (starter_fish if id == &"fish_cod" else starter_potatoes)
 		for _i in range(count):
@@ -96,7 +96,7 @@ func _commit() -> void:
 	if health <= 0 and not dead:
 		dead = true
 		died.emit()
-		get_tree().paused = true
+		PauseMenu.show_game_over()
 	changed.emit()
 
 func take_meal() -> bool:
@@ -130,18 +130,23 @@ func eat(index: int) -> bool:
 	return true
 
 func restart() -> void:
-	get_tree().paused = false
 	dead = false
+	PauseMenu.resume()
+	get_tree().paused = false
 	hunger = maximum_hunger
 	health = maximum_health
 	hunger_warning = false
 	fatigue = 0
 	visual_offset = Vector2.ZERO
+	VoyageState.reset()
 	inventory = _new_inventory()
 	meals.clear()
 	ready_meal.clear()
 	gathered_pickups.clear()
 	discovered_recipes.clear()
+	Ship.last_visit_won = true
+	SwimAccess.returning_by_swimming = false
+	SwimAccess.shore_return = Vector2.ZERO
 	Ship.returning_from_island = false
 	Ship.visited_island_name = &""
 	Ship.completed_islands.clear()

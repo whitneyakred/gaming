@@ -72,7 +72,7 @@ func _origin() -> Vector2:
 func _input(event: InputEvent) -> void:
 	if get_tree().paused or VoyageSurvival.dead:
 		return
-	if event.is_action_pressed("ui_cancel") and not closed:
+	if event.is_action_pressed("interact") and not event.is_echo() and not closed:
 		closed = true
 		cancelled.emit()
 		queue_free()
@@ -314,7 +314,7 @@ func _draw() -> void:
 	_panel(Rect2(18, 125, 684, 490), Color("1c2931"), 12)
 	_text(Vector2(25, 48), "Time's up" if timed_out else ("Meal is ready" if stage == Stage.DONE else TITLES[stage]), 28)
 	draw_rect(Rect2(620, 20, 75, 40), Color.DIM_GRAY)
-	_text(Vector2(630, 48), "X / Esc", 18)
+	_text(Vector2(630, 48), "X / E", 18)
 	_text(Vector2(25, 95), "No water required • fish / potato galley")
 	_text(Vector2(500, 95), "Time: %d s" % ceili(time_left), 24)
 	if stage == Stage.POTATO or stage == Stage.FISH:

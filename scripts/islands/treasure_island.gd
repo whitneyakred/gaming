@@ -5,7 +5,8 @@ extends IslandGame
 ## The treasure is buried under one of the Marker2D children of TreasureSpots
 ## (picked at random each run). The objective line tells the player how hot
 ## or cold they are. Press E (the "interact" action) to dig. A wrong dig
-## costs time. Once the treasure is dug up, get back to the rowboat.
+## costs time. Digging it up puts 5-30 gold coins in the inventory; then get
+## back to the rowboat.
 
 @export_group("Treasure")
 ## How close (in pixels) a dig must be to the treasure to find it.
@@ -82,7 +83,8 @@ func _on_treasure_found() -> void:
 	if hud:
 		hud.set_objective_color(FOUND_COLOR)
 	refresh_hud()
-	show_message("You found the treasure! Back to the rowboat!", 2.0)
+	# The chest's gold goes straight into the inventory (5-30 coins).
+	give_treasure("You found the treasure!")
 
 
 func _get_objective_text() -> String:

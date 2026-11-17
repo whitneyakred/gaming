@@ -1,0 +1,55 @@
+[gd_scene format=3 uid="uid://dcu53ige1x0el"]
+
+[ext_resource type="Script" uid="uid://baapnwh8loy2r" path="res://scripts/pause_menu.gd" id="1"]
+
+[node name="PauseMenu" type="CanvasLayer" unique_id=542492267]
+process_mode = 3
+layer = 100
+script = ExtResource("1")
+
+[node name="Screen" type="Control" parent="." unique_id=1468069363]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Backdrop" type="ColorRect" parent="Screen" unique_id=1112618179]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="Center" type="CenterContainer" parent="Screen" unique_id=1857630112]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="Screen/Center" unique_id=1532650597]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Screen/Center/Box" unique_id=349796319]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "Paused"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="Screen/Center/Box" unique_id=769017932]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+text = "Resume"
+
+[node name="Hint" type="Label" parent="Screen/Center/Box" unique_id=2004953094]
+layout_mode = 2
+text = "Press ESC to resume"
+horizontal_alignment = 1

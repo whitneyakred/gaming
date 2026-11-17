@@ -8,7 +8,7 @@ The earlier stationary deck prototype now includes manual sailing, ship stations
 ## Run and play
 
 1. In Godot's Project Manager, click **Import**, select this repository's `project.godot`, and open the project. The file declares Godot 4.7 features and the Compatibility renderer; no exact patch version is mandated here.
-2. Click **Run Project** or press **F5**. Walk with **WASD** or arrow keys; press **E** near a station to interact.
+2. Click **Run Project** or press **F5**. Walk with **WASD** or arrow keys; press **E** near a station to interact. Select a hotbar item with **1** through **4**, then press **B** to drop one in front of the player.
 3. Follow the [sailing and island guide](sailing-integration.md) for sail, helm, docking, and rowboat controls. Islands are hand-placed world locations, not generated after a travel timer.
 4. On Coconut Island, collect the coconuts and reach the rowboat before time expires. Treasure Island uses a digging challenge. Failure restarts the island challenge; success returns to the ship.
 5. Raise the sail manually after returning. Press **F8** to stop.
@@ -22,13 +22,14 @@ The earlier stationary deck prototype now includes manual sailing, ship stations
 | [ship.tscn](../scenes/ship.tscn), [ship.gd](../scripts/ship.gd) | Moving ship, deck, stations, placed islands, docking, rowing, and island-return handoff |
 | [ship_motion.gd](../scripts/sailing/ship_motion.gd) | Sail/wind propulsion and helm turning |
 | [ship_station.gd](../scripts/sailing/ship_station.gd) | Sailing-station control and release |
-| [player.tscn](../scenes/player.tscn), [player.gd](../scripts/player.gd) | Character movement, station lock, and per-player inventory |
+| [player.tscn](../scenes/player.tscn), [player.gd](../scripts/player.gd) | Character movement, station lock, per-player inventory, and one-item drops |
+| [world_item.tscn](../scenes/items/world_item.tscn), [world_item.gd](../scripts/items/world_item.gd) | Reusable ground item: automatic pickup, full-inventory retention, and dropper grace period |
 | [ocean.gd](../scripts/ocean.gd) | Repeating decorative ocean visual; not a procedural world generator |
 | [world_island.gd](../scripts/islands/world_island.gd) | World island positions and docking information |
 | [island.tscn](../scenes/island.tscn), [treasure_island.tscn](../scenes/islands/treasure_island.tscn) | Coconut and treasure challenge scenes |
 | [island_game.gd](../scripts/islands/island_game.gd) | Shared timed island-game flow and return behavior |
 | [collect_island.gd](../scripts/islands/collect_island.gd), [treasure_island.gd](../scripts/islands/treasure_island.gd) | Challenge-specific objectives |
-| [coconut.gd](../scripts/coconut.gd), [rowboat.gd](../scripts/rowboat.gd) | Collection notification and island exit interaction |
+| [world_item.gd](../scripts/items/world_item.gd), [rowboat.gd](../scripts/rowboat.gd) | Reusable pickup behavior and island exit interaction |
 | [Item system](../scripts/item-system/Item-sys-information.md) | Registered item metadata |
 | [Inventory system](../scripts/inventory-system/Inventory-sys-information.md) | Small item-type inventory, quantities, and removal API |
 | [sailing_integration.gd](../tests/sailing_integration.gd) | Existing automated checks for the integrated sailing/island loop |

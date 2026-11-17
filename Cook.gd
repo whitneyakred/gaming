@@ -30,7 +30,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if state == State.IDLE or state == State.READY:
 			interact()
 			get_viewport().set_input_as_handled()
-	if event.is_action_pressed("ui_cancel") and state == State.SELECTING:
+	if event.is_action_pressed("interact") and state == State.SELECTING:
 		_cancel()
 		get_viewport().set_input_as_handled()
 
@@ -200,7 +200,7 @@ func _update_display() -> void:
 	if not is_node_ready():
 		return
 	progress.hide()
-	prompt.visible = not crew_nearby.is_empty() and state != State.SELECTING and state != State.PREPARING and not VoyageSurvival.dead
+	prompt.visible = false
 	var ready: Dictionary = VoyageSurvival.ready_meal
 	if not ready.is_empty():
 		state = State.READY

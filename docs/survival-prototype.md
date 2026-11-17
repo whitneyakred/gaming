@@ -7,15 +7,15 @@ This branch connects the existing cooking visuals to owned ingredients, hunger, 
 In Godot's Project Manager, click **Import**, select `project.godot`, then click **Import & Edit**. In the editor, press **F5 (Run Project)**. The project keeps the Compatibility renderer. Use Godot for normal playtesting; packaged builds are created only when requested and kept outside this repository.
 
 - **WASD / arrow keys:** Walk. **E:** Use/leave stations; use the existing sail, helm and anchor controls.
-- At cooking, press **E**, select up to three fish/potato units, then click **Prepare**. Follow the existing slice, transfer and heat tasks; water is skipped. **Escape** cancels without spending ingredients. A completed batch spends ingredients once; press **E** to collect it.
-- **F** or **Meals:** Open owned meals/supplies while outside a station. Click a meal to eat it, or eat an owned coconut. Poisonous meals are explicitly labeled harmful. Incidental rope can be discarded to free a pack slot.
-- The slim top HUD uses heart/food icons with numeric values; refill changes ease smoothly and low resources pulse subtly. **Meals [F]** keeps the temporary meal panel available until the inventory UI replaces it.
-- **P** or **II:** Freeze gameplay. Existing fatigue wobble continues visually. **M** or the motion button in the pause menu toggles reduced-motion presentation.
+- At cooking, press **E**, select up to three fish/potato units, then click **Prepare**. Follow the existing slice, transfer and heat tasks; water is skipped. **E** or the activity close button cancels without spending ingredients; **Escape** opens the existing pause menu. A completed batch spends ingredients once; press **E** to collect it.
+- **F** or **Meals:** Open owned meals/supplies while outside a station. Click a meal to eat it, or eat an owned coconut. Poisonous meals are explicitly labeled harmful. Use the existing inventory hotbar/drop controls for supplies.
+- The dev-testing HUD, inventory hotbar, map and navigation layout are retained. A compact health/hunger readout sits at the upper right. **Meals [F]** keeps the temporary meal panel available until the inventory UI replaces it.
+- **Escape:** Use dev-testing's existing pause menu. Existing fatigue wobble continues visually. **M** keeps its dev-testing map action; reduced motion is an Inspector setting on VoyageSurvival.
 - At game over, click **Start new voyage** to reset the session.
 
 ## Connected loop
 
-Start with a rod, two cod and three potatoes. Fishing grants real inventory loot. Coconut pickups now grant owned food exactly once and remain counted on challenge retries. Winning the collection island grants up to three potatoes, once per voyage; any ungranted portion remains eligible on a later win. Existing four-type inventory capacity still applies.
+Start with a rod, two cod and three potatoes. Fishing grants real inventory loot. Coconut pickups use dev-testing's WorldItem transfer path and shared VoyageState inventory. The current island win/loss rules are preserved. Winning the collection island grants up to three potatoes, once per voyage; any ungranted portion remains eligible on a later win. The canonical VoyageState inventory and its current capacity are retained; survival no longer owns a separate bag.
 
 Cooking supports fish-only, potato-only, fish/potato and a mixed fallback. The result's 0–3 stars measure preparation separately from ingredient compatibility. The first deliberately horrible game recipe is two cod plus one potato: it remains poisonous even at three stars. This is a fictional galley rule, not a real food-safety claim. Discovered recipe names are recorded for the voyage and announced on completion. Coconut preparation is not a new minigame in this slice; owned coconuts can be eaten directly.
 
@@ -57,4 +57,4 @@ Health loss comes from starvation and poisonous food. Zero health latches death,
 
 ## Validation
 
-Run Godot headlessly with `--path . --script res://tests/survival_integration.gd` for threshold, starvation, healing, poison, pause, cancellation, duplicate-input, island retention and death checks. Existing sailing, anchor and wind integration suites cover compatibility with the sailing loop. A rendered preview checks the survival HUD and cooking/pause layout. A Windows pack is a local test artifact, not a published Web build.
+Run Godot headlessly with `--path . --script res://tests/run_after_autoloads.gd -- survival_integration` for threshold, starvation, healing, poison, pause, cancellation, duplicate-input, island retention and death checks. Existing sailing, anchor and wind integration suites cover compatibility with the sailing loop. A rendered preview checks the survival HUD and cooking/pause layout. A Windows pack is a local test artifact, not a published Web build.

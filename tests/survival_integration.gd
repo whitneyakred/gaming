@@ -17,6 +17,7 @@ func _set_needs(hunger: float, health: float) -> void:
 	survival._commit()
 
 func _run() -> void:
+	create_timer(45).timeout.connect(func() -> void: quit(1))
 	survival = root.get_node("VoyageSurvival")
 	change_scene_to_file("res://scenes/main.tscn")
 	await scene_changed
@@ -74,10 +75,17 @@ func _run() -> void:
 	activity._advance()
 	_check(activity.stage == activity.Stage.HEAT, "Recipe advances from fish transfer straight to heat")
 	activity.time_left = 5
-	paused = true
+	var pause_key := InputEventKey.new()
+	pause_key.physical_keycode = KEY_ESCAPE
+	pause_key.pressed = true
+	Input.parse_input_event(pause_key)
 	await process_frame
-	_check(activity.time_left == 5, "Pause freezes recipe countdown")
-	paused = false
+	_check(paused and root.get_node("PauseMenu/Screen").visible, "Escape in cooking must use the existing dev pause menu")
+	var frozen_time: float = activity.time_left
+	await process_frame
+	await process_frame
+	_check(activity.time_left == frozen_time, "Pause freezes recipe countdown")
+	root.get_node("PauseMenu").resume()
 	cook._cancel()
 	await process_frame
 	_check(survival.inventory.get_quantity(&"fish_cod") == fish_before and not player.using_station, "Cancelling frees control without losing ingredients")

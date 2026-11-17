@@ -12,3 +12,6 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+
+# Exported game builds
+builds/

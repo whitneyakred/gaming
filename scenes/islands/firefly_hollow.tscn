@@ -1,0 +1,61 @@
+[gd_scene format=3 uid="uid://byw532a1cmpve"]
+
+[ext_resource type="Script" uid="uid://ctrdifj18g6xg" path="res://scripts/item-system/item_data.gd" id="6_4ddt6"]
+[ext_resource type="Script" uid="uid://cx41u6oa2ga7r" path="res://scripts/inventory-system/player_inventory.gd" id="7_ftlh3"]
+[ext_resource type="Script" uid="uid://bho4drvaukvw1" path="res://scripts/islands/firefly_hollow.gd" id="game"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_hud.tscn" id="hud"]
+[ext_resource type="Script" uid="uid://cdk143q5q8kk7" path="res://scripts/ocean.gd" id="ocean"]
+[ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="player"]
+[ext_resource type="Script" uid="uid://d0p5ddal0wg2" path="res://scripts/rowboat.gd" id="rowboat"]
+[ext_resource type="PackedScene" path="res://scenes/islands/island_art.tscn" id="terrain"]
+
+[sub_resource type="RectangleShape2D" id="RowboatShape"]
+size = Vector2(110, 40)
+
+[sub_resource type="Resource" id="Resource_8fsij"]
+resource_local_to_scene = true
+script = ExtResource("7_ftlh3")
+player_id = &"player_1"
+
+[node name="FireflyHollow" type="Node2D" unique_id=1682093666]
+script = ExtResource("game")
+time_limit_seconds = 40.0
+intro_message = "Catch the fireflies!
+Press E next to one while it is glowing."
+intro_message_seconds = 4.0
+win_message = "You rowed off with a glowing jar!"
+incomplete_message = "Catch 6 fireflies first!"
+
+[node name="Ocean" type="Node2D" parent="." unique_id=1096315173]
+z_index = -20
+script = ExtResource("ocean")
+scroll_speed = 6.0
+cover_size = Vector2(1600, 1400)
+
+[node name="Terrain" parent="." unique_id=2052874477 instance=ExtResource("terrain")]
+
+[node name="Rowboat" type="Area2D" parent="." unique_id=73175297]
+position = Vector2(30, 392)
+script = ExtResource("rowboat")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Rowboat" unique_id=1398358850]
+shape = SubResource("RowboatShape")
+
+[node name="World" type="Node2D" parent="." unique_id=1534546199]
+y_sort_enabled = true
+
+[node name="Player" parent="World" unique_id=1093473097 instance=ExtResource("player")]
+position = Vector2(1, 320)
+player_inventory = SubResource("Resource_8fsij")
+
+[node name="Camera2D" type="Camera2D" parent="World/Player" unique_id=1706000317]
+limit_left = -640
+limit_top = -520
+limit_right = 640
+limit_bottom = 520
+position_smoothing_enabled = true
+
+[node name="Meadow" type="Marker2D" parent="World" unique_id=2116362383]
+position = Vector2(0, -60)
+
+[node name="IslandHUD" parent="." unique_id=2114411206 instance=ExtResource("hud")]

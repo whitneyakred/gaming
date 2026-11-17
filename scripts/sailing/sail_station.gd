@@ -21,8 +21,7 @@ func _update_artwork() -> void:
 	artwork.visible = sail_textures.size() == 4
 	if sail_textures.size() == 4:
 		artwork.texture = sail_textures[ship.sail_level]
-	# Cloth extends right in the PNG. Rotate it toward the bow so its billow
-	# matches the forward sail normal used by ShipMotion's wind calculation.
+	# Face the artwork toward the bow, preserving the existing trim controls.
 	artwork.rotation = deg_to_rad(-90.0 + ship.sail_angle_degrees)
 	queue_redraw()
 
