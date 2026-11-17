@@ -18,6 +18,10 @@ var _voyage_tracks: Array[AudioStreamOggVorbis] = []
 var _voyage_index: int = 0
 var _voyage_music_requested: bool = false
 
+func _enter_tree() -> void:
+	# Custom-drawn HUD text uses the same font as themed Controls.
+	ThemeDB.fallback_font = HarborTheme.UI_FONT
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().auto_accept_quit = false

@@ -6,7 +6,7 @@ const MUTED := Color("736073")
 const CORAL := Color("bd526b")
 const PAPER := Color("f5dfc4")
 const SHADE := Color(0.10, 0.12, 0.25, 0.72)
-const PIXEL_FONT := preload("res://assets/fonts/PixelifySans.ttf")
+const UI_FONT := preload("res://assets/fonts/rye/Rye-Regular.ttf")
 const PLANK := preload("res://assets/menus/menu_plank.png")
 static var _theme: Theme
 static var _trimmed: Dictionary = {}
@@ -51,7 +51,7 @@ static func box(fill: Color, edge: Color, width: int = 2) -> StyleBoxFlat:
 static func menu_theme() -> Theme:
 	if _theme != null: return _theme
 	_theme = Theme.new()
-	_theme.default_font = PIXEL_FONT
+	_theme.default_font = UI_FONT
 	_theme.default_font_size = 22
 	for type in ["Label", "Button", "CheckButton", "CheckBox", "OptionButton", "LineEdit", "PopupMenu", "TabBar"]:
 		_theme.set_color("font_color", type, INK)
@@ -83,7 +83,7 @@ static func menu_theme() -> Theme:
 	_theme.set_stylebox("panel", "AcceptDialog", panel())
 	_theme.set_stylebox("embedded_border", "Window", panel())
 	_theme.set_color("title_color", "Window", INK)
-	_theme.set_font("title_font", "Window", PIXEL_FONT)
+	_theme.set_font("title_font", "Window", UI_FONT)
 	for state in ["on", "off", "on_disabled", "off_disabled"]:
 		var icon := Image.create(34, 18, false, Image.FORMAT_RGBA8)
 		icon.fill(Color("60475d"))
@@ -97,7 +97,7 @@ static func menu_theme() -> Theme:
 static func label(text: String, font_size: int = 20, color: Color = INK) -> Label:
 	var node := Label.new()
 	node.text = text
-	node.add_theme_font_override("font", PIXEL_FONT)
+	node.add_theme_font_override("font", UI_FONT)
 	node.add_theme_font_size_override("font_size", font_size)
 	node.add_theme_color_override("font_color", color)
 	node.mouse_filter = Control.MOUSE_FILTER_IGNORE

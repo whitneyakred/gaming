@@ -44,6 +44,10 @@ window/size/min_height=450
 
 enabled=PackedStringArray("res://addons/holy_ship_export/plugin.cfg")
 
+[gui]
+
+theme/custom_font="res://assets/fonts/rye/Rye-Regular.ttf"
+
 [input]
 
 hotbar_slot_1={

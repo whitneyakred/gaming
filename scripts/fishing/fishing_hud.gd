@@ -30,7 +30,7 @@ func _mouse(at: Vector2, held: bool) -> void:
  draw_line(at+Vector2(8,1),at+Vector2(8,11),INK,1)
 func _draw() -> void:
  if fishing == null: return
- var font := HarborTheme.PIXEL_FONT
+ var font := HarborTheme.UI_FONT
  if fishing.state != 4:
   var text := "CAST" if fishing.state == 1 else ("CLICK!" if fishing.state == 3 else "…")
   var badge := Rect2(170,0,120,42)

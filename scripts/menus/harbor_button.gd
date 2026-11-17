@@ -9,7 +9,7 @@ func _ready() -> void:
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	custom_minimum_size = Vector2(260, 52) if not title_plank else Vector2(250, 44)
-	add_theme_font_override("font", HarborTheme.PIXEL_FONT)
+	add_theme_font_override("font", HarborTheme.UI_FONT)
 	add_theme_font_size_override("font_size", 20 if title_plank else 22)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		if title_plank:
