@@ -10,6 +10,8 @@ var closing_peers: Array[Dictionary] = []
 var endpoint := ""
 var generation := 0
 var current_room: String = ""
+var _next_browse_at := 0
+var _browse_failures := 0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -78,6 +80,8 @@ func call_api(path: String, data: Dictionary = {}) -> Dictionary:
 
 func browse() -> void:
 	if busy or NetworkSession.online or not available(): return
+	if Time.get_ticks_msec() < _next_browse_at: return
+	_next_browse_at = Time.get_ticks_msec() + 5000
 	busy = true
 	operation = "browse"
 	generation += 1
@@ -88,8 +92,11 @@ func browse() -> void:
 	busy = false
 	operation = ""
 	if result.has("error"):
+		_browse_failures = mini(_browse_failures + 1, 4)
+		_next_browse_at = Time.get_ticks_msec() + mini(60000, 5000 * (1 << _browse_failures))
 		status(str(result.error))
 		return
+	_browse_failures = 0
 	crews.clear()
 	for crew: Dictionary in result.get("crews", []):
 		if int(crew.get("count", 0)) > 0: crews[str(crew.id)] = crew

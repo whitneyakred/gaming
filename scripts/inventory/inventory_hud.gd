@@ -15,10 +15,30 @@ var drop_zone: Control
 var hint: Label
 var message: String = ""
 var message_time: float = 0.0
+var cursor_data: Dictionary = {}
+var cursor_layer: CanvasLayer
+var cursor_icon: TextureRect
+var cursor_count: Label
+var _cursor_position := Vector2.ZERO
 
 func bind_service(value: InventoryService) -> void:
 	service = value
 	layer = 5
+	cursor_layer = CanvasLayer.new()
+	cursor_layer.layer = 120
+	add_child(cursor_layer)
+	cursor_icon = TextureRect.new()
+	cursor_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cursor_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	cursor_icon.size = Vector2(42,42)
+	cursor_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	cursor_layer.add_child(cursor_icon)
+	cursor_count = Label.new()
+	cursor_count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cursor_count.add_theme_color_override("font_outline_color",Color("201b2c"))
+	cursor_count.add_theme_constant_override("outline_size",4)
+	cursor_layer.add_child(cursor_count)
+	cursor_layer.hide()
 	drop_zone = Control.new()
 	add_child(drop_zone)
 	drop_zone.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -129,9 +149,9 @@ func _label(text: String, font_size: int, color: Color) -> Label:
 func _refresh() -> void:
 	for button in buttons:
 		var index: int = button.slot_index
-		button.set_entry(service.local_slots[index], str(index + 1) if index < HOTBAR_SLOTS else "", selected == index)
+		button.set_entry(_cursor_slot(service.local_slots[index], index, false), str(index + 1) if index < HOTBAR_SLOTS else "", selected == index)
 	for button in chest_buttons:
-		button.set_entry(service.storage_view[button.slot_index], "", false)
+		button.set_entry(_cursor_slot(service.storage_view[button.slot_index], button.slot_index, true), "", false)
 
 func request_grill(args: Dictionary) -> void:
 	if NetworkSession.online:
@@ -161,6 +181,7 @@ func _drop_on_deck(_position: Vector2, data: Variant) -> void:
 	service.request_drag(data)
 
 func close() -> void:
+	cancel_cursor()
 	storage_open = false
 	grill_open = false
 	if is_instance_valid(service.player):
@@ -173,6 +194,11 @@ func _process(delta: float) -> void:
 		close()
 	if storage_open and not service.near_storage():
 		close()
+	if not cursor_data.is_empty():
+		if cursor_data.revision != service.view_revision or (cursor_data.get("chest_session",false) and not storage_open) or (cursor_data.get("grill_session",false) and not grill_open): cancel_cursor()
+		else:
+			cursor_icon.position = _cursor_position - Vector2(21,21)
+			cursor_count.position = _cursor_position + Vector2(7,9)
 	service.player.set("inventory_open", storage_open or grill_open)
 	hotbar.visible = not MapState.map_open
 	if grill_open and not service.get_parent().get_node("Cooking").near(service):
@@ -232,3 +258,61 @@ func _unhandled_input(event: InputEvent) -> void:
 		service.player.set("inventory_open", storage_open or grill_open)
 		_refresh()
 		get_viewport().set_input_as_handled()
+
+func pick_cursor(index: int, storage: bool, amount: int = -1) -> void:
+	if not cursor_data.is_empty() or not service.can_handle_items(): return
+	if storage and not storage_open: return
+	var slots: Array[Dictionary] = service.storage_view if storage else service.local_slots
+	if index < 0 or index >= slots.size() or slots[index].is_empty(): return
+	var item := ItemDatabase.get_item(slots[index].id)
+	if amount != -1 and item.max_stack <= 1: return
+	cursor_data = {"inventory_drag":true,"index":index,"storage":storage,"amount":amount,"revision":service.view_revision,"service_id":service.get_instance_id(),"chest_session":storage_open,"grill_session":grill_open}
+	cursor_icon.texture = item.icon
+	var quantity: int = int(slots[index].quantity) if amount == -1 else amount
+	cursor_count.text = str(quantity) if quantity > 1 else ""
+	cursor_icon.position = get_viewport().get_mouse_position()-Vector2(21,21)
+	cursor_count.position = get_viewport().get_mouse_position()+Vector2(7,9)
+	cursor_layer.show()
+	_refresh()
+
+func cancel_cursor() -> void:
+	cursor_data.clear()
+	if cursor_layer != null: cursor_layer.hide()
+	if service != null: _refresh()
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouse: _cursor_position = event.position
+	if cursor_data.is_empty(): return
+	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("interact"):
+		cancel_cursor()
+		return # Normal close handling can still close the chest or grill.
+	if not event is InputEventMouseButton or not event.pressed or event.button_index != MOUSE_BUTTON_LEFT: return
+	get_viewport().set_input_as_handled()
+	if not service.can_handle_items() or cursor_data.revision != service.view_revision:
+		cancel_cursor()
+		return
+	var point: Vector2 = event.position
+	for button in buttons + chest_buttons:
+		if button.is_visible_in_tree() and button.get_global_rect().has_point(point):
+			service.request_drag(cursor_data,button.slot_index,button.is_storage)
+			cancel_cursor()
+			return
+	if grill_panel.visible and grill_panel.get_global_rect().has_point(point):
+		var local: Vector2 = grill_panel.get_global_transform().affine_inverse()*point
+		if grill_panel._can_drop_data(local,cursor_data):
+			grill_panel._drop_data(local,cursor_data)
+			cancel_cursor()
+		return
+	if panels.visible and panels.get_global_rect().has_point(point):
+		cancel_cursor()
+		return
+	if hotbar.get_global_rect().has_point(point): return
+	service.request_drag(cursor_data)
+	cancel_cursor()
+
+func _cursor_slot(entry: Dictionary, index: int, storage: bool) -> Dictionary:
+	if cursor_data.is_empty() or cursor_data.index != index or cursor_data.storage != storage or cursor_data.revision != service.view_revision: return entry
+	var left := entry.duplicate()
+	if left.is_empty(): return left
+	left.quantity -= int(left.quantity) if cursor_data.amount == -1 else int(cursor_data.amount)
+	return left if left.quantity > 0 else {}

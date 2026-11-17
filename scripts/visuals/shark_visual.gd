@@ -2,6 +2,9 @@ class_name SharkVisual
 extends Node2D
 ## Shared body frames and fin foam for menu and gameplay sharks.
 const SHEET := preload("res://assets/menus/shark_swim_upright.png")
+# Per-frame nose registration measured from opaque head pixels in the source atlas.
+# Sprite offsets change texture alignment only; the swimming path and fin foam stay fixed.
+const FRAME_OFFSETS: Array[Vector2] = [Vector2(-26.372,2.44),Vector2(-7.588,2.44),Vector2(9.729,2.44),Vector2(27.542,1.44),Vector2(-26.481,9.44),Vector2(-8.352,10.44),Vector2(8.594,10.44),Vector2(26.156,10.44),Vector2(-26.324,15.44),Vector2(-7.866,17.44),Vector2(8.769,16.44),Vector2(26.837,16.44)]
 var sprite: Sprite2D
 var frames: Array[AtlasTexture] = []
 var swim_time := 0.0
@@ -14,6 +17,7 @@ func _ready() -> void:
   frames.append(frame)
  sprite = Sprite2D.new()
  sprite.texture = frames[0]
+ sprite.offset = FRAME_OFFSETS[0]
  sprite.scale = Vector2.ONE * 0.25
  sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
  sprite.show_behind_parent = true
@@ -23,7 +27,9 @@ func _ready() -> void:
  add_child(sprite)
 func set_swim_time(value: float, phase: float = 0.0) -> void:
  swim_time = value
- sprite.texture = frames[int(value*4.5+phase)%12]
+ var frame := int(value*4.5+phase)%12
+ sprite.texture = frames[frame]
+ sprite.offset = FRAME_OFFSETS[frame]
  queue_redraw()
 func _draw() -> void:
  if sprite == null: return

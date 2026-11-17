@@ -21,7 +21,7 @@ func split_click(button: InventorySlotButton, target: InventorySlotButton, half:
  click(source,MOUSE_BUTTON_RIGHT,true,half)
  click(source,MOUSE_BUTTON_RIGHT,false,half)
  await get_tree().process_frame
- check(get_viewport().gui_is_dragging(),"Right click starts a cursor stack")
+ check(not service.hud.cursor_data.is_empty(),"Right click starts a cursor stack")
  var point := target.get_global_rect().get_center()
  var motion := InputEventMouseMotion.new()
  motion.position = point
@@ -74,7 +74,7 @@ func run() -> void:
  click(padding,MOUSE_BUTTON_LEFT,true)
  click(padding,MOUSE_BUTTON_LEFT,false)
  await get_tree().process_frame
- check(service.inventory.capture()==before and not get_viewport().gui_is_dragging(),"Cancelled cursor split leaves source untouched")
+ check(service.inventory.capture()==before and service.hud.cursor_data.is_empty(),"Cancelled cursor split leaves source untouched")
  service.request_drag(data(0,999),3)
  check(service.inventory.capture()==before,"Oversized quantity rejected")
  service.request_drag(data(0,0),3)
@@ -103,8 +103,57 @@ func run() -> void:
  for entry in service.storage.slots:
   if entry.get("id",&"")==item: total+=entry.quantity
  check(total==21,"All operations conserve original stack")
+ service.inventory.clear()
+ service.inventory.try_add(&"fishing_rod")
+ service.inventory.try_add(&"spyglass")
+ await get_tree().process_frame
+ for index in [0,1]:
+  var point: Vector2 = service.hud.buttons[index].get_global_rect().get_center()
+  click(point,MOUSE_BUTTON_RIGHT,true)
+  click(point,MOUSE_BUTTON_RIGHT,false)
+  check(service.hud.cursor_data.is_empty(),"Non-stackable tool cannot be right-click split")
+ var rod_point: Vector2 = service.hud.buttons[0].get_global_rect().get_center()
+ click(rod_point,MOUSE_BUTTON_LEFT,true)
+ click(rod_point,MOUSE_BUTTON_LEFT,false)
+ await get_tree().process_frame
+ check(not service.hud.cursor_data.is_empty(),"Left-click carries stack after mouse release")
+ check(service.hud.buttons[0].entry.is_empty() and service.inventory.slots[0].id==&"fishing_rod","Cursor hides reserved source without removing authoritative item")
+ check(service.hud.cursor_layer.layer > service.hud.layer,"Cursor renders above grill and chest UI")
+ var empty_point: Vector2 = service.hud.buttons[2].get_global_rect().get_center()
+ click(empty_point,MOUSE_BUTTON_LEFT,true)
+ click(empty_point,MOUSE_BUTTON_LEFT,false)
+ await get_tree().process_frame
+ check(service.inventory.slots[0].is_empty() and service.inventory.slots[2].id==&"fishing_rod","Second left-click places item into chosen slot")
+ click(empty_point,MOUSE_BUTTON_LEFT,true)
+ click(empty_point,MOUSE_BUTTON_LEFT,false)
+ service.hud.close()
+ check(service.hud.cursor_data.is_empty() and service.inventory.slots[2].id==&"fishing_rod","Closing chest returns held item to source")
+ service.hud.storage_open=true
+ click(empty_point,MOUSE_BUTTON_LEFT,true)
+ click(empty_point,MOUSE_BUTTON_LEFT,false)
+ service.player.position+=Vector2(100,0)
+ await get_tree().process_frame
+ await get_tree().process_frame
+ check(service.hud.cursor_data.is_empty() and service.inventory.slots[2].id==&"fishing_rod","Leaving chest range cancels cursor safely")
+ if "--capture" in OS.get_cmdline_user_args():
+  var grill: Node2D = main.get_node("Ship/Cooking")
+  service.player.position = grill.position
+  service.hud.grill_open = true
+  service.inventory.clear()
+  service.inventory.try_add(&"fish_cod",4)
+  await get_tree().process_frame
+  service.hud.pick_cursor(0,false)
+  service.hud.message_time=0
+  var overlay_mouse :=  InputEventMouseMotion.new()
+  overlay_mouse.position = service.hud.grill_panel.get_global_rect().get_center()
+  overlay_mouse.global_position = overlay_mouse.position
+  get_viewport().push_input(overlay_mouse)
+  await get_tree().process_frame
+  await RenderingServer.frame_post_draw
+  check(service.hud.cursor_layer.visible and service.hud.cursor_icon.get_global_rect().intersects(service.hud.grill_panel.get_global_rect()),"Cursor overlaps grill on the higher canvas")
+  get_viewport().get_texture().get_image().save_png("res://.godot/cursor-over-grill.png")
+  click(overlay_mouse.position,MOUSE_BUTTON_LEFT,true)
+  click(overlay_mouse.position,MOUSE_BUTTON_LEFT,false)
+  check(grill.fish.size()==1 and service.inventory.get_quantity(&"fish_cod")==3,"Cursor click places a fish on the grill")
  print("STACK SPLIT: %d checks, %d failures" % [checks,failures])
  get_tree().quit(1 if failures else 0)
-
-
-

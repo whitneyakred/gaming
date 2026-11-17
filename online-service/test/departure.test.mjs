@@ -3,8 +3,17 @@ import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
 const base = process.env.HARBOR_TEST_URL ?? 'http://127.0.0.1:8787';
 const token = () => randomBytes(24).toString('hex');
+async function listingCount(id, count) {
+  const until = Date.now() + 7000;
+  while (Date.now() < until) {
+    const list = await (await fetch(base + '/api/crews')).json();
+    if ((list.crews.find(c => c.id === id)?.count ?? 0) === count) return;
+    await new Promise(r => setTimeout(r, 200));
+  }
+  assert.fail('Directory did not converge within its five-second cache TTL');
+}
 async function post(path, data) {
-  const response = await fetch(base + path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({protocol:'holy-ship-coop-11', password:'', token:token(), ...data})});
+  const response = await fetch(base + path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({protocol:'holy-ship-coop-12', password:'', token:token(), ...data})});
   assert.equal(response.status, 200, await response.clone().text());
   return response.json();
 }
@@ -26,21 +35,17 @@ test('Departure frees identity immediately and old departure cannot close a rejo
   let replacement;
   try {
     await post(path + '/leave', {ticket:randomUUID()});
-    let list = await (await fetch(base + '/api/crews')).json();
-    assert.equal(list.crews.find(c => c.id === room.id).count, 2);
+    await listingCount(room.id, 2);
     await post(path + '/leave', {ticket:first.ticket});
-    list = await (await fetch(base + '/api/crews')).json();
-    assert.equal(list.crews.find(c => c.id === room.id).count, 1);
+    // Rejoin admission is immediate, even while the public listing is cached.
     replacement = await connect(await post(path + '/join', {token:identity}));
     await post(path + '/leave', {ticket:first.ticket});
-    list = await (await fetch(base + '/api/crews')).json();
-    assert.equal(list.crews.find(c => c.id === room.id).count, 2);
+    await listingCount(room.id, 2);
     const closed = new Promise(resolve => replacement.addEventListener('close', resolve, {once:true}));
     replacement.send(JSON.stringify({type:'leave'}));
     await Promise.race([closed, new Promise((_,reject) => setTimeout(() => reject(Error('Leave was not closed promptly')), 3000))]);
     await post(path + '/leave', {ticket:room.ticket});
-    list = await (await fetch(base + '/api/crews')).json();
-    assert.ok(!list.crews.some(c => c.id === room.id));
+    await listingCount(room.id, 0);
   } finally {host.close();guest.close();replacement?.close();}
 });
 
@@ -51,6 +56,7 @@ test('Host and guest departures cannot republish an empty ended crew', async () 
   const guests = await Promise.all(tickets.map(connect));
   try {
     await Promise.all([room, ...tickets].map(t => post('/api/crews/' + room.id + '/leave', {ticket:t.ticket})));
+    await listingCount(room.id, 0);
     for (const delay of [0, 100, 500, 2500]) {
       await new Promise(r => setTimeout(r, delay));
       const listing = await (await fetch(base + '/api/crews')).json();

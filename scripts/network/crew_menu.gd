@@ -132,7 +132,9 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not visible or tabs.current_tab != 0 or is_instance_valid(password_dialog): return
 	refresh_clock += delta
-	if refresh_clock >= 15.0: search_crews()
+	if refresh_clock >= 30.0:
+		search_crews()
+		refresh_clock = -randf_range(0.0, 5.0)
 
 func host_voyage() -> void:
 	if HarborService.busy or NetworkSession.online: return

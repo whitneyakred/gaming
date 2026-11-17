@@ -72,7 +72,7 @@ func _draw() -> void:
 		return
 	draw_style_box(_box(Color("172a30"), Color("b48c4e"), 2, 8), Rect2(Vector2.ZERO, size))
 	_text("SHIP'S GRILL", Vector2(22, 33), 22, Color("f2d69d"))
-	_text("Drag fish onto the grate · Click to collect", Vector2(22, 51), 12, Color("b7c9c7"))
+	_text("Click fish, then the grate · Click to collect", Vector2(22, 51), 12, Color("b7c9c7"))
 	draw_style_box(_box(Color("0d151a"), Color("735337"), 4, 8), BOARD)
 	var active := model.cooking()
 	if active:
@@ -158,4 +158,3 @@ func _gui_input(event: InputEvent) -> void:
 					hud.request_grill({"action": "collect", "key": entry.key})
 					break
 		accept_event()
-

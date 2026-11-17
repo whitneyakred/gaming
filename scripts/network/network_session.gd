@@ -1,7 +1,9 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-11"
+const PROTOCOL := "holy-ship-coop-12"
+const SNAPSHOT_INTERVAL := 0.1
+const INPUT_REFRESH_INTERVAL := 0.5
 const DEFAULT_PORT := 24567
 const MAX_CREW := 4
 var online: bool = false
@@ -40,6 +42,8 @@ var _badge: Label
 var _prediction: Array[Dictionary] = []
 var _prediction_error := Vector2.ZERO
 var _last_local_move := Vector2.ZERO
+var _last_local_held := false
+var _last_local_blocked := false
 var _pagehide_callback: JavaScriptObject
 
 func _ready() -> void:
@@ -498,6 +502,8 @@ func input_frame(direction: Vector2, held: bool, blocked: bool, sequence: int) -
 	var id := multiplayer.get_remote_sender_id()
 	if inputs.has(id) and sequence > int(inputs[id].get("sequence", -1)):
 		inputs[id]["sequence"] = sequence
+		# A held input continues to be simulated between network updates.
+		inputs[id]["ack"] = sequence - 1
 		inputs[id].merge({"move": direction.limit_length(), "held": held, "blocked": blocked, "stamp": Time.get_ticks_msec()}, true)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -519,6 +525,9 @@ func _physics_process(delta: float) -> void:
 		if _connect_clock > 20:
 			leave("Connection timed out.")
 		return
+	if multiplayer.multiplayer_peer is HarborPeer and not multiplayer.is_server():
+		var packed := (multiplayer.multiplayer_peer as HarborPeer).take_world_snapshot()
+		if not packed.is_empty(): world_snapshot(packed)
 	if players.has(local_id) and not dedicated:
 		var blocked: bool = PauseMenu.is_paused() or MapState.map_open or not DisplayServer.window_is_focused()
 		if DisplayServer.get_name() == "headless" or "--settings-test" in OS.get_cmdline_user_args():
@@ -531,10 +540,12 @@ func _physics_process(delta: float) -> void:
 		else:
 			_input_clock += delta
 			_predict_local(move, delta)
-			if _input_clock >= 0.05 or move != _last_local_move:
+			if input_needs_send(move, held, blocked):
 				_input_clock = 0
 				input_frame.rpc_id(1, move, held, blocked, Engine.get_physics_frames())
 			_last_local_move = move
+			_last_local_held = held
+			_last_local_blocked = blocked
 	if not multiplayer.is_server():
 		if services.has(local_id): services[local_id].get_node("Fishing").tick_local_fight(delta)
 		_interpolate(delta)
@@ -543,7 +554,8 @@ func _physics_process(delta: float) -> void:
 		var player: CharacterBody2D = players[id]
 		var service: InventoryService = services[id]
 		var data: Dictionary = inputs[id]
-		var blocked: bool = data.blocked or Time.get_ticks_msec() - int(data.stamp) > 750
+		var blocked: bool = data.blocked or Time.get_ticks_msec() - int(data.stamp) > 1500
+		if data.has("ack"): data.ack += 1
 		var move: Vector2 = Vector2.ZERO if blocked else data.move
 		var fishing: RodFishing = service.get_node("Fishing")
 		if blocked:
@@ -580,8 +592,8 @@ func _physics_process(delta: float) -> void:
 		service.server_pickups()
 	_send_clock += delta
 	_save_clock += delta
-	if _send_clock >= 0.05:
-		_send_clock = 0
+	if _send_clock >= SNAPSHOT_INTERVAL:
+		_send_clock = minf(_send_clock - SNAPSHOT_INTERVAL, SNAPSHOT_INTERVAL)
 		_send_snapshot()
 	if _save_clock >= 20:
 		_save_clock = 0
@@ -590,15 +602,19 @@ func _physics_process(delta: float) -> void:
 		if Time.get_ticks_msec() - int(_pending[id]) > 15000:
 			multiplayer.multiplayer_peer.disconnect_peer(id)
 
+func input_needs_send(move: Vector2, held: bool, blocked: bool) -> bool:
+	# Changes (including mouse release and focus loss) are never held for a timer.
+	return _input_clock >= INPUT_REFRESH_INTERVAL or move != _last_local_move or held != _last_local_held or blocked != _last_local_blocked
+
 func _send_snapshot() -> void:
-	if not world_ready:
+	if not world_ready or players.size() <= (0 if dedicated else 1):
 		return
 	var crew := {}
 	for id: int in players:
 		var player: CharacterBody2D = players[id]
 		var service: InventoryService = services[id]
 		var fishing: RodFishing = service.get_node("Fishing")
-		crew[id] = {"island_challenge": player.island_challenge, "eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("sequence", -1), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
+		crew[id] = {"island_challenge": player.island_challenge, "eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("ack", inputs[id].get("sequence", -1)), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
 			"station": str(player.active_station.name) if player.using_station else "", "inventory": service.inventory.capture(),
 			"selected": service.hud.selected, "chest": service.hud.storage_open, "grill_open": service.hud.grill_open, "revision": service.view_revision, "pickup_serial": service.pickup_serial,
 			"fish": {"attempt": fishing.attempt_id, "seed": fishing.fight_seed, "state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
@@ -609,6 +625,11 @@ func _send_snapshot() -> void:
 		"sail": ship.sail_level, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees, "anchor": ship.anchor_deployed,
 		"island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "drops": VoyageState.floor_items.get("ship", {})}
 	var packed := var_to_bytes(data).compress(FileAccess.COMPRESSION_GZIP)
+	if multiplayer.multiplayer_peer is HarborPeer and _pending.is_empty() and packed.size() < 64000:
+		# One upload per crew; the relay fans it out. Pending peers must finish
+		# the scene handshake before receiving RPCs for the gameplay scene.
+		(multiplayer.multiplayer_peer as HarborPeer).send_world_snapshot(packed)
+		return
 	for id: int in identities:
 		if id != 1 and players.has(id):
 			if multiplayer.multiplayer_peer is HarborPeer and packed.size() < 64000:
@@ -850,7 +871,7 @@ func save_world() -> void:
 
 func load_world() -> void:
 	var data := VoyageSaves.world(VoyageSaves.selected)
-	if data.get("version") in [PROTOCOL, "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
+	if data.get("version") in [PROTOCOL, "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
 		_restored = data
 		accounts = data.get("accounts", {})
 
@@ -877,6 +898,10 @@ func leave(message: String = "") -> void:
 	_prediction.clear()
 	_prediction_error = Vector2.ZERO
 	_last_local_move = Vector2.ZERO
+	_last_local_held = false
+	_last_local_blocked = false
+	_input_clock = 0.0
+	_send_clock = 0.0
 	_received_serial = -1
 	_connect_clock = 0
 	local_id = 1

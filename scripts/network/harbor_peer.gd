@@ -17,6 +17,9 @@ var last_heartbeat := 0
 var last_reply := 0
 var failure := ""
 var started := 0
+var packets_sent := 0
+var bytes_sent := 0
+var latest_snapshot := PackedByteArray()
 
 func connect_url(url: String) -> Error:
 	socket.inbound_buffer_size = 1048576
@@ -40,12 +43,18 @@ func advance(emit_events: bool = false) -> void:
 				var data: Variant = JSON.parse_string(packet.get_string_from_utf8())
 				if data is Dictionary: control(data)
 			elif packet.size() >= HEADER and packet.size() <= MAX_PACKET + HEADER:
+				# A dedicated host-only envelope avoids SceneMultiplayer splitting
+				# a broadcast RPC into one upload per recipient. Keep only newest.
+				if packet[10] == 1:
+					if packet.decode_s32(0) == 1 and own_id != 1:
+						latest_snapshot = packet.slice(HEADER)
+					continue
 				incoming.append({"peer": packet.decode_s32(0), "channel": int(packet[8]), "mode": int(packet[9]), "bytes": packet.slice(HEADER)})
 				if incoming.size() > 512:
 					failure = "Connection fell too far behind. Please rejoin."
 					_close()
 					break
-		if now - last_heartbeat > 5000:
+		if now - last_heartbeat > 10000:
 			last_heartbeat = now
 			socket.send_text('{"type":"heartbeat"}')
 	elif socket.get_ready_state() == WebSocketPeer.STATE_CLOSED:
@@ -98,11 +107,23 @@ func _is_refusing_new_connections() -> bool: return refusing
 func _set_refuse_new_connections(value: bool) -> void: refusing = value
 func _poll() -> void: advance(true)
 func _put_packet_script(bytes: PackedByteArray) -> Error:
+	return _send_packet(bytes, target, channel, mode)
+
+func send_world_snapshot(bytes: PackedByteArray) -> Error:
+	if own_id != 1: return ERR_UNAUTHORIZED
+	return _send_packet(bytes, 0, 2, MultiplayerPeer.TRANSFER_MODE_UNRELIABLE, 1)
+
+func take_world_snapshot() -> PackedByteArray:
+	var result := latest_snapshot
+	latest_snapshot = PackedByteArray()
+	return result
+
+func _send_packet(bytes: PackedByteArray, recipient: int, packet_channel: int, packet_mode: MultiplayerPeer.TransferMode, kind: int = 0) -> Error:
 	if state != MultiplayerPeer.CONNECTION_CONNECTED: return ERR_UNCONFIGURED
 	if bytes.size() > MAX_PACKET: return ERR_OUT_OF_MEMORY
 	var queued := socket.get_current_outbound_buffered_amount()
 	# Never queue stale movement/snapshots behind a slow link.
-	if mode != MultiplayerPeer.TRANSFER_MODE_RELIABLE and queued > 65536: return OK
+	if packet_mode != MultiplayerPeer.TRANSFER_MODE_RELIABLE and queued > 65536: return OK
 	if queued > 524288:
 		failure = "Connection is too slow. Please rejoin."
 		_close()
@@ -110,17 +131,23 @@ func _put_packet_script(bytes: PackedByteArray) -> Error:
 	var packet := PackedByteArray()
 	packet.resize(HEADER)
 	packet.encode_s32(0, own_id)
-	packet.encode_s32(4, target)
-	packet[8] = channel
-	packet[9] = mode
+	packet.encode_s32(4, recipient)
+	packet[8] = packet_channel
+	packet[9] = packet_mode
+	packet[10] = kind
 	packet.append_array(bytes)
-	return socket.put_packet(packet)
+	var result := socket.put_packet(packet)
+	if result == OK:
+		packets_sent += 1
+		bytes_sent += packet.size()
+	return result
 func _disconnect_peer(id: int, _force: bool) -> void:
 	if own_id == 1: socket.send_text(JSON.stringify({"type": "kick", "id": id}))
 	elif id == 1: _close()
 func _close() -> void:
 	state = MultiplayerPeer.CONNECTION_DISCONNECTED
 	incoming.clear()
+	latest_snapshot = PackedByteArray()
 	events.clear()
 	if socket.get_ready_state() == WebSocketPeer.STATE_OPEN:
 		socket.send_text('{"type":"leave"}')

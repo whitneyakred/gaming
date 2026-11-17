@@ -105,7 +105,7 @@ func request_drag(data: Dictionary, destination: int = -1, to_storage: bool = fa
 	if not can_handle_items() or data.get("service_id", 0) != get_instance_id():
 		return
 	if data.get("revision", -1) != view_revision:
-		feedback.emit("Items changed. Try dragging again.")
+		feedback.emit("Items changed. Pick up the item again.")
 		return
 	var from_storage: bool = data.get("storage", false)
 	if (from_storage or to_storage) and (not near_storage() or not hud.storage_open):
@@ -115,6 +115,7 @@ func request_drag(data: Dictionary, destination: int = -1, to_storage: bool = fa
 	var index: int = data.get("index", -1)
 	var amount: int = data.get("amount", -1)
 	if amount != -1 and (amount <= 0 or index < 0 or index >= source.slots.size() or amount > int(source.slots[index].get("quantity", 0))): return
+	if amount != -1 and source.definition(source.slots[index].id).max_stack <= 1: return
 	if destination >= 0:
 		source.move_to(index, target, destination, amount)
 	elif index >= 0 and index < source.slots.size() and not source.slots[index].is_empty():

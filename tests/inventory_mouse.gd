@@ -33,15 +33,14 @@ func motion(point: Vector2, relative: Vector2, held: bool) -> void:
 func drag(source: Vector2, destination: Vector2) -> void:
 	motion(source, Vector2.ZERO, false)
 	mouse_button(source, true)
+	mouse_button(source, false)
 	await get_tree().process_frame
-	motion(source + Vector2(20, 0), Vector2(20, 0), true)
+	check(not hud.cursor_data.is_empty(), "Left-click starts persistent cursor carry")
+	motion(destination, destination-source, false)
 	await get_tree().process_frame
-	check(get_viewport().gui_is_dragging(), "Mouse motion starts native drag")
-	motion(destination, destination - source, true)
-	await get_tree().process_frame
+	mouse_button(destination, true)
 	mouse_button(destination, false)
 	await get_tree().process_frame
-
 func run() -> void:
 	get_window().mode = Window.MODE_WINDOWED
 	get_window().size = Vector2i(1280, 720)
@@ -59,6 +58,7 @@ func run() -> void:
 	check(hud.storage_open, "E interaction opens the chest without claiming a station")
 	await get_tree().process_frame
 	service.inventory.clear()
+	service.storage.clear() # Slot assertions use an empty chest, not starter fuel.
 	service.storage.add_items(ItemDatabase.get_item(&"fish_cod"), 8)
 	service.storage.add_items(ItemDatabase.get_item(&"fresh_water"), 5)
 	await get_tree().process_frame

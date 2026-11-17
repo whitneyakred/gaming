@@ -1,6 +1,7 @@
 # Holy Ship online release
 
 For the complete explanation, see [Multiplayer system and operations guide](multiplayer-system.md).
+For current classroom limits and traffic optimizations, see [60-student demo](classroom-demo.md).
 
 Live website and shared harbor: https://holy-ship.pages.dev
 

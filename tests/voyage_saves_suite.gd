@@ -22,6 +22,13 @@ func run() -> void:
 	NetworkSession.online = true
 	check(not VoyageSaves.clear_slot(0), "Cannot erase an active session")
 	NetworkSession.online = false
+	VoyageSaves.selected = 0
+	var previous_build := {"version": "holy-ship-coop-11", "title": "Before classroom update", "accounts": {"captain": {"inventory": [{"id": &"rope", "quantity": 3}]}}}
+	check(VoyageSaves.store(previous_build), "Write previous-build fixture")
+	NetworkSession.load_world()
+	check(NetworkSession._restored == previous_build, "Classroom protocol upgrade preserves previous voyages")
+	NetworkSession._restored.clear()
+	NetworkSession.accounts.clear()
 	for slot in 3: VoyageSaves.clear_slot(slot)
 	VoyageSaves.selected = 0
 	print("SAVES: %d checks, %d failures" % [checks, failures])

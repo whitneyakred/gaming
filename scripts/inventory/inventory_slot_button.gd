@@ -10,38 +10,19 @@ var slot_index: int = -1
 var is_storage: bool = false
 
 func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed and hud != null:
-		if not entry.is_empty() and hud.service.can_handle_items():
-			var amount := ceili(float(entry.quantity) / 2.0) if event.shift_pressed else 1
-			var preview := VBoxContainer.new()
-			preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var icon := TextureRect.new()
-			icon.texture = ItemDatabase.get_item(entry.id).icon
-			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			icon.custom_minimum_size = Vector2(40,40)
-			preview.add_child(icon)
-			var count := Label.new()
-			count.text = str(amount)
-			preview.add_child(count)
-			force_drag({"inventory_drag": true, "index": slot_index, "storage": is_storage, "revision": hud.service.view_revision, "service_id": hud.service.get_instance_id(), "amount": amount}, preview)
+	if hud == null or not event is InputEventMouseButton or not event.pressed: return
+	if event.button_index == MOUSE_BUTTON_LEFT:
+		if event.shift_pressed: hud.quick_transfer(slot_index, is_storage)
+		else: hud.pick_cursor(slot_index, is_storage)
 		accept_event()
-		return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and event.shift_pressed:
-		hud.quick_transfer(slot_index, is_storage)
+	elif event.button_index == MOUSE_BUTTON_RIGHT:
+		var item := ItemDatabase.get_item(entry.get("id", &""))
+		if item != null and item.max_stack > 1:
+			hud.pick_cursor(slot_index, is_storage, ceili(float(entry.quantity)/2.0) if event.shift_pressed else 1)
 		accept_event()
 
 func _get_drag_data(_position: Vector2) -> Variant:
-	if entry.is_empty() or hud == null or not hud.service.can_handle_items() or Input.is_key_pressed(KEY_SHIFT):
-		return null
-	var preview := TextureRect.new()
-	preview.texture = ItemDatabase.get_item(entry.id).icon
-	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	preview.custom_minimum_size = Vector2(40, 40)
-	preview.size = Vector2(40, 40)
-	preview.modulate.a = 0.85
-	set_drag_preview(preview)
-	return {"inventory_drag": true, "index": slot_index, "storage": is_storage, "revision": hud.service.view_revision, "service_id": hud.service.get_instance_id()}
-
+	return null # Click-to-carry is owned by the HUD, above all station canvas layers.
 func _can_drop_data(_position: Vector2, data: Variant) -> bool:
 	return hud != null and hud.valid_drag(data) and (not is_storage or hud.storage_open)
 
@@ -64,7 +45,7 @@ func set_entry(value: Dictionary, key: String, active: bool) -> void:
 	selected = active
 	var item: ItemData = ItemDatabase.get_item(entry.get("id", &""))
 	tooltip_text = "Empty slot" if item == null else "%s\n%s\nStack limit: %d" % [item.display_name, item.description, item.max_stack]
-	if item != null: tooltip_text += "\nRight-click: one · Shift-right-click: half"
+	if item != null and item.max_stack > 1: tooltip_text += "\nRight-click: one · Shift-right-click: half"
 	queue_redraw()
 
 func _draw() -> void:

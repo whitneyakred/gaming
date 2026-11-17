@@ -5,6 +5,7 @@ var role: String
 var last_phase: String = ""
 var client_seen_fish: bool = false
 var shared_grill_key: int = -1
+var started_msec := 0
 func check(value: bool, message: String) -> void:
 	checks += 1
 	if not value:
@@ -21,6 +22,7 @@ func phase(value: String) -> void:
 func read_phase() -> String:
 	return FileAccess.get_file_as_string("res://.godot/network-phase.txt") if FileAccess.file_exists("res://.godot/network-phase.txt") else ""
 func run() -> void:
+	started_msec = Time.get_ticks_msec()
 	get_tree().create_timer(70).timeout.connect(func() -> void: get_tree().quit(1))
 	GameWindow.set_preference("pause_unfocused", false)
 	GameWindow.set_preference("fullscreen", false)
@@ -39,6 +41,12 @@ func run() -> void:
 		await wait(1 if role == "Alpha" else 2)
 		await join_test()
 		await client_tests()
+	if multiplayer.multiplayer_peer is HarborPeer:
+		var transport := multiplayer.multiplayer_peer as HarborPeer
+		var elapsed := maxf(1.0, (Time.get_ticks_msec() - started_msec) / 1000.0)
+		var packet_rate := transport.packets_sent / elapsed
+		check(packet_rate < (18.0 if role == "host" else 10.0), "Actual Godot relay traffic stays within classroom budget")
+		print("RELAY TRAFFIC ", role, ": ", transport.packets_sent, " packets, ", transport.bytes_sent, " bytes, ", snappedf(packet_rate, 0.01), " packets/s")
 	print("NETWORK ", role, ": ", checks, " checks, ", failures, " failures")
 	if NetworkSession.online:
 		NetworkSession.leave()

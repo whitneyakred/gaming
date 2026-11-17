@@ -75,28 +75,40 @@ async function body(request: Request): Promise<Record<string, unknown>> {
 }
 // Separate per-IP gates never process gameplay packets.
 export class RequestGate extends DurableObject<Env> {
-  async allow(action: string): Promise<boolean> {
+  async allow(action: string, identity = ""): Promise<boolean> {
     const period = action === "host" ? 3600000 : 60000;
-    const max = action === "host" ? 8 : action === "join" ? 20 : 30;
+    // Campus NATs share an IP; preserve a smaller per-sailor guard as well.
+    const max = action === "host" ? 240 : action === "join" ? 1200 : 600;
     return this.ctx.storage.transaction(async (txn) => {
-      const old = await txn.get<{ time: number; count: number }>(action);
-      const row =
-        !old || Date.now() - old.time >= period
-          ? { time: Date.now(), count: 0 }
-          : old;
-      if (row.count >= max) return false;
-      row.count++;
-      await txn.put(action, row);
-      await txn.setAlarm(Date.now() + 3600000);
+      const limits: [string, number][] = [[action, max]];
+      if (identity) limits.push([action + ":" + identity, action === "host" ? 8 : 20]);
+      const updates: Record<string, { time: number; count: number; expires: number }> = {};
+      for (const [key, limit] of limits) {
+        const old = await txn.get<{ time: number; count: number }>(key);
+        const row = !old || Date.now() - old.time >= period
+          ? { time: Date.now(), count: 0 } : old;
+        if (row.count >= limit) return false;
+        updates[key] = { ...row, count: row.count + 1, expires: row.time + period };
+      }
+      await txn.put(updates);
+      // Do not rewrite the same cleanup alarm on every request.
+      if (await txn.getAlarm() === null) await txn.setAlarm(Date.now() + 3600000);
       return true;
     });
   }
   async alarm() {
-    await this.ctx.storage.deleteAll();
+    await this.ctx.storage.transaction(async txn => {
+      const rows = await txn.list<{ expires?: number }>();
+      const expired = [...rows].filter(([, row]) => !row.expires || row.expires <= Date.now()).map(([key]) => key);
+      for (let i = 0; i < expired.length; i += 128) await txn.delete(expired.slice(i, i + 128));
+      if (rows.size > expired.length) await txn.setAlarm(Date.now() + 3600000);
+    });
   }
 }
 // Bounded discovery shards; game packets never touch the directory.
 export class CrewDirectory extends DurableObject<Env> {
+  private cached: Listing[] | null = null;
+  private cachedUntil = 0;
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.ctx.storage.sql.exec(
@@ -109,34 +121,44 @@ export class CrewDirectory extends DurableObject<Env> {
     const prior = this.ctx.storage.sql.exec<{data:string,expires:number}>("SELECT data,expires FROM crews WHERE id=?", entry.id).toArray()[0];
     if (prior?.data === "{}" && prior.expires > Date.now()) return;
     this.ctx.storage.sql.exec(
-      "DELETE FROM crews WHERE expires < ?",
-      Date.now(),
-    );
-    this.ctx.storage.sql.exec(
       "INSERT OR REPLACE INTO crews VALUES(?,?,?)",
       entry.id,
       JSON.stringify(entry),
       entry.expires,
     );
-    await this.ctx.storage.setAlarm(Date.now() + 120000);
+    this.cached = null;
+    if (await this.ctx.storage.getAlarm() === null)
+      await this.ctx.storage.setAlarm(Date.now() + 120000);
   }
   remove(id: string) {
+    this.cached = null;
     this.ctx.storage.sql.exec("INSERT OR REPLACE INTO crews VALUES(?,?,?)", id, "{}", Date.now() + 180000);
   }
   list(): Listing[] {
-    return this.ctx.storage.sql
+    if (this.cached && Date.now() < this.cachedUntil) return this.cached;
+    this.cachedUntil = Date.now() + 5000;
+    this.cached = this.ctx.storage.sql
       .exec<{ data: string }>(
         "SELECT data FROM crews WHERE expires>? AND data != '{}' AND json_extract(data, '$.count') > 0 ORDER BY id LIMIT 100",
         Date.now(),
       )
       .toArray()
       .map((r) => JSON.parse(r.data) as Listing);
+    return this.cached;
   }
-  alarm() {
+  async alarm() {
+    this.cached = null;
     this.ctx.storage.sql.exec("DELETE FROM crews WHERE expires<?", Date.now());
+    if (this.ctx.storage.sql.exec("SELECT id FROM crews LIMIT 1").toArray().length)
+      await this.ctx.storage.setAlarm(Date.now() + 120000);
   }
 }
 export class VoyageRoom extends DurableObject<Env> {
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(
+      '{"type":"heartbeat"}', '{"type":"heartbeat"}'));
+  }
   async leaveTicket(value: string): Promise<Response> {
     if (!validId(value)) return error("Invalid departure ticket.", 400);
     const key = await hash(value);
@@ -249,7 +271,7 @@ export class VoyageRoom extends DurableObject<Env> {
     const room = await this.ctx.storage.get<Room>("room");
     const existing = this.sessions();
     if (
-      !room ||
+      !room || room.ended ||
       existing.length >= 4 ||
       (ticket.peer !== 1 &&
         !existing.some(
@@ -260,7 +282,9 @@ export class VoyageRoom extends DurableObject<Env> {
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server, [String(ticket.peer)]);
     server.serializeAttachment({
-      leaveKey: await hash(value),
+      // Reuse the verified hash: do not yield after accepting the socket before
+      // its attachment exists (message/close handlers depend on that state).
+      leaveKey: key.slice("ticket:".length),
       peer: ticket.peer,
       identity: ticket.identity,
       lastSeen: Date.now(),
@@ -289,7 +313,7 @@ export class VoyageRoom extends DurableObject<Env> {
         }),
       );
     await this.publish(room);
-    await this.ctx.storage.setAlarm(Date.now() + 30000);
+    await this.ctx.storage.setAlarm(Date.now() + 120000);
     return new Response(null, { status: 101, webSocket: client });
   }
   private async publish(room: Room) {
@@ -300,7 +324,7 @@ export class VoyageRoom extends DurableObject<Env> {
       locked: !!room.password,
       count: this.sessions().length,
       protocol: room.protocol,
-      expires: Date.now() + 75000,
+      expires: Date.now() + 180000,
     });
   }
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer) {
@@ -335,6 +359,11 @@ export class VoyageRoom extends DurableObject<Env> {
         ws.close(1008, "Invalid message.");
         return;
       }
+      if (!command || typeof command !== "object" || Array.isArray(command) ||
+          typeof command.type !== "string") {
+        ws.close(1008, "Invalid message.");
+        return;
+      }
       if (command.type === "heartbeat") {
         ws.send('{"type":"heartbeat"}');
         return;
@@ -360,6 +389,11 @@ export class VoyageRoom extends DurableObject<Env> {
     }
     const header = new DataView(message);
     const target = header.getInt32(4, true);
+    // Kind 1 is the compressed world snapshot, never accepted from a guest.
+    if (header.getUint8(10) > 1 || (header.getUint8(10) === 1 && session.peer !== 1)) {
+      ws.close(1008, "Only the captain can send world snapshots.");
+      return;
+    }
     if (header.getUint8(8) > 2 || header.getUint8(9) > 2) {
       ws.close(1008, "Invalid packet channel.");
       return;
@@ -427,8 +461,11 @@ export class VoyageRoom extends DurableObject<Env> {
     }))
       if (ticket.expires < Date.now()) await this.ctx.storage.delete(key);
     for (const ws of this.sessions())
-      if (Date.now() - (ws.deserializeAttachment() as Session).lastSeen > 60000)
+      if (Date.now() - Math.max((ws.deserializeAttachment() as Session).lastSeen,
+          this.ctx.getWebSocketAutoResponseTimestamp(ws)?.getTime() ?? 0) > 60000) {
+        await this.depart(ws);
         ws.close(1001, "Connection timed out.");
+      }
     if (
       !this.sessions().some(
         (ws) => (ws.deserializeAttachment() as Session).peer === 1,
@@ -438,7 +475,7 @@ export class VoyageRoom extends DurableObject<Env> {
       return;
     }
     await this.publish(room);
-    await this.ctx.storage.setAlarm(Date.now() + 30000);
+    await this.ctx.storage.setAlarm(Date.now() + 120000);
   }
 }
 export default {
@@ -477,22 +514,23 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   }
   if (parts.length === 3 && parts[1] === "socket" && validId(parts[2]))
     return env.ROOMS.getByName(parts[2]).fetch(request);
-  const action =
-    request.method === "GET" ? "browse" : parts.length === 2 ? "host" : "join";
-  if (
-    !(await env.GATES.getByName(
-      await hash(request.headers.get("CF-Connecting-IP") ?? "local"),
-    ).allow(action))
-  )
-    return error("Too many attempts. Wait a moment and try again.", 429);
+  const ip = await hash(request.headers.get("CF-Connecting-IP") ?? "local");
   if (request.method === "GET" && url.pathname === "/api/crews") {
+    // Public discovery only: admission and passwords are always checked live.
+    const cacheKey = new Request(url.origin + "/api/crews?protocol=" + env.PROTOCOL);
+    const cached = await caches.default.match(cacheKey);
+    if (cached) return cached;
+    if (!(await env.GATES.getByName(ip).allow("browse")))
+      return error("Too many attempts. Wait a moment and try again.", 429);
     const lists = await Promise.all(
       [0, 1, 2, 3].map((i) => env.DIRECTORY.getByName(String(i)).list()),
     );
-    return Response.json(
+    const response = Response.json(
       { crews: lists.flat().filter((c) => c.protocol === env.PROTOCOL) },
-      { headers: { "Cache-Control": "no-store" } },
+      { headers: { "Cache-Control": "public, max-age=5" } },
     );
+    await caches.default.put(cacheKey, response.clone());
+    return response;
   }
   if (request.method !== "POST" || parts[1] !== "crews")
     return error("Not found.", 404);
@@ -512,6 +550,9 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   if (typeof data.password !== "string" || data.password.length > 64)
     return error("Invalid password.");
   const identity = (await hash(data.token)).slice(0, 48);
+  const action = parts.length === 2 ? "host" : "join";
+  if (!(await env.GATES.getByName(ip).allow(action, identity)))
+    return error("Too many attempts. Wait a moment and try again.", 429);
   if (parts.length === 2) {
     if (typeof data.title !== "string") return error("Name your voyage first.");
     const title = data.title

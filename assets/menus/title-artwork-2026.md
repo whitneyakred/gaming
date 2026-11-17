@@ -108,3 +108,19 @@ authoritative event counter for the collecting online player.
 Partial transfers carry an explicit amount and existing revision/proximity checks.
 The coordinated game/Harbor protocol is now `holy-ship-coop-11`, so older hosts
 cannot accidentally interpret partial-stack requests as whole-stack operations.
+
+## Persistent cursor and aligned shark frames
+
+Left-click now carries a whole stack until a second click places it. Source slots
+show the reserved quantity removed visually, but authoritative inventory changes
+only at placement. Closing a chest/grill, leaving its range, losing permission,
+or receiving a newer inventory revision cancels the cursor. Right-click splitting
+is disabled for definitions with max_stack = 1, on the UI and service path.
+A dedicated non-interactive CanvasLayer at layer 120 draws the cursor above the
+cooking panels. Existing revision/proximity checks and network protocol 11 remain.
+
+The upright shark atlas has uneven margins between frames. FRAME_OFFSETS registers
+each frame's opaque head centroid and nose height to one fixed anchor without
+altering the PNG. The same registration is used by title and gameplay sharks;
+fin foam remains anchored to the swimming path. tests/shark_alignment.gd checks
+all twelve registrations against the imported texture to subpixel tolerance.
