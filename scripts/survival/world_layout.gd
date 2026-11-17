@@ -39,3 +39,6 @@ static func generate(ship: Ship, seed_value: int) -> void:
 		MapState.island_catalog[str(island.name)]["coast"] = island.get_coast()
 	MapState.world_bounds = Rect2(-HALF_SIZE, -HALF_SIZE, HALF_SIZE * 2, HALF_SIZE * 2)
 	MapState.changed.emit()
+	var challenges := ship.get_node_or_null("IslandChallenges")
+	if challenges != null:
+		challenges.install_totems()

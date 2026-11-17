@@ -52,6 +52,7 @@ func _exit_tree() -> void:
 		storage.inventory_changed.disconnect(publish)
 
 func can_handle_items() -> bool:
+	if is_instance_valid(player) and player.island_challenge: return false
 	if is_instance_valid(player) and player.health <= 0: return false
 	if not is_instance_valid(player) or not player.is_physics_processing() or player.using_station or (player.is_overboard and not player.on_land):
 		return false

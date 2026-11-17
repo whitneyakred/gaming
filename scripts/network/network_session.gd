@@ -1,7 +1,7 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-9"
+const PROTOCOL := "holy-ship-coop-10"
 const DEFAULT_PORT := 24567
 const MAX_CREW := 4
 var online: bool = false
@@ -411,6 +411,10 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 		if player.health <= 0: ship.survival.respawn(id)
 		return
 	if player.health <= 0: return
+	if kind.begins_with("island_"):
+		ship.get_node("IslandChallenges").handle(id, kind, args)
+		return
+	if player.island_challenge: return
 	match kind:
 		"eat":
 			if int(args.get("revision", -1)) == service.view_revision and not inputs[id].get("blocked",false):
@@ -418,6 +422,11 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 		"select":
 			service.hud.selected = clampi(int(args.get("index", 0)), 0, 3)
 		"interact":
+			var challenges := ship.get_node("IslandChallenges") as IslandChallenges
+			var island := challenges.nearest(player)
+			if island != null:
+				challenges.try_start(id, str(island.name))
+				return
 			if player.using_station:
 				player.active_station.release_control()
 				return
@@ -492,6 +501,7 @@ func input_frame(direction: Vector2, held: bool, blocked: bool, sequence: int) -
 		inputs[id].merge({"move": direction.limit_length(), "held": held, "blocked": blocked, "stamp": Time.get_ticks_msec()}, true)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if IslandChallenges.local_active(): return
 	if not online or not world_ready or PauseMenu.is_paused() or MapState.map_open:
 		return
 	if event.is_action_pressed("interact") and not event.is_echo():
@@ -513,6 +523,7 @@ func _physics_process(delta: float) -> void:
 		var blocked: bool = PauseMenu.is_paused() or MapState.map_open or not DisplayServer.window_is_focused()
 		if DisplayServer.get_name() == "headless" or "--settings-test" in OS.get_cmdline_user_args():
 			blocked = PauseMenu.is_paused() or MapState.map_open
+		blocked = blocked or IslandChallenges.local_active()
 		var move := Vector2.ZERO if blocked else Input.get_vector("move_left", "move_right", "move_up", "move_down")
 		var held: bool = not blocked and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 		if multiplayer.is_server():
@@ -587,7 +598,7 @@ func _send_snapshot() -> void:
 		var player: CharacterBody2D = players[id]
 		var service: InventoryService = services[id]
 		var fishing: RodFishing = service.get_node("Fishing")
-		crew[id] = {"eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("sequence", -1), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
+		crew[id] = {"island_challenge": player.island_challenge, "eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("sequence", -1), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
 			"station": str(player.active_station.name) if player.using_station else "", "inventory": service.inventory.capture(),
 			"selected": service.hud.selected, "chest": service.hud.storage_open, "grill_open": service.hud.grill_open, "revision": service.view_revision,
 			"fish": {"attempt": fishing.attempt_id, "seed": fishing.fight_seed, "state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
@@ -596,7 +607,7 @@ func _send_snapshot() -> void:
 	_snapshot_serial += 1
 	var data := {"serial": _snapshot_serial, "position": ship.global_position, "rotation": ship.global_rotation, "wind": ship.wind_velocity,
 		"sail": ship.sail_level, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees, "anchor": ship.anchor_deployed,
-		"discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "drops": VoyageState.floor_items.get("ship", {})}
+		"island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "drops": VoyageState.floor_items.get("ship", {})}
 	var packed := var_to_bytes(data).compress(FileAccess.COMPRESSION_GZIP)
 	for id: int in identities:
 		if id != 1 and players.has(id):
@@ -645,6 +656,7 @@ func apply_snapshot(data: Dictionary) -> void:
 		return
 	ship.rebuild_world(int(data.get("seed", ship.world_seed)))
 	ship.survival.restore(data.get("survival", {}))
+	ship.get_node("IslandChallenges").locks = data.get("island_locks", {})
 	var known_before := MapState.discovered_islands.size()
 	MapState.discovered_islands.merge(data.get("discovered", {}), true)
 	if known_before != MapState.discovered_islands.size(): MapState.changed.emit()
@@ -674,6 +686,7 @@ func apply_snapshot(data: Dictionary) -> void:
 		var service: InventoryService = services[id]
 		var respawned: bool = player.respawn_serial != int(entry.get("respawn", 0))
 		player.eat_serial = entry.get("eat", 0)
+		player.island_challenge = entry.get("island_challenge", false)
 		player.health = entry.get("health", 15)
 		player.hunger = entry.get("hunger", 15)
 		player.hurt_serial = entry.get("hurt", 0)
@@ -805,6 +818,8 @@ func _remember(id: int) -> void:
 		accounts[identities[id].token] = {"name": identities[id].name, "inventory": services[id].inventory.capture(), "health": players[id].health, "hunger": players[id].hunger, "hunger_clock": players[id].hunger_clock}
 
 func _remove_crew(id: int) -> void:
+	if is_instance_valid(ship) and ship.has_node("IslandChallenges") and multiplayer.is_server():
+		ship.get_node("IslandChallenges").release_player(id)
 	if not players.has(id):
 		return
 	var player: CharacterBody2D = players[id]
@@ -880,3 +895,13 @@ func _start_cli() -> void:
 		if index >= 0 and index + 1 < args.size(): port_number = int(args[index + 1])
 		var secret := OS.get_environment("HOLY_SHIP_PASSWORD")
 		host_session("Server", port_number, secret, not "--new-world" in args)
+
+@rpc("authority", "call_remote", "reliable", 0)
+func island_begin(island_id: String, token: int) -> void:
+	if world_ready and is_instance_valid(ship):
+		ship.get_node("IslandChallenges").begin_local(island_id, token)
+
+@rpc("authority", "call_remote", "reliable", 0)
+func island_end(token: int) -> void:
+	if world_ready and is_instance_valid(ship):
+		ship.get_node("IslandChallenges").close_local(token)

@@ -97,6 +97,9 @@ func _ready() -> void:
 	survival = SurvivalWorld.new()
 	survival.name = "Survival"
 	add_child(survival)
+	var challenges := IslandChallenges.new()
+	challenges.name = "IslandChallenges"
+	add_child(challenges)
 	MapState.pixels_per_meter = pixels_per_meter
 	_rowboat_home = rowboat.position
 	stern_zone.body_entered.connect(_on_stern_entered)

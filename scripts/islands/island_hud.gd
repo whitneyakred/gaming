@@ -101,5 +101,19 @@ func show_toast(text: String, seconds: float = 1.6) -> void:
 		toast_label.visible = false
 
 func _refresh_bag() -> void:
+	if get_parent() is IslandGame and get_parent().embedded:
+		var entries: PackedStringArray = []
+		if _inventory:
+			for item_id in _inventory.quantities:
+				var item := ItemDatabase.get_item(item_id)
+				entries.append("%d %s" % [_inventory.get_quantity(item_id), item.display_name])
+		bag_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+		bag_label.offset_left = 16
+		bag_label.offset_right = -16
+		bag_label.offset_top = -48
+		bag_label.offset_bottom = -16
+		bag_label.text = "Challenge bag: " + (", ".join(entries) if not entries.is_empty() else "empty — win to keep your prizes")
+		bag_label.visible = true
+		return
 	# The reusable inventory HUD now renders the bag with icons.
 	bag_label.visible = false

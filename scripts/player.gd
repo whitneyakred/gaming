@@ -7,6 +7,8 @@ var is_overboard: bool = false
 var on_land: bool = false
 var inventory_open: bool = false
 var fishing_active: bool = false
+var island_challenge: bool = false
+var minigame_avatar: bool = false
 var health: int = 15
 var hunger: int = 15
 var hunger_clock: float = 0.0
@@ -48,6 +50,8 @@ func leave_station(station: Node) -> void:
 
 
 func _ready() -> void:
+	if minigame_avatar:
+		return
 	var initial_inventory := player_inventory
 	var player_id := initial_inventory.player_id if initial_inventory != null else &"player_1"
 	player_inventory = VoyageState.get_player_inventory(player_id, initial_inventory)
@@ -63,7 +67,7 @@ func _grant_starting_inventory() -> void:
 		VoyageState.grant_starter(player_inventory)
 
 func _physics_process(_delta: float) -> void:
-	if NetworkSession.online:
+	if NetworkSession.online and not minigame_avatar:
 		return
 	move_crew(Input.get_vector("move_left", "move_right", "move_up", "move_down"), _delta)
 
@@ -72,7 +76,7 @@ func _process(_delta: float) -> void:
 	visible = health > 0
 
 func move_crew(direction: Vector2, _delta: float) -> void:
-	if health <= 0 or using_station or inventory_open:
+	if health <= 0 or using_station or inventory_open or island_challenge:
 		velocity = Vector2.ZERO
 		return
 	# Read WASD / arrow keys; diagonal movement stays the same speed.

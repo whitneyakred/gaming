@@ -21,7 +21,7 @@ func _setup_game() -> void:
 	var item: ItemData = ItemDatabase.get_item(item_id)
 	_item_name = item.display_name if item else String(item_id).capitalize()
 
-	var pickups := get_tree().get_nodes_in_group(pickup_group)
+	var pickups := get_tree().get_nodes_in_group(pickup_group).filter(func(node: Node) -> bool: return is_ancestor_of(node))
 	total_count = pickups.size()
 	for pickup in pickups:
 		if pickup.has_signal("collected"):

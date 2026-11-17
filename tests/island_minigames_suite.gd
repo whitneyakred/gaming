@@ -760,7 +760,10 @@ func _test_inventory_survives_ship() -> void:
 	var inventory := ship.player.get("player_inventory") as PlayerInventory
 	_check(inventory == _inventory(), "The ship's player must use the voyage inventory")
 	_check(inventory.get_quantity(&"gold_coin") == coins, "Island coins must still be there on the ship")
-	_check(ship.get_islands().size() == 19, "All nineteen islands must be on the map")
+	_check(ship.get_islands().size() == WorldLayout.ISLAND_COUNT, "Generated island count matches the world layout")
+	var challenge_scenes := {}
+	for island in ship.get_islands(): challenge_scenes[island.scene] = true
+	_check(challenge_scenes.size() == ISLANDS.size(), "All nineteen original challenges remain on the map")
 	_check(not ship.status_label.visible, "No nearest-island text while sailing")
 	for island in ship.get_islands():
 		_check(ResourceLoader.exists(island.scene), "%s must point at a real scene" % island.name)

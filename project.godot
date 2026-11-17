@@ -113,6 +113,10 @@ pause={
 ]
 }
 
+[network]
+
+harbor_url="https://holy-ship-harbor.petersonleiton.workers.dev"
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
@@ -120,7 +124,3 @@ renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_s3tc_bptc=true
 textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.0784314, 0.184314, 0.25098, 1)
-
-[network]
-
-harbor_url="https://holy-ship-harbor.petersonleiton.workers.dev"

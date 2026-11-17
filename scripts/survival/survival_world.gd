@@ -50,6 +50,9 @@ func advance(delta: float) -> void:
 		return
 	for id in people:
 		var player: CharacterBody2D = people[id]
+		if player.island_challenge:
+			player.swim_time = 0.0
+			continue
 		if player.health <= 0:
 			player.swim_time = 0.0
 			continue

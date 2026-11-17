@@ -5,6 +5,7 @@ func _ready() -> void:
 	close_map()
 
 func _input(event: InputEvent) -> void:
+	if IslandChallenges.local_active(): return
 	if event is InputEventKey and event.echo:
 		return
 

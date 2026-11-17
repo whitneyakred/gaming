@@ -14,6 +14,7 @@ func _physics_process(_delta: float) -> void:
 		update_crew(ship.player)
 
 func update_crew(crew: CharacterBody2D) -> void:
+	if crew.island_challenge: return
 	if crew.health <= 0: return
 	if not crew.is_overboard:
 		if not crew.using_station and crew.position.distance_to(plank_end) < 14:
