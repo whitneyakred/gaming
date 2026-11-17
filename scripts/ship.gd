@@ -69,11 +69,6 @@ var _docked_island: WorldIsland
 var _leaving_island: WorldIsland
 # The island whose shore the hull last touched.
 var _aground_island: WorldIsland
-# Keeps the "Ran aground" line up for a moment while grazing, so it doesn't
-# flicker on frames where the hull is briefly clear of the shore.
-var _aground_message_left: float = 0.0
-const AGROUND_MESSAGE_SECONDS := 0.8
-
 var world_seed: int = 0
 var survival: SurvivalWorld
 
@@ -84,6 +79,10 @@ func rebuild_world(seed_value: int) -> void:
 
 func _ready() -> void:
 	super._ready()
+	var wake := Node2D.new()
+	wake.set_script(preload("res://scripts/sailing/ship_wake.gd"))
+	wake.name = "Wake"
+	add_child(wake)
 	# Islands stay put in world space (their positions in ship.tscn are map
 	# coordinates) while the deck, stations, and player move together.
 	islands_root.set_as_top_level(true)
@@ -131,11 +130,7 @@ func _physics_process(delta: float) -> void:
 		if _leaving_island and _distance_to_shore(_leaving_island) > anchor_island_distance:
 			_leaving_island = null
 		if _state == State.SAILING:
-			_aground_message_left = AGROUND_MESSAGE_SECONDS if aground else maxf(_aground_message_left - delta, 0.0)
-			if _aground_message_left > 0.0:
-				_set_status("Ran aground! Steer to slide along the shore or away from it.")
-			else:
-				_update_sailing_status()
+			_update_sailing_status()
 	MapState.update_player_position(global_position)
 	ocean.global_position = global_position
 	prompt_label.visible = false

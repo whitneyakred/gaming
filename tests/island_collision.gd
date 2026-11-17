@@ -98,7 +98,7 @@ func _run() -> void:
 		_check(overlap_frames == 0, "Hull overlapped land on %d frames" % overlap_frames)
 		_check(ship._state == Ship.State.SAILING, "Hitting the far side must not dock")
 		_check(touched, "The ship must reach the shore")
-		_check(saw_message, "A 'Ran aground' line must show")
+		_check(not saw_message, "Grounding must not show the removed banner")
 		_check(moved_while_aground > 20.0, "Running head-on into the shore must graze along it, not stick (moved %.0f px)" % moved_while_aground)
 
 	# 2. Get away after running aground, with the wind still blowing onto the

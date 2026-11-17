@@ -91,6 +91,19 @@ func host_tests() -> void:
 	await wait(1)
 	check(a.inventory.get_quantity(&"fish_cod") + b.inventory.get_quantity(&"fish_cod") == 1, "Contended chest item awarded exactly once")
 	check(VoyageState.get_ship_storage().capture()[0].is_empty(), "Shared chest emptied consistently")
+	VoyageState.get_ship_storage().add_items(ItemDatabase.get_item(&"gold_coin"),21)
+	await wait(0.4)
+	phase("split_one")
+	await wait(0.6)
+	check(a.inventory.get_quantity(&"gold_coin")==1 and int(a.storage.slots[0].quantity)==20,"Guest takes exactly one from shared chest")
+	phase("split_half")
+	await wait(0.6)
+	check(a.inventory.get_quantity(&"gold_coin")==11 and int(a.storage.slots[0].quantity)==10,"Guest splits shared chest stack in half")
+	phase("split_invalid")
+	await wait(0.6)
+	check(a.inventory.get_quantity(&"gold_coin")==11 and int(a.storage.slots[0].quantity)==10,"Host rejects oversized partial transfer")
+	a.inventory.try_remove(&"gold_coin",11)
+	a.storage.clear()
 	a.hud.close()
 	b.hud.close()
 	var grill: ShipGrill = ship.get_node("Cooking")
@@ -251,6 +264,9 @@ func client_tests() -> void:
 				NetworkSession.command("interact")
 			"race":
 				NetworkSession.command("transfer", {"action": "take", "index": 0, "revision": service.view_revision})
+			"split_one", "split_half", "split_invalid":
+				if role == "Alpha":
+					NetworkSession.command("drag", {"index":0,"storage":true,"destination":3,"amount":1 if current=="split_one" else (10 if current=="split_half" else 9999),"revision":service.view_revision})
 			"grill_open": NetworkSession.command("interact")
 			"grill_place", "grill_fuel":
 				if role == "Alpha":

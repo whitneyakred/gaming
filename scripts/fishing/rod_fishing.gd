@@ -173,7 +173,7 @@ func cast(point: Vector2) -> bool:
 	held = false
 	state = State.CASTING
 	service.player.set("fishing_active", true)
-	service.feedback.emit("Line cast — watch for a bite!")
+
 	sound.play("cast")
 	queue_redraw()
 	return true

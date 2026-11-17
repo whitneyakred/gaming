@@ -17,6 +17,7 @@ var drops: Dictionary = {}
 var pickup_inside: Dictionary = {}
 var next_drop_id: int = 1
 var view_revision: int = 0
+var pickup_serial: int = 0
 var local_slots: Array[Dictionary] = []
 var storage_view: Array[Dictionary] = []
 var scene_key: String
@@ -99,7 +100,7 @@ func request(action: String, index: int) -> void:
 
 func request_drag(data: Dictionary, destination: int = -1, to_storage: bool = false) -> void:
 	if NetworkSession.online and not NetworkSession.applying:
-		NetworkSession.command("drag", {"index": data.get("index", -1), "storage": data.get("storage", false), "revision": data.get("revision", -1), "destination": destination, "to_storage": to_storage})
+		NetworkSession.command("drag", {"index": data.get("index", -1), "storage": data.get("storage", false), "revision": data.get("revision", -1), "destination": destination, "to_storage": to_storage, "amount": data.get("amount", -1)})
 		return
 	if not can_handle_items() or data.get("service_id", 0) != get_instance_id():
 		return
@@ -112,13 +113,16 @@ func request_drag(data: Dictionary, destination: int = -1, to_storage: bool = fa
 	var source: ShipInventory = storage if from_storage else inventory
 	var target: ShipInventory = storage if to_storage else inventory
 	var index: int = data.get("index", -1)
+	var amount: int = data.get("amount", -1)
+	if amount != -1 and (amount <= 0 or index < 0 or index >= source.slots.size() or amount > int(source.slots[index].get("quantity", 0))): return
 	if destination >= 0:
-		source.move_to(index, target, destination)
+		source.move_to(index, target, destination, amount)
 	elif index >= 0 and index < source.slots.size() and not source.slots[index].is_empty():
 		if NetworkSession.online and drops.size() >= 256:
 			feedback.emit("Too many items on the ground. Pick some up before dropping more.")
 			return
 		var entry := source.slots[index].duplicate()
+		if amount != -1: entry.quantity = amount
 		_spawn_drop(entry, player.position)
 		source.remove(index, entry.quantity)
 
@@ -150,6 +154,9 @@ func server_pickups() -> void:
 		var added := inventory.add_items(ItemDatabase.get_item(entry.id), entry.quantity)
 		if added == 0:
 			continue
+		pickup_serial += 1
+		if not NetworkSession.online or network_id == NetworkSession.local_id:
+			GameWindow.play_ui("pickup")
 		entry.quantity -= added
 		if entry.quantity == 0:
 			drops.erase(id)

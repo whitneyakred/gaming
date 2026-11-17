@@ -76,7 +76,7 @@ func transfer_to(index: int, target: ShipInventory) -> int:
 	remove(index, moved)
 	return moved
 
-func move_to(index: int, target: ShipInventory, destination: int) -> bool:
+func move_to(index: int, target: ShipInventory, destination: int, amount: int = -1) -> bool:
 	_ensure_slots()
 	target._ensure_slots()
 	if index < 0 or index >= slots.size() or destination < 0 or destination >= target.slots.size():
@@ -88,6 +88,20 @@ func move_to(index: int, target: ShipInventory, destination: int) -> bool:
 	var item := definition(source.id)
 	if item == null:
 		return false
+	if amount != -1:
+		if amount <= 0 or amount > int(source.quantity): return false
+		if not other.is_empty() and other.id != source.id: return false
+		var room: int = item.max_stack - int(other.get("quantity", 0))
+		var moved := mini(amount, room)
+		if moved <= 0: return false
+		target._definitions[source.id] = item
+		if other.is_empty(): target.slots[destination] = {"id": source.id, "quantity": moved}
+		else: other.quantity += moved
+		source.quantity -= moved
+		if source.quantity == 0: slots[index] = {}
+		_notify()
+		if target != self: target._notify()
+		return true
 	target._definitions[source.id] = item
 	if not other.is_empty() and source.id == other.id:
 		var moved := mini(int(source.quantity), maxi(0, item.max_stack - int(other.quantity)))

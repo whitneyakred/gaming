@@ -58,6 +58,7 @@ func run() -> void:
 	check(renderer.chest_texture().resource_path.ends_with("ship_chest_closed.png"), "Closing storage restores closed chest sprite")
 	hud.storage_open = true
 	check(hud.buttons.size() == 4 and service.local_slots.size() == 4, "The four hotbar slots are the entire carried inventory")
+	service.storage.clear() # Isolate slot-placement assertions from starter grill fuel.
 	service.request("store", 0)
 	check(service.inventory.get_quantity(&"fishing_rod") == 0 and service.storage.slots[0].id == &"fishing_rod", "Store starter rod in chest")
 	player.call("_grant_starting_inventory")

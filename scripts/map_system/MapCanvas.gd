@@ -1,6 +1,19 @@
 extends Control
 
 const MAP_MARGIN := Vector2(64, 130)
+var ship_heading: float = 0.0
+func _process(_delta: float) -> void:
+	if not is_visible_in_tree(): return
+	var scene := get_tree().current_scene
+	var ship := scene.get_node_or_null("Ship") if scene != null else null
+	if ship is Node2D and not is_equal_approx(ship_heading, ship.global_rotation):
+		ship_heading = ship.global_rotation
+		queue_redraw()
+func heading_marker(center: Vector2, scale_factor: float = 1.0) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for point in [Vector2(0,-11),Vector2(7,8),Vector2(0,4),Vector2(-7,8)]:
+		points.append(center + (point * scale_factor).rotated(ship_heading))
+	return points
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -134,8 +147,8 @@ func _draw() -> void:
 
 	if MapState.has_player_position:
 		var player_map_position := world_to_map(MapState.player_position)
-		draw_circle(player_map_position, 8.0, Color("#f5f1d5"))
-		draw_circle(player_map_position, 5.0, Color("#e84c4c"))
+		draw_colored_polygon(heading_marker(player_map_position, 1.35), Color("#f5f1d5"))
+		draw_colored_polygon(heading_marker(player_map_position), Color("#e84c4c"))
 
 	if MapState.has_destination:
 		var destination_position := world_to_map(MapState.destination)

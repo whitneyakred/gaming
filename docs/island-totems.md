@@ -1,6 +1,6 @@
 # Island challenge totems
 
-Local editor integration on `merge-everything-fest`, November 16, 2026. Not deployed.
+Integrated from `merge-everything-fest` into `systems-revamp` as `8794889` on November 16, 2026. Published with the redesigned title screen to https://holy-ship.pages.dev.
 
 Every generated island has a totem near its center, placed inside its coastline.
 The 30 world islands reuse all 19 existing minigame scenes. Their original puzzles,
@@ -47,11 +47,7 @@ independently verify puzzle completion. This is a cooperative prototype trust
 model, not cheat-resistant authoritative minigame simulation. The `PRIZES` table
 must be updated if designers increase the original scenes' reward amounts.
 
-This local build uses session protocol `holy-ship-coop-10`, preventing connections
-to older clients without the totem RPCs. The deployed harbor still uses protocol 9;
-internet co-op requires a coordinated later service/client release. Nothing was
-deployed or changed in the online service for this task. Local ENet host/guest
-tests use the new protocol.
+The game and deployed Harbor use session protocol `holy-ship-coop-11`, preventing connections to older clients without the totem RPCs. Reload browser tabs after updating. Local ENet host/guest tests pass with the new protocol.
 
 ## Validation
 

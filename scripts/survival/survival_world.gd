@@ -14,6 +14,7 @@ var visual_alpha: Array[float] = [0.0,0.0]
 var ship_danger := 0.0
 var sink_serial := 0
 var time := 0.0
+var shark_visuals: Array[SharkVisual] = []
 var wreck_position := Vector2.ZERO
 var wreck_rotation := 0.0
 var hud: Control
@@ -25,6 +26,11 @@ func _ready() -> void:
 	z_index = 5
 	for i in 2:
 		sharks.append({"position": Vector2.ZERO, "target": 0, "angle": 0.0, "cooldown": 0.0, "active": false, "mode": "arrive", "clock": 0.0, "orbit": 0.0, "aim": Vector2.ZERO, "bitten": false, "alpha": 0.0})
+	for i in 2:
+		var visual := SharkVisual.new()
+		add_child(visual)
+		visual.visible = false
+		shark_visuals.append(visual)
 	var layer := CanvasLayer.new()
 	layer.layer = 9
 	add_child(layer)
@@ -272,22 +278,13 @@ func _process(delta: float) -> void:
 		visual_angles[i] = lerp_angle(visual_angles[i],float(sharks[i].angle),1.0-exp(-10*delta))
 		visual_alpha[i] = move_toward(visual_alpha[i],float(sharks[i].get("alpha",0)),delta*1.5)
 		visual_positions[i] = visual_positions[i].lerp(target, 1.0-exp(-16.0*delta)) if visual_positions[i].distance_to(target)<300 else target
-	queue_redraw()
-
-func _draw() -> void:
-	for index in sharks.size():
-		var alpha: float = visual_alpha[index]
-		if alpha<0.01: continue
-		draw_set_transform(visual_positions[index],visual_angles[index])
-		# Low charcoal fin, warm highlights and a tapered wake, matching the sea palette.
-		for i in 3:
-			var phase := fposmod(time*0.9+i/3.0,1.0)
-			var x := -12.0-phase*40.0
-			draw_polyline(PackedVector2Array([Vector2(x-12,-8-phase*9),Vector2(x,0),Vector2(x-12,8+phase*9)]),Color(0.48,0.72,0.74,alpha*(1-phase)*0.5),1.2,true)
-		var fin := PackedVector2Array([Vector2(-14,5),Vector2(-9,0),Vector2(-5,-11),Vector2(0,-16),Vector2(2,-15),Vector2(1,-6),Vector2(5,0),Vector2(13,5)])
-		draw_colored_polygon(fin,Color(0.16,0.23,0.27,alpha))
-		draw_polyline(PackedVector2Array([Vector2(-14,5),Vector2(-9,0),Vector2(-5,-11),Vector2(0,-16)]),Color(0.49,0.59,0.58,alpha),1.5,true)
-		draw_line(Vector2(-16,6),Vector2(15,6),Color(0.6,0.79,0.77,alpha*0.65),1.5,true)
+	for i in shark_visuals.size():
+		var visual := shark_visuals[i]
+		visual.position = visual_positions[i]
+		visual.rotation = visual_angles[i] + PI*0.5
+		visual.modulate.a = visual_alpha[i]
+		visual.visible = visual_alpha[i] > 0.01
+		visual.set_swim_time(0.0 if GameWindow.preferences.reduced_motion else time, i)
 
 func show_wreck(at: Vector2, angle: float) -> void:
 	wreck_position = at

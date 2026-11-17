@@ -4,7 +4,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 const base = process.env.HARBOR_TEST_URL ?? 'http://127.0.0.1:8787';
 const token = () => randomBytes(24).toString('hex');
 async function post(path, data) {
-  const response = await fetch(base + path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({protocol:'holy-ship-coop-9', password:'', token:token(), ...data})});
+  const response = await fetch(base + path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({protocol:'holy-ship-coop-11', password:'', token:token(), ...data})});
   assert.equal(response.status, 200, await response.clone().text());
   return response.json();
 }

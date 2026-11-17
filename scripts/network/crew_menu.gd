@@ -18,9 +18,10 @@ var save_buttons: Array[Button] = []
 var reset_save: Button
 
 func _ready() -> void:
+	theme = HarborTheme.menu_theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var shade := ColorRect.new()
-	shade.color = Color(0.02, 0.05, 0.08, 0.94)
+	shade.color = HarborTheme.SHADE
 	add_child(shade)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var center := CenterContainer.new()
@@ -35,10 +36,10 @@ func _ready() -> void:
 	card.add_child(rows)
 	var heading := HBoxContainer.new()
 	rows.add_child(heading)
-	var caption := HarborTheme.label("FIND YOUR CREW", 28)
+	var caption := HarborTheme.label("CHOOSE YOUR VOYAGE", 28)
 	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(caption)
-	solo_button = HarborTheme.button("Solo Offline ship", start_solo)
+	solo_button = HarborTheme.button("Sail solo", start_solo)
 	heading.add_child(solo_button)
 	solo_button.custom_minimum_size = Vector2(210, 40)
 	solo_button.add_theme_font_size_override("font_size", 17)
@@ -48,13 +49,14 @@ func _ready() -> void:
 	rows.add_child(notice)
 	notice.hide()
 	tabs = TabContainer.new()
+	tabs.use_hidden_tabs_for_min_size = true
 	# Reserve room for both tabs, including the private-password fields.
-	tabs.custom_minimum_size.y = 380
+	tabs.custom_minimum_size.y = 330
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	rows.add_child(tabs)
 	var browse := page("Browse crews")
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size.y = 260
+	scroll.custom_minimum_size.y = 210
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	browse.add_child(scroll)
 	list = VBoxContainer.new()
@@ -97,8 +99,11 @@ func _ready() -> void:
 	privacy.custom_minimum_size.y = 44
 	privacy.add_theme_font_size_override("font_size", 20)
 	host.add_child(privacy)
+	var password_space := VBoxContainer.new()
+	password_space.custom_minimum_size.y = 78
+	host.add_child(password_space)
 	password_row = VBoxContainer.new()
-	host.add_child(password_row)
+	password_space.add_child(password_row)
 	password_row.add_child(HarborTheme.label("Password", 16))
 	secret = field(password_row, "Crew password", "123")
 	secret.max_length = 64
@@ -154,7 +159,7 @@ func refresh_saves() -> void:
 		for state in ["normal", "hover", "pressed", "disabled"]:
 			var style := save_buttons[i].get_theme_stylebox(state).duplicate() as StyleBoxFlat
 			style.set_border_width_all(3 if selected else 1)
-			style.border_color = Color("f5d999") if selected else Color("b89459")
+			style.border_color = HarborTheme.CORAL if selected else Color("876474")
 			save_buttons[i].add_theme_stylebox_override(state, style)
 		save_buttons[i].text = "Slot %d · " % (i + 1) + ("New voyage" if entry.is_empty() else str(entry.title))
 		if not entry.is_empty(): save_buttons[i].text += "\n" + VoyageSaves.timestamp(entry)
@@ -240,7 +245,7 @@ func search_crews() -> void:
 	HarborService.browse()
 
 func open() -> void:
-	show()
+	HarborTheme.reveal(self)
 	var previous := NetworkSession.status
 	if "disconnected" in previous or "ended" in previous or "timed out" in previous:
 		notice.text = previous

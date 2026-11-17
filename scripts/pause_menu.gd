@@ -10,10 +10,11 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_screen = Control.new()
 	_screen.name = "Screen"
+	_screen.theme = HarborTheme.menu_theme()
 	add_child(_screen)
 	_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var shade := ColorRect.new()
-	shade.color = Color(0.02, 0.05, 0.07, 0.8)
+	shade.color = HarborTheme.SHADE
 	_screen.add_child(shade)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var center := CenterContainer.new()
@@ -27,13 +28,13 @@ func _ready() -> void:
 	rows.add_theme_constant_override("separation", 16)
 	panel.add_child(rows)
 	rows.add_child(HarborTheme.label("A MOMENT AT ANCHOR", 25))
-	rows.add_child(HarborTheme.label("Solo pauses here. Online crews keep sailing.", 17, Color("aebdb7")))
+	rows.add_child(HarborTheme.label("Solo pauses here. Online crews keep sailing.", 17, HarborTheme.MUTED))
 	_resume_button = HarborTheme.button("Resume voyage", resume)
 	_resume_button.name = "ResumeButton"
 	rows.add_child(_resume_button)
 	rows.add_child(HarborTheme.button("Settings", func() -> void: _settings.open()))
 	rows.add_child(HarborTheme.button("Return to title", _ask_return))
-	rows.add_child(HarborTheme.label("P / Esc  Resume", 14, Color("aebdb7")))
+	rows.add_child(HarborTheme.label("P / Esc  Resume", 14, HarborTheme.MUTED))
 	_settings = SettingsPanel.new()
 	_screen.add_child(_settings)
 	_confirm = ConfirmationDialog.new()

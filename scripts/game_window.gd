@@ -40,11 +40,12 @@ func _ready() -> void:
 	music_player.bus = &"Music"
 	add_child(music_player)
 	music_player.finished.connect(_next_voyage_track)
-	_sounds["hover"] = _tone(720.0, 0.045, 0.12)
-	_sounds["click"] = _tone(440.0, 0.09, 0.3)
+	_sounds["hover"] = _menu_sound("hover")
+	_sounds["click"] = _menu_sound("click")
 	_sounds["grill_place"] = _tone(220.0, 0.055, 0.18)
 	_sounds["grill_ready"] = _tone(880.0, 0.24, 0.18)
-	_sounds["back"] = _tone(290.0, 0.12, 0.22)
+	_sounds["pickup"] = _tone(1046.5, 0.10, 0.16)
+	_sounds["back"] = _menu_sound("back")
 	var track := load("res://assets/audio/menu_theme.ogg") as AudioStreamOggVorbis
 	track.loop = true
 	music_player.stream = track
@@ -229,3 +230,23 @@ func _wav(data: PackedByteArray) -> AudioStreamWAV:
 	stream.mix_rate = 22050
 	stream.data = data
 	return stream
+
+func _menu_sound(kind: String) -> AudioStreamWAV:
+	# Short wooden attack followed by a soft, watery two-note pluck.
+	var duration := 0.065 if kind == "hover" else 0.19
+	var data := PackedByteArray()
+	var count := int(22050 * duration)
+	data.resize(count * 2)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 41
+	for i in count:
+		var t := float(i) / 22050.0
+		var base := 740.0 if kind == "hover" else (392.0 if kind == "back" else 523.25)
+		var frequency := base * (1.0 if t < 0.055 else (0.75 if kind == "back" else 1.5))
+		var attack := minf(t / 0.003, 1.0)
+		var decay := exp(-t * (54.0 if kind == "hover" else 20.0))
+		var wood := rng.randf_range(-1, 1) * exp(-t * 190.0) * 0.07
+		var note := (sin(TAU * frequency * t) + 0.22 * sin(TAU * frequency * 2 * t)) * attack * decay
+		var sample := note * (0.075 if kind == "hover" else 0.17) + wood
+		data.encode_s16(i * 2, int(clampf(sample, -1, 1) * 32767))
+	return _wav(data)

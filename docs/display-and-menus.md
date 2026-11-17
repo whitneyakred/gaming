@@ -1,7 +1,7 @@
 # Display, title screen and settings
 
 Press **F5** (**Debug > Run Project**) to start at the title screen. **Play** starts
-an empty new voyage. **Settings** and **How to play** are available before sailing.
+the voyage menu. **Customize** changes your sailor name; **Settings** includes controls.
 In game, **P** pauses; **Esc** closes the current panel first, then pauses if no
 panel handles it. Pause offers Resume, Settings and Return to title. Returning
 asks for confirmation because voyage progress is not saved to disk.
@@ -98,3 +98,17 @@ and gameplay layouts at 960×540, 1280×720, 1440×900 and 1920×1080. Tests cov
 preference round-trips, invalid values, audio bus volume, modal focus, new-voyage
 reset, pause/settings/resume, confirmation and focus loss. Native macOS and browser
 runtime testing still requires those platforms/export templates.
+
+## November 2026 visual refresh
+
+The title uses six separate generated assets, not the reference screenshot. See
+[artwork notes](../assets/menus/title-artwork-2026.md). New parchment menus share
+the pixel font, coral focus, reduced-motion behavior and synthesized UI sounds.
+Web export was verified in Edge alongside desktop menu captures.
+
+The wreck is now stationary, with a separately animated shader waterline, foam,
+and submerged stern. Sharks use six generated swimming frames with independent
+patrol speeds and fin wakes. Title and gameplay share the same ocean shader and
+painted texture; gameplay sampling is world-anchored and repeats indefinitely.
+Validation: 61 menu/animation checks, Windows and Web exports, rendered gameplay
+captures, and an Edge WebGL smoke test with no browser console errors.

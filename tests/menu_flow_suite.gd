@@ -45,15 +45,22 @@ func run() -> void:
 	var ship_rest: Vector2 = title.logo_ship.position
 	GameWindow.set_preference("reduced_motion", false)
 	title._process(0.5)
-	check(title.logo.get_global_rect() == logo_rect, "Lettering remains still while ship animates")
-	check(not title.logo_ship.position.is_equal_approx(ship_rest), "Only the decorative ship bobs")
+	check(title.logo.get_global_rect() == logo_rect, "Lettering remains still while water animates")
+	check(title.logo_ship.position.is_equal_approx(ship_rest), "Broken hull remains stationary")
+	var shark: Node2D = title.get_node("Composition/Props").get_child(0)
+	var shark_rest: Vector2 = shark.sprite.position
+	var swim_frame: Texture2D = shark.sprite.texture
+	shark._process(0.25)
+	check(shark.sprite.position.distance_to(shark_rest) > 0.5, "Shark travels along its patrol")
+	check(shark.sprite.texture != swim_frame and shark.frames.size() == 12, "Shark cycles twelve swimming poses")
+	check(float(title.logo_ship.material.get_shader_parameter("ocean_time")) > 0.0, "Waterline moves independently of fixed wood")
 	GameWindow.set_preference("reduced_motion", true)
 	title._process(0.0)
 	check(title.logo_ship.position.is_equal_approx(ship_rest), "Reduced motion restores ship rest position")
 	for dimensions in [Vector2i(1280, 720), Vector2i(960, 540), Vector2i(1440, 900), Vector2i(1920, 1080)]:
 		get_window().size = dimensions
 		await frames(5)
-		check(title.logo.get_global_rect() == logo_rect, "Logo layout stays constant at %s" % dimensions)
+		check(title.logo.get_global_rect().size.is_equal_approx(logo_rect.size) and title.get_global_rect().encloses(title.logo.get_global_rect()), "Logo stays proportional and fully visible at %s" % dimensions)
 		var expected_scale := minf(dimensions.x / 1280.0, dimensions.y / 720.0)
 		var expected_view := Vector2(dimensions) / expected_scale
 		check(get_viewport().get_visible_rect().size.is_equal_approx(expected_view), "View expands without letterboxing at %s" % dimensions)

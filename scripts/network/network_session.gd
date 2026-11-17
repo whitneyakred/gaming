@@ -1,7 +1,7 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-10"
+const PROTOCOL := "holy-ship-coop-11"
 const DEFAULT_PORT := 24567
 const MAX_CREW := 4
 var online: bool = false
@@ -487,7 +487,7 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 			if kind == "transfer":
 				service.request(str(args.get("action", "")), int(args.get("index", -1)))
 			else:
-				var data := {"service_id": service.get_instance_id(), "revision": service.view_revision, "storage": bool(args.get("storage", false)), "index": int(args.get("index", -1))}
+				var data := {"service_id": service.get_instance_id(), "revision": service.view_revision, "storage": bool(args.get("storage", false)), "index": int(args.get("index", -1)), "amount": int(args.get("amount", -1))}
 				service.request_drag(data, int(args.get("destination", -1)), bool(args.get("to_storage", false)))
 			applying = false
 
@@ -600,7 +600,7 @@ func _send_snapshot() -> void:
 		var fishing: RodFishing = service.get_node("Fishing")
 		crew[id] = {"island_challenge": player.island_challenge, "eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("sequence", -1), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
 			"station": str(player.active_station.name) if player.using_station else "", "inventory": service.inventory.capture(),
-			"selected": service.hud.selected, "chest": service.hud.storage_open, "grill_open": service.hud.grill_open, "revision": service.view_revision,
+			"selected": service.hud.selected, "chest": service.hud.storage_open, "grill_open": service.hud.grill_open, "revision": service.view_revision, "pickup_serial": service.pickup_serial,
 			"fish": {"attempt": fishing.attempt_id, "seed": fishing.fight_seed, "state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
 				"progress": fishing.fight.progress, "tension": fishing.fight.tension, "green": fishing.fight.green_center,
 				"width": fishing.fight.green_width, "danger": fishing.fight.danger, "held": fishing.held, "catches": fishing.visual_catches}}
@@ -706,6 +706,9 @@ func apply_snapshot(data: Dictionary) -> void:
 		service.hud.grill_open = entry.get("grill_open", false)
 		player.inventory_open = entry.chest or service.hud.grill_open
 		service.view_revision = entry.revision
+		var new_pickups: int = entry.get("pickup_serial", 0)
+		if id == local_id and new_pickups > service.pickup_serial: GameWindow.play_ui("pickup")
+		service.pickup_serial = new_pickups
 		service.hud._refresh()
 		var fishing: RodFishing = service.get_node("Fishing")
 		var previous: int = fishing.state

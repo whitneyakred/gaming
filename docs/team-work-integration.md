@@ -47,3 +47,10 @@ shared grill. Handle the new chest contribution and hull repair feature in separ
 focused changes. Keep contributor commits/branches available until each entry has
 been reviewed with its author; a fresh implementation of similar behavior is not
 proof that every part of their contribution has been integrated.
+
+## Release follow-up
+
+The preserved island integration was cherry-picked onto systems-revamp as 8794889
+and deployed November 16 with the generated title artwork. The remaining branch
+review recommendations above are unchanged; those systems were not merged by
+this visual/release update.

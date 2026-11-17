@@ -13,5 +13,5 @@
   ]},
   "migrations":[{"tag":"v1","new_sqlite_classes":["VoyageRoom","CrewDirectory","RequestGate"]}],
   "observability":{"enabled":true,"head_sampling_rate":0.1,"logs":{"enabled":true,"invocation_logs":false}},
-  "vars":{"PROTOCOL":"holy-ship-coop-9"}
+  "vars":{"PROTOCOL":"holy-ship-coop-11"}
 }

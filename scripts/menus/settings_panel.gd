@@ -8,10 +8,11 @@ var _toggles: Dictionary = {}
 var _sizes: OptionButton
 
 func _ready() -> void:
+	theme = HarborTheme.menu_theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var shade := ColorRect.new()
-	shade.color = Color(0.015, 0.035, 0.05, 0.88)
+	shade.color = HarborTheme.SHADE
 	add_child(shade)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var center := CenterContainer.new()
@@ -25,7 +26,7 @@ func _ready() -> void:
 	rows.add_theme_constant_override("separation", 14)
 	box.add_child(rows)
 	rows.add_child(HarborTheme.label("SHIP'S SETTINGS", 30))
-	rows.add_child(HarborTheme.label("Make yourself at home. Changes are saved automatically.", 16, Color("aebdb7")))
+	rows.add_child(HarborTheme.label("Make yourself at home. Changes are saved automatically.", 16, HarborTheme.MUTED))
 	_tabs = TabContainer.new()
 	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_tabs.add_theme_font_size_override("font_size", 18)
@@ -82,7 +83,7 @@ func _build_tabs() -> void:
 		display.add_child(HarborTheme.label("Display refresh is managed by your browser.", 16))
 	var display_help := "The view fits your screen without stretching the artwork.\nWider or taller screens show more of the world.\n"
 	display_help += "Resize your browser or use Fullscreen to change the game area." if OS.has_feature("web") else "F11 toggles fullscreen. Windowed size applies in windowed mode."
-	display.add_child(HarborTheme.label(display_help, 15, Color("aebdb7")))
+	display.add_child(HarborTheme.label(display_help, 15, HarborTheme.MUTED))
 	var audio := _page("Audio")
 	for key in ["master", "music", "effects"]:
 		_volume(audio, key)
@@ -90,13 +91,13 @@ func _build_tabs() -> void:
 	var comfort := _page("Comfort")
 	_toggle(comfort, "Reduced menu motion", "reduced_motion")
 	_toggle(comfort, "Pause when switching to another app", "pause_unfocused")
-	comfort.add_child(HarborTheme.label("Reduced motion removes button scaling and decorative menu motion.\nFocus pause leaves your voyage paused until you resume.\nThese preferences apply to this device.", 15, Color("aebdb7")))
+	comfort.add_child(HarborTheme.label("Reduced motion removes button scaling and decorative menu motion.\nFocus pause leaves your voyage paused until you resume.\nThese preferences apply to this device.", 15, HarborTheme.MUTED))
 	var controls := _page("Controls")
 	for pair in [["WASD / Arrow keys", "Walk or swim"], ["E / Space", "Use chest / station"], ["Left mouse", "Rod: cast / hook / reel; Spyglass: hold to scout"], ["Sail / Helm", "W/S sail level; A/D trim or steer"], ["1–4 / Mouse wheel", "Select hotbar slot"], ["Drag / Shift-click", "Move or drop a stack / transfer to chest"], ["M", "Map (C clears destination while open)"], ["P", "Pause / resume"], ["Esc", "Close the current panel or pause"], ["F11", "Fullscreen / windowed"]]:
 		var line := HBoxContainer.new()
 		line.add_theme_constant_override("separation", 24)
 		controls.add_child(line)
-		var key := HarborTheme.label(pair[0], 16, Color("dfbc78"))
+		var key := HarborTheme.label(pair[0], 16, HarborTheme.CORAL)
 		key.custom_minimum_size.x = 215
 		line.add_child(key)
 		line.add_child(HarborTheme.label(pair[1], 16))
@@ -146,7 +147,7 @@ func open(tab: int = 0) -> void:
 	_previous_focus = get_viewport().gui_get_focus_owner()
 	_build_tabs()
 	_tabs.current_tab = tab
-	show()
+	HarborTheme.reveal(self)
 	_back.grab_focus()
 
 func close() -> void:
