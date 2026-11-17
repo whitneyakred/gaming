@@ -46,8 +46,8 @@ func _ready() -> void:
 	music_player.finished.connect(_next_voyage_track)
 	_sounds["hover"] = _menu_sound("hover")
 	_sounds["click"] = _menu_sound("click")
-	_sounds["grill_place"] = _tone(220.0, 0.055, 0.18)
-	_sounds["grill_ready"] = _tone(880.0, 0.24, 0.18)
+	_sounds["grill_place"] = _grill_sound(false)
+	_sounds["grill_ready"] = _grill_sound(true)
 	_sounds["pickup"] = _tone(1046.5, 0.10, 0.16)
 	_sounds["back"] = _menu_sound("back")
 	var track := load("res://assets/audio/menu_theme.ogg") as AudioStreamOggVorbis
@@ -225,6 +225,24 @@ func _tone(frequency: float, duration: float, amplitude: float) -> AudioStreamWA
 		var t := float(i) / 22050.0
 		var envelope := minf(t / 0.004, 1.0) * pow(1.0 - float(i) / count, 2)
 		var sample := (sin(TAU * frequency * t) + 0.3 * sin(TAU * frequency * 2.01 * t)) * envelope * amplitude
+		data.encode_s16(i * 2, int(clampf(sample, -1, 1) * 32767))
+	return _wav(data)
+
+func _grill_sound(ready: bool) -> AudioStreamWAV:
+	# Soft iron tap for placement, a rising two-note bell for a cooked meal.
+	var data := PackedByteArray()
+	var count := 8820 if ready else 3307
+	data.resize(count * 2)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 744
+	for i in count:
+		var t := float(i) / 22050.0
+		var note_time := t if not ready or t < 0.12 else t - 0.12
+		var frequency := (660.0 if t < 0.12 else 990.0) if ready else 185.0
+		var envelope := minf(note_time / 0.003, 1.0) * exp(-note_time * 19.0)
+		var sample := (sin(TAU * frequency * note_time) + 0.22 * sin(TAU * frequency * 2.76 * note_time)) * envelope * 0.12
+		if not ready:
+			sample += rng.randf_range(-1, 1) * exp(-t * 110.0) * 0.07
 		data.encode_s16(i * 2, int(clampf(sample, -1, 1) * 32767))
 	return _wav(data)
 

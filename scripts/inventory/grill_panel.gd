@@ -1,7 +1,8 @@
 extends Control
 ## Drawn at UI resolution; food positions are normalized for every screen.
-const BOARD := Rect2(22, 64, 334, 218)
-const FUEL := Rect2(24, 320, 56, 56)
+const FRAME = preload("res://assets/menus/grill_iron.png")
+const BOARD := Rect2(48, 78, 282, 176)
+const FUEL := Rect2(54, 320, 64, 64)
 const FOOD_SIZE := Vector2(48, 36)
 var hud: CanvasLayer
 var elapsed: float = 0.0
@@ -47,7 +48,7 @@ func _process(delta: float) -> void:
 	if model == null:
 		return
 	if visible:
-		elapsed += delta
+		elapsed += 0.0 if GameWindow.preferences.reduced_motion else delta
 		var keys := {}
 		for entry in model.fish:
 			if float(entry.progress) >= model.cook_seconds:
@@ -70,22 +71,27 @@ func _draw() -> void:
 	var model := grill()
 	if model == null:
 		return
-	draw_style_box(_box(Color("172a30"), Color("b48c4e"), 2, 8), Rect2(Vector2.ZERO, size))
-	_text("SHIP'S GRILL", Vector2(22, 33), 22, Color("f2d69d"))
-	_text("Click fish, then the grate · Click to collect", Vector2(22, 51), 12, Color("b7c9c7"))
-	draw_style_box(_box(Color("0d151a"), Color("735337"), 4, 8), BOARD)
+	draw_texture_rect(FRAME, Rect2(Vector2.ZERO, size), false)
+	_text("GRILL", Vector2(162, 35), 18, Color("ddd0bf"))
+	draw_rect(BOARD.grow(4), Color("15131d"))
 	var active := model.cooking()
-	if active:
-		for x in range(34, 348, 18):
-			var glow := 0.16 + 0.08 * sin(elapsed * 4 + x)
-			draw_rect(Rect2(x, BOARD.end.y - 28, 10, 22), Color(1, 0.32, 0.06, glow))
-	for y in range(78, 276, 14):
-		draw_line(Vector2(28, y + 2), Vector2(350, y + 2), Color("050a0e"), 5)
-		draw_line(Vector2(28, y), Vector2(350, y), Color("465055"), 3, true)
-	for x in [42, 336]:
-		draw_line(Vector2(x, 71), Vector2(x, 275), Color("687075"), 3, true)
+	for row in 8:
+		for column in 15:
+			var origin := BOARD.position + Vector2(column * 19 + 2, row * 22 + 3)
+			var pulse := 0.5 + 0.5 * sin(elapsed * 2.2 + column * 2.7 + row * 4.1)
+			var coal := Color("66302b").lerp(Color("db713c"), pulse * 0.65) if active else Color("241f29")
+			draw_rect(Rect2(origin, Vector2(13, 13)), coal)
+			if active:
+				draw_rect(Rect2(origin + Vector2(2, 1), Vector2(7, 2)), Color(1, 0.66, 0.3, pulse * 0.7))
+	for y in range(82, 251, 13):
+		draw_line(Vector2(48, y + 3), Vector2(330, y + 3), Color("090d14"), 6)
+		draw_line(Vector2(48, y), Vector2(330, y), Color("49515b"), 3)
+		draw_line(Vector2(48, y - 1), Vector2(330, y - 1), Color("72747c"), 1)
+	for x in [58, 320]:
+		draw_line(Vector2(x, 78), Vector2(x, 254), Color("88909a"), 3)
 	if model.fish.is_empty():
-		_text("Place sea bass anywhere", Vector2(94, 178), 14, Color("99a7a5"))
+		var ghost := ItemDatabase.get_item(&"fish_cod")
+		draw_texture_rect(ghost.icon, Rect2(BOARD.get_center() - FOOD_SIZE / 2, FOOD_SIZE), false, Color(1, 1, 1, 0.28))
 	for entry in model.fish:
 		var point := _food_point(entry)
 		var done: bool = float(entry.progress) >= model.cook_seconds
@@ -97,33 +103,32 @@ func _draw() -> void:
 		draw_rect(Rect2(point + Vector2(-20, 21), Vector2(40, 4)), Color("10191b"))
 		draw_rect(Rect2(point + Vector2(-20, 21), Vector2(40 * progress, 4)), Color("9acb85") if done else Color("eda85c"))
 		if done:
-			_text("READY", point + Vector2(-18, -21), 10, Color("cbeca5"))
+			draw_polyline(PackedVector2Array([point + Vector2(-5, -22), point + Vector2(-1, -18), point + Vector2(7, -27)]), Color("cbe6a0"), 3)
 		elif active and not GameWindow.preferences.reduced_motion:
 			for i in 3:
 				var phase := fmod(elapsed * 0.55 + float(i) / 3 + float(entry.key) * 0.13, 1.0)
 				var puff := point + Vector2(sin(phase * 5 + i) * 9, -10 - phase * 30)
 				draw_circle(puff, 2 + phase * 3, Color(0.87, 0.93, 0.93, (1 - phase) * 0.32), true, -1, true)
-	var status := "Cooking…" if active else ("Add wood or coal to cook" if model.has_raw() else "Grill idle · Fuel saved")
-	_text(status, Vector2(22, 305), 15, Color("f2d69d") if active else Color("b7c9c7"))
-	draw_style_box(_box(Color("382b24"), Color("967345"), 1, 5), FUEL)
+	draw_style_box(_box(Color("17151e"), Color("76727c"), 2, 3), FUEL)
+	var fuel_item := ItemDatabase.get_item(model.fuel.get("id", &"wood"))
+	if fuel_item != null:
+		draw_texture_rect(fuel_item.icon, Rect2(FUEL.position + Vector2(10, 8), Vector2(42, 42)), false, Color(1, 1, 1, 0.35 if model.fuel.is_empty() else 1.0))
 	if not model.fuel.is_empty():
-		var item := ItemDatabase.get_item(model.fuel.id)
-		draw_texture_rect(item.icon, Rect2(FUEL.position + Vector2(8, 5), Vector2(38, 38)), false)
-		_text(str(model.fuel.quantity), FUEL.position + Vector2(35, 49), 14, Color("fff1cc"))
-	else:
-		_text("FUEL", FUEL.position + Vector2(9, 33), 12, Color("b9a583"))
-	_text("Heat remaining", Vector2(96, 337), 13, Color("c4d4cd"))
-	draw_style_box(_box(Color("0d171c"), Color("506367"), 1, 3), Rect2(96, 348, 258, 15))
+		_text(str(model.fuel.quantity), FUEL.position + Vector2(43, 56), 14, Color("ffe2b1"))
 	var heat := clampf(model.burn_remaining / maxf(1, model.burn_capacity), 0, 1)
-	draw_rect(Rect2(99, 351, 252 * heat, 9), Color("ee9d4d") if active else Color("98794d"))
-	_text("Shift-click fuel to add · Click slot to remove", Vector2(22, 398), 12, Color("acbdbb"))
-	_text("E / Esc to close", Vector2(140, 420), 12, Color("acbdbb"))
-
+	var flame := Vector2(157, 338)
+	draw_colored_polygon(PackedVector2Array([flame + Vector2(-9, 5), flame + Vector2(-6, -7), flame + Vector2(-2, -2), flame + Vector2(2, -17), flame + Vector2(9, -3), flame + Vector2(8, 7), flame + Vector2(0, 11)]), Color("efa354") if active else Color("8b8185"))
+	draw_style_box(_box(Color("14141d"), Color("78737c"), 2, 2), Rect2(179, 328, 146, 17))
+	for i in 12:
+		draw_rect(Rect2(183 + i * 11, 332, 8, 9), Color("eda05c") if heat > float(i) / 12 else Color("3d3843"))
+	for i in 7:
+		draw_rect(Rect2(152 + i * 24, 370, 15, 4), Color("17151e"))
+	_text("Esc", Vector2(177, 412), 11, Color("ada4a5"))
 func draw_ellipse_shadow(point: Vector2) -> void:
 	draw_style_box(_box(Color(0, 0, 0, 0.4), Color.TRANSPARENT, 0, 12), Rect2(point - Vector2(25, 12), Vector2(50, 26)))
 
 func _text(value: String, point: Vector2, font_size: int, color: Color) -> void:
-	draw_string(ThemeDB.fallback_font, point, value, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
+	draw_string(preload("res://assets/fonts/PixelifySans.ttf"), point, value, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
 
 func _box(fill: Color, edge: Color, width: int, radius: int) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
