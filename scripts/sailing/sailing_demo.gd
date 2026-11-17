@@ -37,6 +37,7 @@ func _process(delta: float) -> void:
 	# Show the actual smoothed wind, not its next random target. The camera does not rotate.
 	wind_arrow.rotation = ship.wind_velocity.angle() + PI / 2.0
 	wind_arrow.visible = not ship.wind_velocity.is_zero_approx()
+	helm_wheel.maximum_angle_degrees = maxf(ship.maximum_wheel_turns * 360.0, 1.0)
 	helm_wheel.set_helm_state(is_instance_valid(helm.operator), ship.wheel_angle_degrees)
 	queue_redraw()
 
@@ -75,3 +76,4 @@ func _draw() -> void:
 			var offset := Vector2(posmod(x * 37 + y * 17, 53), posmod(y * 29 + x * 11, 47))
 			var point := to_local(Vector2(x, y) * cell_size + offset)
 			draw_line(point, point + Vector2(12, 0), Color(0.35, 0.65, 0.72, 0.4), 2.0)
+

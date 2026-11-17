@@ -84,7 +84,8 @@ animations = [{
 "speed": 8.0
 }]
 
-[node name="Player" type="CharacterBody2D" unique_id=1181161114 groups=["crew"]]
+[node name="Player" type="CharacterBody2D" unique_id=1181161114 groups=["crew"]
+z_index = 1]
 motion_mode = 1
 script = ExtResource("1")
 player_inventory = SubResource("PlayerInventory_default")
@@ -107,3 +108,4 @@ sprite_frames = SubResource("SpriteFrames_fishing")
 animation = &"fishing_side"
 
 [connection signal="animation_finished" from="FishingAnimation" to="." method="_on_fishing_animation_animation_finished"]
+

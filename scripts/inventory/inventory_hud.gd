@@ -70,7 +70,7 @@ func bind_service(value: InventoryService) -> void:
 	panels.offset_top = -160
 	panels.offset_bottom = 120
 	panels.add_theme_constant_override("separation", 14)
-	chest_panel = _container("SHIP'S CHEST", "Shift-click to transfer · E / Esc to close")
+	chest_panel = _container("SHIP'S CHEST", "")
 	grill_panel = preload("res://scripts/inventory/grill_panel.gd").new()
 	grill_panel.hud = self
 	add_child(grill_panel)
@@ -106,7 +106,8 @@ func _container(title: String, help: String) -> PanelContainer:
 	rows.add_child(grid)
 	for index in service.storage_view.size():
 		chest_buttons.append(_slot(grid, index, true))
-	rows.add_child(_label(help, 12, Color("c0b499")))
+	if not help.is_empty():
+		rows.add_child(_label(help, 12, Color("c0b499")))
 	return panel
 
 func _slot(parent: Control, index: int, storage: bool) -> InventorySlotButton:
@@ -245,6 +246,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			grill_open = true
 			handled = true
 		elif service.chest_is_nearest():
+			service.open_nearest_chest()
 			storage_open = true
 			handled = true
 	elif event is InputEventKey and event.pressed:
@@ -370,3 +372,5 @@ func _set_cursor_remaining(amount: int) -> void:
 	cursor_data.amount = amount
 	cursor_count.text = str(amount) if amount > 1 else ""
 	_refresh()
+
+

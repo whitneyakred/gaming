@@ -244,6 +244,9 @@ func load_game() -> void:
 			var slots: Array[Dictionary] = []
 			slots.assign(_restored.get("storage", []))
 			VoyageState.get_ship_storage().restore(slots)
+			var port_slots: Array[Dictionary] = []
+			port_slots.assign(_restored.get("port_storage", []))
+			VoyageState.get_ship_storage(18, 1).restore(port_slots)
 			var drops: Dictionary = VoyageState.floor_items.get("ship", {})
 			drops.merge(_restored.get("drops", {}), true)
 			for key: int in drops:
@@ -445,6 +448,7 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 				player.inventory_open = true
 				return
 			if service.chest_is_nearest():
+				service.open_nearest_chest()
 				service.hud.storage_open = true
 				player.inventory_open = true
 				return
@@ -616,14 +620,14 @@ func _send_snapshot() -> void:
 		var fishing: RodFishing = service.get_node("Fishing")
 		crew[id] = {"island_challenge": player.island_challenge, "eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("ack", inputs[id].get("sequence", -1)), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
 			"station": str(player.active_station.name) if player.using_station else "", "inventory": service.inventory.capture(),
-			"selected": service.hud.selected, "chest": service.hud.storage_open, "grill_open": service.hud.grill_open, "revision": service.view_revision, "pickup_serial": service.pickup_serial, "drop_serial": service.drop_serial,
+			"selected": service.hud.selected, "chest": service.hud.storage_open, "chest_id": service.active_chest_id, "grill_open": service.hud.grill_open, "revision": service.view_revision, "pickup_serial": service.pickup_serial, "drop_serial": service.drop_serial,
 			"fish": {"attempt": fishing.attempt_id, "seed": fishing.fight_seed, "state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
 				"progress": fishing.fight.progress, "tension": fishing.fight.tension, "green": fishing.fight.green_center,
 				"width": fishing.fight.green_width, "danger": fishing.fight.danger, "held": fishing.held, "catches": fishing.visual_catches}}
 	_snapshot_serial += 1
 	var data := {"serial": _snapshot_serial, "position": ship.global_position, "rotation": ship.global_rotation, "wind": ship.wind_velocity,
 		"sail": ship.sail_level, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees, "anchor": ship.anchor_deployed,
-		"island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "drops": VoyageState.floor_items.get("ship", {})}
+		"island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "port_storage": VoyageState.get_ship_storage(18, 1).capture(), "drops": VoyageState.floor_items.get("ship", {})}
 	var packed := var_to_bytes(data).compress(FileAccess.COMPRESSION_GZIP)
 	if multiplayer.multiplayer_peer is HarborPeer and _pending.is_empty() and packed.size() < 64000:
 		# One upload per crew; the relay fans it out. Pending peers must finish
@@ -693,6 +697,9 @@ func apply_snapshot(data: Dictionary) -> void:
 	var storage: Array[Dictionary] = []
 	storage.assign(data.storage)
 	VoyageState.get_ship_storage().restore(storage)
+	var port_slots: Array[Dictionary] = []
+	port_slots.assign(data.get("port_storage", []))
+	VoyageState.get_ship_storage(18, 1).restore(port_slots)
 	var drops: Dictionary = VoyageState.floor_items.get("ship", {})
 	drops.clear()
 	drops.merge(data.drops, true)
@@ -723,6 +730,7 @@ func apply_snapshot(data: Dictionary) -> void:
 		slots.assign(entry.inventory)
 		service.inventory.restore(slots)
 		service.hud.selected = entry.selected
+		service.select_chest(int(entry.get("chest_id", 0)))
 		service.hud.storage_open = entry.chest
 		service.hud.grill_open = entry.get("grill_open", false)
 		player.inventory_open = entry.chest or service.hud.grill_open
@@ -867,7 +875,7 @@ func save_world() -> void:
 	for id: int in players:
 		_remember(id)
 	var data := {"discovered": MapState.discovered_islands, "seed": ship.world_seed, "version": PROTOCOL, "title": crew_title, "position": ship.global_position, "rotation": ship.global_rotation,
-		"grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "drops": VoyageState.floor_items.get("ship", {}), "accounts": accounts}
+		"grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "port_storage": VoyageState.get_ship_storage(18, 1).capture(), "drops": VoyageState.floor_items.get("ship", {}), "accounts": accounts}
 	if not VoyageSaves.store(data):
 		set_status(VoyageSaves.last_error)
 		if services.has(local_id): services[local_id].feedback.emit(VoyageSaves.last_error)
@@ -936,3 +944,4 @@ func island_begin(island_id: String, token: int) -> void:
 func island_end(token: int) -> void:
 	if world_ready and is_instance_valid(ship):
 		ship.get_node("IslandChallenges").close_local(token)
+

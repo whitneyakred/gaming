@@ -12,9 +12,15 @@ const INVENTORY_SLOTS: int = 4
 var _inventories: Dictionary[StringName, PlayerInventory] = {}
 var _starter_granted: Dictionary[StringName, bool] = {}
 var ship_storage: ShipInventory
+var port_storage: ShipInventory
 var floor_items: Dictionary = {}
 
-func get_ship_storage(capacity: int = 18) -> ShipInventory:
+func get_ship_storage(capacity: int = 18, chest_id: int = 0) -> ShipInventory:
+	if chest_id == 1:
+		if port_storage == null:
+			port_storage = ShipInventory.new()
+			port_storage.max_inv_space = capacity
+		return port_storage
 	if ship_storage == null:
 		ship_storage = ShipInventory.new()
 		ship_storage.max_inv_space = capacity
@@ -51,8 +57,10 @@ func reset() -> void:
 	_inventories.clear()
 	_starter_granted.clear()
 	ship_storage = null
+	port_storage = null
 	floor_items.clear()
 
 
 func clear_voyage() -> void:
 	reset()
+

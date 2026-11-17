@@ -6,13 +6,16 @@ signal feedback(message: String)
 @export var player_path: NodePath = ^"../Player"
 @export var chest_enabled: bool = true
 @export var storage_slots: int = 18
-@export var storage_position := Vector2(45, -45)
+@export var storage_position := Vector2(49, -110)
+@export var second_storage_position := Vector2(-37, -110)
+@export var chest_wall_angle_degrees: float = -15.0
 @export var interaction_distance: float = 38.0
 @export var pickup_distance: float = 24.0
 var network_id: int = 1
 var player: CharacterBody2D
 var inventory: PlayerInventory
 var storage: ShipInventory
+var active_chest_id: int = 0
 var drops: Dictionary = {}
 var pickup_inside: Dictionary = {}
 var next_drop_id: int = 1
@@ -64,15 +67,37 @@ func can_handle_items() -> bool:
 		return not NetworkSession.inputs.get(network_id, {}).get("blocked", false)
 	return not MapState.map_open and not get_tree().paused
 
+func storage_positions() -> Array[Vector2]:
+	return [storage_position, second_storage_position]
+
+func select_chest(chest_id: int) -> void:
+	chest_id = clampi(chest_id, 0, 1)
+	if active_chest_id == chest_id:
+		return
+	if storage.inventory_changed.is_connected(publish):
+		storage.inventory_changed.disconnect(publish)
+	active_chest_id = chest_id
+	storage = VoyageState.get_ship_storage(storage_slots, chest_id)
+	storage.inventory_changed.connect(publish)
+	publish()
+
+func open_nearest_chest() -> void:
+	select_chest(0 if player.position.distance_to(storage_position) <= player.position.distance_to(second_storage_position) else 1)
+
+func storage_distance() -> float:
+	if hud != null and hud.storage_open:
+		return player.position.distance_to(storage_positions()[active_chest_id])
+	return minf(player.position.distance_to(storage_position), player.position.distance_to(second_storage_position))
+
 func near_storage() -> bool:
-	return chest_enabled and not player.is_overboard and can_handle_items() and player.position.distance_to(storage_position) <= interaction_distance
+	return chest_enabled and not player.is_overboard and can_handle_items() and storage_distance() <= interaction_distance
 
 func grill_is_nearest() -> bool:
 	var grill := get_parent().get_node_or_null("Cooking") as ShipGrill
 	if grill == null or not grill.near(self):
 		return false
 	var distance := player.global_position.distance_to(grill.global_position)
-	if near_storage() and player.position.distance_to(storage_position) < distance:
+	if near_storage() and storage_distance() < distance:
 		return false
 	for node in get_parent().get_children():
 		if node is ShipStation and node.name != "Galley" and node.can_interact(player) and node.global_position.distance_to(player.global_position) < distance:
@@ -82,7 +107,7 @@ func grill_is_nearest() -> bool:
 func chest_is_nearest() -> bool:
 	if not near_storage():
 		return false
-	var distance := player.position.distance_to(storage_position)
+	var distance := storage_distance()
 	for node in get_parent().get_children():
 		if node is ShipStation and node.can_interact(player) and node.global_position.distance_to(player.global_position) < distance:
 			return false
@@ -173,3 +198,6 @@ func publish() -> void:
 	local_slots = inventory.capture()
 	storage_view = storage.capture()
 	updated.emit()
+
+
+
