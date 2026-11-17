@@ -1,7 +1,7 @@
 extends Node
 ## Display preferences, menu soundtrack and synthesized button sounds.
 signal preferences_changed
-const DEFAULTS := {"fullscreen": true, "window_size": 1, "vsync": true, "master": 0.8, "music": 0.35, "effects": 0.7, "reduced_motion": false, "mute_unfocused": true, "pause_unfocused": true}
+const DEFAULTS := {"ui_scale": 1.0, "camera_zoom": 1.0, "fullscreen": true, "window_size": 1, "vsync": true, "master": 0.8, "music": 0.35, "effects": 0.7, "reduced_motion": false, "mute_unfocused": true, "pause_unfocused": true}
 const WINDOW_SIZES := [Vector2i(960, 540), Vector2i(1280, 720), Vector2i(1600, 900)]
 var preferences: Dictionary = DEFAULTS.duplicate()
 var settings_path: String = "user://settings.cfg"
@@ -49,6 +49,7 @@ func _ready() -> void:
 	_sounds["grill_place"] = _grill_sound(false)
 	_sounds["grill_ready"] = _grill_sound(true)
 	_sounds["pickup"] = _tone(1046.5, 0.10, 0.16)
+	_sounds["drop"] = _tone(145.0, 0.12, 0.16)
 	_sounds["back"] = _menu_sound("back")
 	var track := load("res://assets/audio/menu_theme.ogg") as AudioStreamOggVorbis
 	track.loop = true
@@ -66,6 +67,8 @@ func load_preferences(path: String) -> void:
 			preferences[key] = value
 	for key in ["master", "music", "effects"]:
 		preferences[key] = clampf(preferences[key], 0.0, 1.0)
+	preferences.ui_scale = clampf(preferences.ui_scale, 0.8, 1.2)
+	preferences.camera_zoom = clampf(preferences.camera_zoom, 0.8, 1.2)
 	preferences.window_size = clampi(preferences.window_size, 0, WINDOW_SIZES.size() - 1)
 
 func save_preferences() -> void:
@@ -79,6 +82,8 @@ func save_preferences() -> void:
 func set_preference(key: String, value: Variant) -> void:
 	if not DEFAULTS.has(key):
 		return
+	if key in ["ui_scale", "camera_zoom"]:
+		value = clampf(float(value), 0.8, 1.2)
 	preferences[key] = value
 	apply_preferences(key)
 	_save_timer.start()
@@ -91,6 +96,7 @@ func reset_preferences() -> void:
 	preferences_changed.emit()
 
 func apply_preferences(changed_key: String = "") -> void:
+	get_window().content_scale_factor = preferences.ui_scale
 	for key in ["master", "music", "effects"]:
 		var bus := AudioServer.get_bus_index("Master" if key == "master" else key.capitalize())
 		if bus >= 0:

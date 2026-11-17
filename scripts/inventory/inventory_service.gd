@@ -18,6 +18,7 @@ var pickup_inside: Dictionary = {}
 var next_drop_id: int = 1
 var view_revision: int = 0
 var pickup_serial: int = 0
+var drop_serial: int = 0
 var local_slots: Array[Dictionary] = []
 var storage_view: Array[Dictionary] = []
 var scene_key: String
@@ -126,6 +127,9 @@ func request_drag(data: Dictionary, destination: int = -1, to_storage: bool = fa
 		if amount != -1: entry.quantity = amount
 		_spawn_drop(entry, player.position)
 		source.remove(index, entry.quantity)
+		drop_serial += 1
+		if not NetworkSession.online or network_id == NetworkSession.local_id:
+			GameWindow.play_ui("drop")
 
 func _spawn_drop(entry: Dictionary, point: Vector2) -> void:
 	# Parent coordinates keep drops on the moving ship; island drops stay ashore.

@@ -15,7 +15,7 @@ func click(point: Vector2, button: MouseButton, down: bool, shift: bool = false)
  event.button_index = button
  event.pressed = down
  event.shift_pressed = shift
- get_viewport().push_input(event)
+ get_viewport().push_input(event, true)
 func split_click(button: InventorySlotButton, target: InventorySlotButton, half: bool) -> void:
  var source := button.get_global_rect().get_center()
  click(source,MOUSE_BUTTON_RIGHT,true,half)
@@ -32,6 +32,7 @@ func split_click(button: InventorySlotButton, target: InventorySlotButton, half:
  click(point,MOUSE_BUTTON_LEFT,false)
  await get_tree().process_frame
 func run() -> void:
+ GameWindow.set_preference("ui_scale", 1.2 if "--large-ui" in OS.get_cmdline_user_args() else 1.0)
  get_tree().create_timer(25).timeout.connect(func() -> void: get_tree().quit(1))
  GameWindow.set_preference("fullscreen",false)
  GameWindow.set_preference("pause_unfocused",false)
@@ -135,6 +136,32 @@ func run() -> void:
  await get_tree().process_frame
  await get_tree().process_frame
  check(service.hud.cursor_data.is_empty() and service.inventory.slots[2].id==&"fishing_rod","Leaving chest range cancels cursor safely")
+ service.hud.close()
+ service.player.position = service.storage_position
+ service.hud.storage_open = true
+ service.inventory.restore([{"id": &"wood", "quantity": 5}, {}, {}, {}])
+ service.storage.restore([])
+ await get_tree().process_frame
+ service.hud.pick_cursor(0, false)
+ var target_point: Vector2 = service.hud.chest_buttons[0].get_global_rect().get_center()
+ click(target_point, MOUSE_BUTTON_RIGHT, true)
+ click(target_point, MOUSE_BUTTON_RIGHT, false)
+ check(service.storage.slots[0].quantity == 1 and service.hud.cursor_data.amount == 4, "Right click places one and keeps four on cursor")
+ click(target_point, MOUSE_BUTTON_RIGHT, true)
+ click(target_point, MOUSE_BUTTON_RIGHT, false)
+ check(service.storage.slots[0].quantity == 2 and service.hud.cursor_data.amount == 3, "Repeated right click adds exactly one")
+ service.hud.close()
+ check(service.inventory.slots[0].quantity == 3, "Closing returns only the unplaced remainder")
+ service.hud.storage_open = true
+ service.hud.pick_cursor(0, false)
+ service.hud._place_one(service.hud.buttons[0])
+ check(service.hud.cursor_data.amount == 2 and service.inventory.slots[0].quantity == 3, "Right click source returns one without duplicating items")
+ service.hud.cancel_cursor()
+ service.hud.pick_cursor(0, false)
+ var before_drop := service.drop_serial
+ service.request_drag(service.hud.cursor_data)
+ service.hud.cancel_cursor()
+ check(service.drop_serial == before_drop + 1 and GameWindow.sound_player.stream == GameWindow._sounds.drop, "Successful ground drop plays drop sound")
  if "--capture" in OS.get_cmdline_user_args():
   var grill: Node2D = main.get_node("Ship/Cooking")
   service.player.position = grill.position

@@ -1,7 +1,7 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-12"
+const PROTOCOL := "holy-ship-coop-13"
 const SNAPSHOT_INTERVAL := 0.1
 const INPUT_REFRESH_INTERVAL := 0.5
 const DEFAULT_PORT := 24567
@@ -616,7 +616,7 @@ func _send_snapshot() -> void:
 		var fishing: RodFishing = service.get_node("Fishing")
 		crew[id] = {"island_challenge": player.island_challenge, "eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("ack", inputs[id].get("sequence", -1)), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
 			"station": str(player.active_station.name) if player.using_station else "", "inventory": service.inventory.capture(),
-			"selected": service.hud.selected, "chest": service.hud.storage_open, "grill_open": service.hud.grill_open, "revision": service.view_revision, "pickup_serial": service.pickup_serial,
+			"selected": service.hud.selected, "chest": service.hud.storage_open, "grill_open": service.hud.grill_open, "revision": service.view_revision, "pickup_serial": service.pickup_serial, "drop_serial": service.drop_serial,
 			"fish": {"attempt": fishing.attempt_id, "seed": fishing.fight_seed, "state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
 				"progress": fishing.fight.progress, "tension": fishing.fight.tension, "green": fishing.fight.green_center,
 				"width": fishing.fight.green_width, "danger": fishing.fight.danger, "held": fishing.held, "catches": fishing.visual_catches}}
@@ -730,6 +730,9 @@ func apply_snapshot(data: Dictionary) -> void:
 		var new_pickups: int = entry.get("pickup_serial", 0)
 		if id == local_id and new_pickups > service.pickup_serial: GameWindow.play_ui("pickup")
 		service.pickup_serial = new_pickups
+		var new_drops: int = entry.get("drop_serial", 0)
+		if id == local_id and new_drops > service.drop_serial: GameWindow.play_ui("drop")
+		service.drop_serial = new_drops
 		service.hud._refresh()
 		var fishing: RodFishing = service.get_node("Fishing")
 		var previous: int = fishing.state

@@ -1,6 +1,6 @@
 # Classroom demo: 60 students in 15 crews
 
-The classroom build uses protocol `holy-ship-coop-12`. It targets a **one-hour,
+The classroom build uses protocol `holy-ship-coop-13`. It targets a **one-hour,
 60-player session** on the existing Cloudflare Free plan. It does not promise
 unlimited daily multiplayer, and no paid service or billing upgrade is required
 by these changes. Everyone must reload the website after deployment. Existing

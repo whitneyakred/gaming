@@ -99,6 +99,8 @@ func host_tests() -> void:
 	await wait(1)
 	check(a.inventory.get_quantity(&"fish_cod") + b.inventory.get_quantity(&"fish_cod") == 1, "Contended chest item awarded exactly once")
 	check(VoyageState.get_ship_storage().capture()[0].is_empty(), "Shared chest emptied consistently")
+	# Keep partial-transfer assertions independent of the guest's saved inventory.
+	a.inventory.restore([{"id": &"fishing_rod", "quantity": 1}, {"id": &"spyglass", "quantity": 1}, {}, {}])
 	VoyageState.get_ship_storage().add_items(ItemDatabase.get_item(&"gold_coin"),21)
 	await wait(0.4)
 	phase("split_one")
@@ -274,7 +276,14 @@ func client_tests() -> void:
 				NetworkSession.command("transfer", {"action": "take", "index": 0, "revision": service.view_revision})
 			"split_one", "split_half", "split_invalid":
 				if role == "Alpha":
-					NetworkSession.command("drag", {"index":0,"storage":true,"destination":3,"amount":1 if current=="split_one" else (10 if current=="split_half" else 9999),"revision":service.view_revision})
+					if current == "split_one":
+						service.hud.pick_cursor(0, true)
+						service.hud._place_one(service.hud.buttons[3])
+					else:
+						if current == "split_half":
+							check(not service.hud.cursor_data.is_empty() and service.hud.cursor_data.amount == 20, "Host acknowledgement keeps remaining stack on guest cursor")
+							service.hud.cancel_cursor()
+						NetworkSession.command("drag", {"index":0,"storage":true,"destination":3,"amount":10 if current=="split_half" else 9999,"revision":service.view_revision})
 			"grill_open": NetworkSession.command("interact")
 			"grill_place", "grill_fuel":
 				if role == "Alpha":

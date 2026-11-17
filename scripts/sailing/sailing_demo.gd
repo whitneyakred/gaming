@@ -10,6 +10,7 @@ extends Node2D
 @export_range(0.0, 0.5) var station_vignette_opacity: float = 0.22
 @export_range(1.0, 20.0) var camera_response: float = 7.0
 var _normal_zoom: Vector2 = Vector2.ONE
+var _station_zoom: float = 1.0
 var _focus_offset: Vector2 = Vector2.ZERO
 ## Rowboat framing is controlled by the ship during island travel.
 var view_offset: Vector2 = Vector2.ZERO
@@ -20,6 +21,14 @@ var view_offset: Vector2 = Vector2.ZERO
 func _ready() -> void:
 	if is_instance_valid(camera):
 		_normal_zoom = camera.zoom
+		get_viewport().size_changed.connect(_refresh_camera_scale)
+		GameWindow.preferences_changed.connect(_refresh_camera_scale)
+		_refresh_camera_scale()
+
+func _refresh_camera_scale() -> void:
+	if is_instance_valid(camera):
+		# Match vertical world coverage immediately on resize, independently of UI scale.
+		camera.zoom = _normal_zoom * (get_viewport_rect().size.y / 720.0) * float(GameWindow.preferences.camera_zoom) * _station_zoom
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(ship):
@@ -41,11 +50,12 @@ func _update_camera(delta: float) -> void:
 	var focused := is_instance_valid(station) and station != ship and ship.stations_enabled
 	var target_offset := station.global_position - ship.global_position if focused and station != helm else Vector2.ZERO
 	var multiplier := helm_zoom_multiplier if station == helm else station_zoom_multiplier
-	var target_zoom := _normal_zoom * multiplier if focused else _normal_zoom
+	var target_zoom := multiplier if focused else 1.0
 	var weight := 1.0 - exp(-camera_response * delta)
 	_focus_offset = _focus_offset.lerp(target_offset, weight)
 	camera.global_position = ship.global_position + _focus_offset + view_offset
-	camera.zoom = camera.zoom.lerp(target_zoom, weight)
+	_station_zoom = lerpf(_station_zoom, target_zoom, weight)
+	_refresh_camera_scale()
 	vignette.modulate.a = lerpf(vignette.modulate.a, station_vignette_opacity if focused else 0.0, weight)
 
 func _draw() -> void:

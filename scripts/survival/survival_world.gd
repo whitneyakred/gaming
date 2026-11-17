@@ -1,12 +1,15 @@
 class_name SurvivalWorld
 extends Node2D
-## The host alone advances health, danger timers and the two shared sharks.
+## The host alone advances health, danger timers and the shared shark pack.
 @export var red_water_seconds: float = 15.0
 @export var shark_delay: float = 10.0
+@export_range(1.0, 2.0) var largest_shark_scale: float = 1.75
+@export_range(1, 3) var sharks_per_swimmer: int = 2
+const MAX_SHARKS := 8
 var sharks: Array[Dictionary] = []
-var visual_positions: Array[Vector2] = [Vector2.ZERO, Vector2.ZERO]
-var visual_angles: Array[float] = [0.0,0.0]
-var visual_alpha: Array[float] = [0.0,0.0]
+var visual_positions: Array[Vector2] = []
+var visual_angles: Array[float] = []
+var visual_alpha: Array[float] = []
 @export var idle_food_seconds: float = 120.0
 @export var walking_food_seconds: float = 90.0
 @export var swimming_food_seconds: float = 45.0
@@ -24,19 +27,66 @@ func _ready() -> void:
 	set_as_top_level(true)
 	global_transform = Transform2D.IDENTITY
 	z_index = 5
-	for i in 2:
-		sharks.append({"position": Vector2.ZERO, "target": 0, "angle": 0.0, "cooldown": 0.0, "active": false, "mode": "arrive", "clock": 0.0, "orbit": 0.0, "aim": Vector2.ZERO, "bitten": false, "alpha": 0.0})
-	for i in 2:
-		var visual := SharkVisual.new()
-		add_child(visual)
-		visual.visible = false
-		shark_visuals.append(visual)
+	shark_rng.randomize()
+	ensure_sharks(2)
 	var layer := CanvasLayer.new()
 	layer.layer = 9
 	add_child(layer)
 	hud = load("res://scripts/survival/survival_hud.gd").new()
 	hud.world = self
 	layer.add_child(hud)
+
+const NAVIGATION = preload("res://scripts/survival/shark_navigation.gd")
+var navigation = NAVIGATION.new()
+var routes: Dictionary = {}
+var route_timers: Dictionary = {}
+var shark_rng := RandomNumberGenerator.new()
+
+func ensure_sharks(count: int) -> void:
+	while sharks.size() < count:
+		var index := sharks.size()
+		var body_size := shark_rng.randf_range(1.0, largest_shark_scale)
+		sharks.append({"position": Vector2.ZERO, "target": 0, "angle": 0.0, "active": false, "mode": "arrive", "clock": 0.0, "orbit": 0.0, "aim": Vector2.ZERO, "bitten": false, "alpha": 0.0, "size": body_size, "pace": shark_rng.randf_range(0.9, 1.1), "patience": shark_rng.randf_range(3.4, 5.2), "side": 1.0 if index % 2 == 0 else -1.0})
+		visual_positions.append(Vector2.ZERO)
+		visual_angles.append(0.0)
+		visual_alpha.append(0.0)
+		var visual := SharkVisual.new()
+		add_child(visual)
+		visual.visible = false
+		shark_visuals.append(visual)
+
+func move_shark(index: int, goal: Vector2, speed: float, delta: float) -> void:
+	var shark: Dictionary = sharks[index]
+	var at: Vector2 = shark.position
+	var radius := 24.0 * float(shark.get("size", 1.0))
+	route_timers[index] = float(route_timers.get(index, 0.0)) - delta
+	var waypoint := goal
+	if not navigation.segment(at, goal, radius):
+		if float(route_timers[index]) <= 0 or not routes.has(index):
+			routes[index] = navigation.route(at, goal, radius)
+			route_timers[index] = 0.9 + float(index) * 0.07
+		var path: PackedVector2Array = routes[index]
+		while path.size() > 1 and at.distance_to(path[0]) < 55:
+			path.remove_at(0)
+		if path.is_empty(): return
+		waypoint = path[0]
+		# Skip reachable corners to avoid robotic cell-to-cell swimming.
+		while path.size() > 1 and navigation.segment(at, path[1], radius):
+			path.remove_at(0)
+			waypoint = path[0]
+		routes[index] = path
+	else:
+		routes.erase(index)
+	var direction := waypoint - at
+	if direction.length() < 2: return
+	shark.angle = rotate_toward(float(shark.angle), direction.angle(), delta * 2.6 / sqrt(float(shark.get("size", 1.0))))
+	var alignment := maxf(0.15, Vector2.from_angle(shark.angle).dot(direction.normalized()))
+	var next := at + Vector2.from_angle(shark.angle) * minf(speed * delta * alignment, direction.length())
+	if navigation.segment(at, next, radius) or (not navigation.clear(at, radius) and next.distance_to(waypoint) < at.distance_to(waypoint)):
+		shark.position = next
+	else:
+		route_timers[index] = 0.0
+
 
 func crew() -> Dictionary:
 	return NetworkSession.players if NetworkSession.online else {1: ship.player}
@@ -76,20 +126,47 @@ func advance(delta: float) -> void:
 	advance_sharks(delta, people)
 
 func advance_sharks(delta: float, people: Dictionary) -> void:
+	var eligible: Array[int] = []
+	for id in people:
+		var person = people[id]
+		if person.health > 0 and person.is_overboard and not person.on_land and not person.island_challenge and person.swim_time >= shark_delay:
+			eligible.append(id)
+	ensure_sharks(mini(MAX_SHARKS, maxi(2, eligible.size() * sharks_per_swimmer)))
+	navigation.obstacles.clear()
+	navigation.obstacles.append(ship.get_hull_polygon(ship.global_position, ship.global_rotation))
+	for island in ship.get_islands(): navigation.obstacles.append(island.get_coast())
+	navigation.prepare()
 	var claimed := {}
 	for index in sharks.size():
 		var shark: Dictionary = sharks[index]
-		var target: int = shark.target
-		if not people.has(target) or people[target].swim_time < shark_delay or claimed.has(target):
-			target = 0
-			for id in people:
-				if people[id].swim_time >= shark_delay and not claimed.has(id): target = id; break
+		var target := 0
+		var nearest := INF
+		for id in eligible:
+			if int(claimed.get(id, 0)) >= sharks_per_swimmer: continue
+			var distance: float = Vector2(shark.position).distance_squared_to(people[id].global_position)
+			# A little loyalty prevents rapid switching between nearby swimmers.
+			if int(shark.target) == id: distance *= 0.8
+			if distance < nearest: nearest = distance; target = id
 		if target == 0:
-			shark.alpha = move_toward(float(shark.alpha),0,delta*0.65)
-			shark.active = float(shark.alpha)>0
+			if not shark.active: continue
+			if shark.mode != "depart":
+				shark.mode = "depart"
+				shark.clock = 0.0
+				var away := (Vector2(shark.position) - ship.global_position).normalized()
+				if int(shark.target) in people:
+					away = (Vector2(shark.position) - people[int(shark.target)].global_position).normalized()
+				if away.is_zero_approx(): away = Vector2.from_angle(shark.angle)
+				shark.aim = Vector2(shark.position) + away * 900
+				for attempt in 16:
+					var escape := Vector2(shark.position) + away.rotated(attempt * TAU / 16) * 900
+					if navigation.clear(escape, 45): shark.aim = escape; break
 			shark.target = 0
+			shark.clock = float(shark.clock) + delta
+			move_shark(index, shark.aim, 190 * float(shark.get("pace", 1.0)), delta)
+			if float(shark.clock) > 2.0: shark.alpha = move_toward(float(shark.alpha), 0, delta * 0.4)
+			shark.active = float(shark.alpha) > 0 or float(shark.clock) < 2.0
 			continue
-		claimed[target] = true
+		claimed[target] = int(claimed.get(target, 0)) + 1
 		var player: CharacterBody2D = people[target]
 		if int(shark.target) != target:
 			shark.mode = "arrive"
@@ -98,7 +175,7 @@ func advance_sharks(delta: float, people: Dictionary) -> void:
 			if not shark.active:
 				for attempt in 24:
 					var spawn: Vector2 = player.global_position + Vector2(1800,0).rotated(float(attempt+index*12)*TAU/24.0)
-					if is_water(spawn): shark.position = spawn; break
+					if navigation.clear(spawn, 45): shark.position = spawn; break
 				shark.angle = (player.global_position-Vector2(shark.position)).angle()
 				shark.alpha = 0.0
 		shark.target = target
@@ -113,10 +190,10 @@ func advance_sharks(delta: float, people: Dictionary) -> void:
 					shark.mode = "circle"; shark.clock = 0.0
 					shark.orbit = (Vector2(shark.position)-goal).angle()
 			"circle":
-				shark.orbit = float(shark.orbit) + delta * (0.95 if index==0 else -0.95)
-				goal += Vector2.from_angle(shark.orbit) * 155.0
+				shark.orbit = float(shark.orbit) + delta * (0.85 * float(shark.get("side", 1.0)) * float(shark.get("pace", 1.0)))
+				goal += Vector2.from_angle(shark.orbit) * (145.0 + 30.0 * float(shark.get("size", 1.0)))
 				speed = 150.0
-				if float(shark.clock)>3.8+index*0.7:
+				if float(shark.clock)>float(shark.get("patience", 4.0)):
 					shark.mode = "dive"; shark.clock = 0.0
 					shark.aim = player.global_position + player.velocity * 0.3
 					shark.bitten = false
@@ -129,8 +206,8 @@ func advance_sharks(delta: float, people: Dictionary) -> void:
 				goal = shark.aim
 				speed = 300.0
 				visible_target = 0.55
-				if not shark.bitten and Vector2(shark.position).distance_to(player.global_position)<32:
-					damage(target,1); shark.bitten=true
+				if not shark.bitten and Vector2(shark.position).distance_to(player.global_position)<32 * float(shark.get("size", 1.0)) and navigation.segment(shark.position, player.global_position, 0):
+					damage(target, maxi(1, roundi(pow(float(shark.get("size", 1.0)), 2)))); shark.bitten=true
 				if float(shark.clock)>1.5 or Vector2(shark.position).distance_to(goal)<16:
 					shark.mode="retreat"; shark.clock=0.0
 					shark.aim = Vector2(shark.position)+Vector2.from_angle(shark.angle)*230
@@ -141,12 +218,7 @@ func advance_sharks(delta: float, people: Dictionary) -> void:
 					shark.mode="circle"; shark.clock=0.0
 					shark.orbit=(Vector2(shark.position)-player.global_position).angle()
 		shark.alpha = move_toward(float(shark.alpha),visible_target,delta*1.2)
-		var desired := (goal-Vector2(shark.position)).angle()
-		shark.angle = rotate_toward(float(shark.angle),desired,delta*3.0)
-		var step := minf(speed*delta, Vector2(shark.position).distance_to(goal))
-		for turn in [0.0,0.7,-0.7,1.4,-1.4]:
-			var next: Vector2 = Vector2(shark.position)+Vector2.from_angle(float(shark.angle)+turn)*step
-			if is_water(next): shark.position=next; break
+		move_shark(index, goal, speed * float(shark.get("pace", 1.0)), delta)
 
 func advance_metabolism(id: int, delta: float) -> void:
 	var player: CharacterBody2D = crew()[id]
@@ -268,8 +340,12 @@ func restore(data: Dictionary) -> void:
 	if next_sink != sink_serial: show_wreck(data.get("wreck", Vector2.ZERO), data.get("wreck_rotation", 0.0))
 	sink_serial = next_sink
 	var states: Array = data.get("sharks", [])
+	ensure_sharks(mini(states.size(), MAX_SHARKS))
 	for i in mini(states.size(), sharks.size()):
 		sharks[i] = states[i].duplicate()
+	for i in range(states.size(), sharks.size()):
+		sharks[i].alpha = 0.0
+		sharks[i].active = false
 
 func _process(delta: float) -> void:
 	time += delta
@@ -280,6 +356,7 @@ func _process(delta: float) -> void:
 		visual_positions[i] = visual_positions[i].lerp(target, 1.0-exp(-16.0*delta)) if visual_positions[i].distance_to(target)<300 else target
 	for i in shark_visuals.size():
 		var visual := shark_visuals[i]
+		visual.scale = Vector2.ONE * float(sharks[i].get("size", 1.0))
 		visual.position = visual_positions[i]
 		visual.rotation = visual_angles[i] + PI*0.5
 		visual.modulate.a = visual_alpha[i]

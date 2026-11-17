@@ -16,6 +16,7 @@ var hint: Label
 var message: String = ""
 var message_time: float = 0.0
 var cursor_data: Dictionary = {}
+var _pending_one: Dictionary = {}
 var cursor_layer: CanvasLayer
 var cursor_icon: TextureRect
 var cursor_count: Label
@@ -195,6 +196,8 @@ func _process(delta: float) -> void:
 	if storage_open and not service.near_storage():
 		close()
 	if not cursor_data.is_empty():
+		_resolve_one()
+	if not cursor_data.is_empty():
 		if cursor_data.revision != service.view_revision or (cursor_data.get("chest_session",false) and not storage_open) or (cursor_data.get("grill_session",false) and not grill_open): cancel_cursor()
 		else:
 			cursor_icon.position = _cursor_position - Vector2(21,21)
@@ -276,6 +279,7 @@ func pick_cursor(index: int, storage: bool, amount: int = -1) -> void:
 	_refresh()
 
 func cancel_cursor() -> void:
+	_pending_one.clear()
 	cursor_data.clear()
 	if cursor_layer != null: cursor_layer.hide()
 	if service != null: _refresh()
@@ -286,17 +290,22 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("interact"):
 		cancel_cursor()
 		return # Normal close handling can still close the chest or grill.
-	if not event is InputEventMouseButton or not event.pressed or event.button_index != MOUSE_BUTTON_LEFT: return
+	if not event is InputEventMouseButton or not event.pressed or event.button_index not in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]: return
 	get_viewport().set_input_as_handled()
+	if not _pending_one.is_empty(): return
 	if not service.can_handle_items() or cursor_data.revision != service.view_revision:
 		cancel_cursor()
 		return
 	var point: Vector2 = event.position
 	for button in buttons + chest_buttons:
 		if button.is_visible_in_tree() and button.get_global_rect().has_point(point):
+			if event.button_index == MOUSE_BUTTON_RIGHT:
+				_place_one(button)
+				return
 			service.request_drag(cursor_data,button.slot_index,button.is_storage)
 			cancel_cursor()
 			return
+	if event.button_index == MOUSE_BUTTON_RIGHT: return
 	if grill_panel.visible and grill_panel.get_global_rect().has_point(point):
 		var local: Vector2 = grill_panel.get_global_transform().affine_inverse()*point
 		if grill_panel._can_drop_data(local,cursor_data):
@@ -316,3 +325,48 @@ func _cursor_slot(entry: Dictionary, index: int, storage: bool) -> Dictionary:
 	if left.is_empty(): return left
 	left.quantity -= int(left.quantity) if cursor_data.amount == -1 else int(cursor_data.amount)
 	return left if left.quantity > 0 else {}
+
+func _place_one(button: InventorySlotButton) -> void:
+	var source_slots: Array[Dictionary] = service.storage_view if cursor_data.storage else service.local_slots
+	var source: Dictionary = source_slots[cursor_data.index]
+	if source.is_empty(): return
+	var item := ItemDatabase.get_item(source.id)
+	if item.max_stack <= 1: return
+	var remaining: int = int(source.quantity) if cursor_data.amount == -1 else int(cursor_data.amount)
+	if button.is_storage == cursor_data.storage and button.slot_index == cursor_data.index:
+		_set_cursor_remaining(remaining - 1)
+		return
+	var target_slots: Array[Dictionary] = service.storage_view if button.is_storage else service.local_slots
+	var target: Dictionary = target_slots[button.slot_index]
+	if not target.is_empty() and (target.id != source.id or int(target.quantity) >= item.max_stack): return
+	_pending_one = {"id": source.id, "source_left": int(source.quantity) - 1, "remaining": remaining - 1, "destination": button.slot_index, "storage": button.is_storage, "target_quantity": int(target.get("quantity", 0)) + 1, "expires": Time.get_ticks_msec() + 2000}
+	var data := cursor_data.duplicate()
+	data.amount = 1
+	service.request_drag(data, button.slot_index, button.is_storage)
+	_resolve_one()
+
+func _resolve_one() -> void:
+	if _pending_one.is_empty(): return
+	if service.view_revision == cursor_data.revision:
+		if Time.get_ticks_msec() > int(_pending_one.expires): cancel_cursor()
+		return
+	var source_slots: Array[Dictionary] = service.storage_view if cursor_data.storage else service.local_slots
+	var target_slots: Array[Dictionary] = service.storage_view if _pending_one.storage else service.local_slots
+	var source: Dictionary = source_slots[cursor_data.index]
+	var target: Dictionary = target_slots[_pending_one.destination]
+	var expected_source: bool = int(source.get("quantity", 0)) == int(_pending_one.source_left) and (source.is_empty() or source.id == _pending_one.id)
+	if not expected_source or target.get("id", &"") != _pending_one.id or int(target.get("quantity", 0)) != int(_pending_one.target_quantity):
+		cancel_cursor()
+		return
+	var remaining: int = _pending_one.remaining
+	_pending_one.clear()
+	cursor_data.revision = service.view_revision
+	_set_cursor_remaining(remaining)
+
+func _set_cursor_remaining(amount: int) -> void:
+	if amount <= 0:
+		cancel_cursor()
+		return
+	cursor_data.amount = amount
+	cursor_count.text = str(amount) if amount > 1 else ""
+	_refresh()

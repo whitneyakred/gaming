@@ -128,7 +128,7 @@ func draw_ellipse_shadow(point: Vector2) -> void:
 	draw_style_box(_box(Color(0, 0, 0, 0.4), Color.TRANSPARENT, 0, 12), Rect2(point - Vector2(25, 12), Vector2(50, 26)))
 
 func _text(value: String, point: Vector2, font_size: int, color: Color) -> void:
-	draw_string(preload("res://assets/fonts/PixelifySans.ttf"), point, value, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
+	draw_string(HarborTheme.UI_FONT, point, value, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
 
 func _box(fill: Color, edge: Color, width: int, radius: int) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()

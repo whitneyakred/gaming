@@ -6,6 +6,7 @@ var _back: Button
 var _previous_focus: Control
 var _toggles: Dictionary = {}
 var _sizes: OptionButton
+var _display_scales: Dictionary = {}
 
 func _ready() -> void:
 	theme = HarborTheme.menu_theme()
@@ -19,7 +20,7 @@ func _ready() -> void:
 	add_child(center)
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var box := PanelContainer.new()
-	box.custom_minimum_size = Vector2(760, 596)
+	box.custom_minimum_size = Vector2(760, 560)
 	box.add_theme_stylebox_override("panel", HarborTheme.panel())
 	center.add_child(box)
 	var rows := VBoxContainer.new()
@@ -29,6 +30,7 @@ func _ready() -> void:
 	rows.add_child(HarborTheme.label("Make yourself at home. Changes are saved automatically.", 16, HarborTheme.MUTED))
 	_tabs = TabContainer.new()
 	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_tabs.custom_minimum_size.y = 330
 	_tabs.add_theme_font_size_override("font_size", 18)
 	rows.add_child(_tabs)
 	_build_tabs()
@@ -49,7 +51,12 @@ func _page(title: String) -> VBoxContainer:
 	margin.name = title
 	for edge in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + edge, 16)
-	_tabs.add_child(margin)
+	var scroll := ScrollContainer.new()
+	scroll.name = title
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_tabs.add_child(scroll)
+	scroll.add_child(margin)
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var rows := VBoxContainer.new()
 	rows.add_theme_constant_override("separation", 12)
 	margin.add_child(rows)
@@ -57,6 +64,7 @@ func _page(title: String) -> VBoxContainer:
 
 func _build_tabs() -> void:
 	_toggles.clear()
+	_display_scales.clear()
 	for child in _tabs.get_children():
 		_tabs.remove_child(child)
 		child.queue_free()
@@ -81,7 +89,9 @@ func _build_tabs() -> void:
 		_toggle(display, "VSync", "vsync")
 	else:
 		display.add_child(HarborTheme.label("Display refresh is managed by your browser.", 16))
-	var display_help := "The view fits your screen without stretching the artwork.\nWider or taller screens show more of the world.\n"
+	_display_scale(display, "UI scale", "ui_scale")
+	_display_scale(display, "Camera zoom", "camera_zoom")
+	var display_help := "Camera height stays consistent; wider screens show more at the sides.\nUI scale changes menus and HUD. Camera zoom changes your view at sea.\n"
 	display_help += "Resize your browser or use Fullscreen to change the game area." if OS.has_feature("web") else "F11 toggles fullscreen. Windowed size applies in windowed mode."
 	display.add_child(HarborTheme.label(display_help, 15, HarborTheme.MUTED))
 	var audio := _page("Audio")
@@ -118,6 +128,25 @@ func _sync_controls() -> void:
 	for key: String in _toggles:
 		_toggles[key].set_pressed_no_signal(GameWindow.preferences[key])
 	_sizes.select(GameWindow.preferences.window_size)
+	for key: String in _display_scales:
+		_display_scales[key].select(roundi((float(GameWindow.preferences[key]) - 0.8) / 0.1))
+
+func _display_scale(parent: Control, title: String, key: String) -> void:
+	var row := HBoxContainer.new()
+	parent.add_child(row)
+	var caption := HarborTheme.label(title, 18)
+	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(caption)
+	var options := OptionButton.new()
+	options.custom_minimum_size = Vector2(220, 40)
+	for percentage in [80, 90, 100, 110, 120]:
+		options.add_item("%d%%%s" % [percentage, " (Default)" if percentage == 100 else ""])
+	options.select(roundi((float(GameWindow.preferences[key]) - 0.8) / 0.1))
+	options.item_selected.connect(func(index: int) -> void:
+		GameWindow.set_preference(key, 0.8 + index * 0.1)
+		GameWindow.play_ui())
+	_display_scales[key] = options
+	row.add_child(options)
 
 func _volume(parent: Control, key: String) -> void:
 	var row := HBoxContainer.new()

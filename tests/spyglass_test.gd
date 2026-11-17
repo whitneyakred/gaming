@@ -85,6 +85,8 @@ func run() -> void:
 	get_tree().paused = false
 	scope.start()
 	scope.stop()
+	# Isolate tool storage from the starter wood/coal chest fixture.
+	service.storage.restore([{}, {}, {}, {}])
 	service.inventory.transfer_to(1, service.storage)
 	voyage.grant_starter(service.inventory)
 	check(service.inventory.get_quantity(&"spyglass") == 0 and service.storage.slots[0].id == &"spyglass", "Stored spyglass does not respawn")
