@@ -16,6 +16,17 @@ func _set_needs(hunger: float, health: float) -> void:
 	survival.health = health
 	survival._commit()
 
+func _press_interact() -> void:
+	var event := InputEventAction.new()
+	event.action = "interact"
+	event.pressed = true
+	Input.parse_input_event(event)
+	await process_frame
+	event = InputEventAction.new()
+	event.action = "interact"
+	Input.parse_input_event(event)
+	await process_frame
+
 func _run() -> void:
 	create_timer(45).timeout.connect(func() -> void: quit(1))
 	survival = root.get_node("VoyageSurvival")
@@ -65,7 +76,16 @@ func _run() -> void:
 	await physics_frame
 	cook._on_body_entered(player)
 	var fish_before: int = survival.inventory.get_quantity(&"fish_cod")
-	cook.interact()
+	await _press_interact()
+	_check(cook.state == cook.State.SELECTING and player.active_station == cook,
+		"One interact press must open and retain the cooking selector")
+	var held_key := InputEventKey.new()
+	held_key.physical_keycode = KEY_E
+	held_key.pressed = true
+	held_key.echo = true
+	Input.parse_input_event(held_key)
+	await process_frame
+	_check(cook.state == cook.State.SELECTING, "Held interaction must not immediately close cooking")
 	cook._select(true)
 	cook._start_preparation()
 	await process_frame
@@ -86,7 +106,7 @@ func _run() -> void:
 	await process_frame
 	_check(activity.time_left == frozen_time, "Pause freezes recipe countdown")
 	root.get_node("PauseMenu").resume()
-	cook._cancel()
+	await _press_interact()
 	await process_frame
 	_check(survival.inventory.get_quantity(&"fish_cod") == fish_before and not player.using_station, "Cancelling frees control without losing ingredients")
 	cook.interact()

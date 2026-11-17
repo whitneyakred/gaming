@@ -26,12 +26,14 @@ func _ready() -> void:
 	_update_display()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("interact") and not event.is_echo() and not crew_nearby.is_empty():
-		if state == State.IDLE or state == State.READY:
-			interact()
-			get_viewport().set_input_as_handled()
-	if event.is_action_pressed("interact") and state == State.SELECTING:
+	if not event.is_action_pressed("interact") or event.is_echo():
+		return
+	if state == State.SELECTING:
 		_cancel()
+		get_viewport().set_input_as_handled()
+		return
+	if not crew_nearby.is_empty() and (state == State.IDLE or state == State.READY):
+		interact()
 		get_viewport().set_input_as_handled()
 
 func interact() -> void:
@@ -87,7 +89,7 @@ func _start_selection() -> void:
 		selected_potato = 0
 		_update_selection())
 	start_button = _add_button(column, "Prepare", _start_preparation)
-	_add_button(column, "Leave / Escape", _cancel)
+	_add_button(column, "Leave / E", _cancel)
 	_update_selection()
 	_update_display()
 
