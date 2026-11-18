@@ -1,6 +1,7 @@
 class_name HarborButton
 extends Button
 @export var title_plank: bool = false
+@export var compact_icon: bool = false
 var _tween: Tween
 var action: Callable
 var _hover_stamp := -1000
@@ -9,6 +10,7 @@ func _ready() -> void:
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	custom_minimum_size = Vector2(260, 52) if not title_plank else Vector2(250, 44)
+	if compact_icon: custom_minimum_size = Vector2(44, 44)
 	add_theme_font_override("font", HarborTheme.UI_FONT)
 	add_theme_font_size_override("font_size", 20 if title_plank else 22)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
@@ -26,8 +28,8 @@ func _ready() -> void:
 			if state == "pressed": fill = Color("dda49d")
 			if state == "disabled": fill = Color("c6b5a5")
 			var style := HarborTheme.box(Color(0,0,0,0) if state == "focus" else fill, HarborTheme.CORAL if state in ["focus", "hover"] else Color("876474"), 2)
-			style.content_margin_left = 16
-			style.content_margin_right = 16
+			style.content_margin_left = 10 if compact_icon else 16
+			style.content_margin_right = 10 if compact_icon else 16
 			style.content_margin_top = 5
 			style.content_margin_bottom = 5
 			if state != "focus":

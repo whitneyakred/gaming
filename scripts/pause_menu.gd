@@ -27,8 +27,7 @@ func _ready() -> void:
 	var rows := VBoxContainer.new()
 	rows.add_theme_constant_override("separation", 16)
 	panel.add_child(rows)
-	rows.add_child(HarborTheme.label("A MOMENT AT ANCHOR", 25))
-	rows.add_child(HarborTheme.label("Solo pauses here. Online crews keep sailing.", 17, HarborTheme.MUTED))
+	rows.add_child(HarborTheme.label("Paused", 25))
 	_resume_button = HarborTheme.button("Resume voyage", resume)
 	_resume_button.name = "ResumeButton"
 	rows.add_child(_resume_button)

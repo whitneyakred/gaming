@@ -100,7 +100,7 @@ func browse() -> void:
 	crews.clear()
 	for crew: Dictionary in result.get("crews", []):
 		if int(crew.get("count", 0)) > 0: crews[str(crew.id)] = crew
-	status("Choose a voyage to join." if not crews.is_empty() else "No ships at sea yet. Be the first to host a voyage.")
+	status("Choose a voyage to join." if not crews.is_empty() else "")
 
 func cancel_browse() -> void:
 	# Do not free a pending coroutine's HTTPRequest. Let it finish quietly.

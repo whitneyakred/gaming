@@ -109,6 +109,15 @@ static func button(text: String, action: Callable) -> HarborButton:
 	node.action = action
 	return node
 
+static func icon_button(texture: Texture2D, caption: String, action: Callable) -> HarborButton:
+	var node := button("", action)
+	node.compact_icon = true
+	node.icon = texture
+	node.tooltip_text = caption
+	for state in ["normal", "pressed", "hover", "focus", "disabled"]:
+		node.add_theme_color_override("icon_" + state + "_color", MUTED if state == "disabled" else (CORAL if state in ["hover", "focus"] else INK))
+	return node
+
 static func reveal(control: Control) -> void:
 	control.show()
 	control.modulate.a = 1.0

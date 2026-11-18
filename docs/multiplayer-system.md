@@ -71,8 +71,7 @@ current player-facing online flow. Native EOS imports are disabled with
 1. The player enters a sailor name on the title screen and opens **Sail with a
    crew**. The menu starts on **Browse crews**.
 2. On **Host a voyage**, they enter a voyage name and choose Public or Private.
-   Public is the default. Private reveals a password field initially set to
-   `123`; the player can change it. Private voyages are still listed, but joining
+   Public is the default. Private reveals an empty password field; the player must enter a password. Private voyages are still listed, but joining
    requires the password. This is password protection, not an invite-only list.
 3. `HarborService` sends `POST /api/crews` with the title, password, protocol and
    locally stored sailor token. The backend validates input and rate limits.
@@ -219,8 +218,7 @@ the same public IP share these limits. API JSON is bounded to 2 KB. Socket
 traffic is limited to 180 packets/second with separate host/guest byte budgets.
 These checks reduce abuse; they are not a guarantee against all attacks.
 
-Private passwords are salted with the room ID and hashed. `123` is intentionally
-easy to guess; it is a convenience default, not strong privacy. Tickets are
+Private passwords are chosen by the host, salted with the room ID and hashed. Tickets are
 single-use and stored by hash. Browser-origin checks are defense in depth,
 not authentication for arbitrary native clients. Never log connection tickets,
 full identity tokens, Cloudflare OAuth tokens, or local credentials.

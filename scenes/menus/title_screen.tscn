@@ -118,13 +118,7 @@ theme_override_constants/separation = 14
 [node name="Heading" type="Label" parent="ProfileOverlay/ProfileCard/Rows"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 34
-text = "MAKE YOUR MARK"
-horizontal_alignment = 1
-
-[node name="Subheading" type="Label" parent="ProfileOverlay/ProfileCard/Rows"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 19
-text = "A sailor worth remembering."
+text = "Your Character"
 horizontal_alignment = 1
 
 [node name="Portrait" type="TextureRect" parent="ProfileOverlay/ProfileCard/Rows"]
@@ -140,7 +134,7 @@ stretch_mode = 5
 [node name="NameLabel" type="Label" parent="ProfileOverlay/ProfileCard/Rows"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "YOUR SAILOR NAME"
+text = "Your Name:"
 horizontal_alignment = 1
 
 [node name="PlayerName" type="LineEdit" parent="ProfileOverlay/ProfileCard/Rows"]

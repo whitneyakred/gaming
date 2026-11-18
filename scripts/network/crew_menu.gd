@@ -39,11 +39,10 @@ func _ready() -> void:
 	var caption := HarborTheme.label("CHOOSE YOUR VOYAGE", 28)
 	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(caption)
-	solo_button = HarborTheme.button("Sail solo", start_solo)
+	solo_button = HarborTheme.button("Sail Offline", start_solo)
 	heading.add_child(solo_button)
 	solo_button.custom_minimum_size = Vector2(210, 40)
 	solo_button.add_theme_font_size_override("font_size", 17)
-	rows.add_child(HarborTheme.label("An open sea. A shared ship. Up to four sailors.", 17))
 	notice = HarborTheme.label("", 16)
 	notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rows.add_child(notice)
@@ -55,19 +54,25 @@ func _ready() -> void:
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	rows.add_child(tabs)
 	var browse := page("Browse crews")
+	var browse_columns := HBoxContainer.new()
+	browse_columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	browse.add_child(browse_columns)
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size.y = 210
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	browse.add_child(scroll)
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	browse_columns.add_child(scroll)
 	list = VBoxContainer.new()
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	list.add_theme_constant_override("separation", 8)
 	scroll.add_child(list)
-	refresh = HarborTheme.button("Refresh crews", search_crews)
-	browse.add_child(refresh)
+	refresh = HarborTheme.icon_button(preload("res://assets/menus/refresh.svg"), "Refresh crews", search_crews)
+	refresh.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	browse_columns.add_child(refresh)
 	var host_page := page("Host a voyage")
 	var host_columns := HBoxContainer.new()
 	host_columns.add_theme_constant_override("separation", 24)
+	host_columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	host_page.add_child(host_columns)
 	var host := VBoxContainer.new()
 	host.custom_minimum_size.x = 350
@@ -87,11 +92,14 @@ func _ready() -> void:
 		button.add_theme_font_size_override("font_size", 15)
 		saves.add_child(button)
 		save_buttons.append(button)
-	reset_save = HarborTheme.button("Clear selected save", confirm_clear)
-	reset_save.add_theme_font_size_override("font_size", 16)
+	var save_spacer := Control.new()
+	save_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	saves.add_child(save_spacer)
+	reset_save = HarborTheme.icon_button(preload("res://assets/menus/trash.svg"), "Clear selected save", confirm_clear)
+	reset_save.size_flags_horizontal = Control.SIZE_SHRINK_END
 	saves.add_child(reset_save)
-	host.add_child(HarborTheme.label("Voyage name", 18))
-	crew_name = field(host, "Name your voyage", "The Wandering Ship")
+	host.add_child(HarborTheme.label("Name your crew:", 18))
+	crew_name = field(host, "Name your crew", default_crew_name())
 	crew_name.max_length = 32
 	privacy = OptionButton.new()
 	privacy.add_item("Public")
@@ -105,13 +113,12 @@ func _ready() -> void:
 	password_row = VBoxContainer.new()
 	password_space.add_child(password_row)
 	password_row.add_child(HarborTheme.label("Password", 16))
-	secret = field(password_row, "Crew password", "123")
+	secret = field(password_row, "Crew password", "")
 	secret.max_length = 64
 	password_row.hide()
 	privacy.item_selected.connect(func(index: int):
 		password_row.visible = index == 1
 		if index == 1:
-			if secret.text.is_empty(): secret.text = "123"
 			secret.grab_focus())
 	host.add_child(HarborTheme.label("Keep the game open for your crew.", 14))
 	launch = HarborTheme.button("Launch voyage", host_voyage)
@@ -120,7 +127,7 @@ func _ready() -> void:
 	message.custom_minimum_size = Vector2(700, 44)
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rows.add_child(message)
-	rows.add_child(HarborTheme.button("Back to harbor", close))
+	rows.add_child(HarborTheme.button("Back", close))
 	NetworkSession.status_changed.connect(func(text: String): message.text = text)
 	HarborService.changed.connect(refresh_list)
 	tabs.tab_changed.connect(func(index: int):
@@ -136,10 +143,14 @@ func _process(delta: float) -> void:
 		search_crews()
 		refresh_clock = -randf_range(0.0, 5.0)
 
+func default_crew_name() -> String:
+	var sailor := NetworkSession.local_name.strip_edges()
+	return (sailor if not sailor.is_empty() else "Sailor") + "'s Crew"
+
 func host_voyage() -> void:
 	if HarborService.busy or NetworkSession.online: return
 	var title := crew_name.text.strip_edges().left(32)
-	if title.is_empty(): title = "The Wandering Ship"
+	if title.is_empty(): title = default_crew_name()
 	if privacy.selected == 1 and secret.text.is_empty():
 		message.text = "Enter a password for your private voyage."
 		secret.grab_focus()
@@ -151,7 +162,7 @@ func select_save(slot: int) -> void:
 	if HarborService.busy or NetworkSession.online: return
 	VoyageSaves.selected = slot
 	var entry := VoyageSaves.read_slot(slot)
-	crew_name.text = str(entry.get("title", "The Wandering Ship"))
+	crew_name.text = str(entry.get("title", default_crew_name()))
 	refresh_saves()
 
 func refresh_saves() -> void:
@@ -178,6 +189,7 @@ func confirm_clear() -> void:
 	add_child(dialog)
 	dialog.confirmed.connect(func():
 		if not VoyageSaves.clear_slot(slot): message.text = "Could not clear this save."
+		elif slot == VoyageSaves.selected: select_save(slot)
 		dialog.queue_free())
 	dialog.canceled.connect(dialog.queue_free)
 	dialog.popup_centered(Vector2i(440, 160))
@@ -210,7 +222,7 @@ func refresh_list() -> void:
 	var crews: Array = HarborService.crews.values()
 	crews.sort_custom(func(a: Dictionary, b: Dictionary): return str(a.title).naturalnocasecmp_to(str(b.title)) < 0)
 	if crews.is_empty():
-		list.add_child(HarborTheme.label("Looking for crews…" if HarborService.busy else "No ships at sea yet.\nHost a voyage and invite your friends!", 18))
+		list.add_child(HarborTheme.label("Looking for crews…" if HarborService.busy else "No active crews found", 18))
 	for entry: Dictionary in crews:
 		var data := entry.duplicate()
 		var caption := "%s   ·   %d / 4 sailors   ·   %s" % [str(data.title).left(32), int(data.count), "Private" if data.get("locked", false) else "Public"]

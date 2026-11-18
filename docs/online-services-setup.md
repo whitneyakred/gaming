@@ -9,7 +9,7 @@ Live website and shared harbor: https://holy-ship.pages.dev
 
 Open the website, choose Play Free, and use Sail with a crew. Browse crews opens
 first. Hosting asks for a voyage name and Public / Private; Private reveals a
-password prefilled with 123. Public voyages have no password. Private voyages
+blank password field that the host must fill in. Public voyages have no password. Private voyages
 remain listed but require the password. The captain's previous hosted voyage
 resumes automatically. There is no IP address, direct-connect, or LAN UI.
 

@@ -85,7 +85,7 @@ func run() -> void:
 	check(title.crew_menu.privacy.selected == 0 and not title.crew_menu.password_row.visible, "Public voyage defaults to no password field")
 	title.crew_menu.privacy.select(1)
 	title.crew_menu.privacy.item_selected.emit(1)
-	check(title.crew_menu.password_row.visible and title.crew_menu.secret.text == "123", "Private voyage reveals prefilled password")
+	check(title.crew_menu.password_row.visible and title.crew_menu.secret.text.is_empty(), "Private voyage starts with an empty password")
 	await frames()
 	await screenshot("crew-browser")
 	check(title.crew_menu.tabs.get_parent().get_parent().get_global_rect() == browse_rect, "Private fields do not resize the crew panel")

@@ -1,5 +1,7 @@
 extends Control
 ## Screen-space bearing back to the ship, independent of the wind arrow.
+const SHIP_ICON := preload("res://assets/ship_clean.png")
+
 @export var edge_margin: float = 48.0
 @export var far_distance: float = 650.0
 var ship: Ship
@@ -30,7 +32,8 @@ func _process(_delta: float) -> void:
 
 func _draw() -> void:
 	draw_circle(_point, 22, Color(0.04, 0.07, 0.12, 0.8))
-	var side := _direction.orthogonal()
-	draw_colored_polygon(PackedVector2Array([_point + _direction * 16, _point - _direction * 10 + side * 9, _point - _direction * 10 - side * 9]), Color("f2d58b"))
-	var label := _point - _direction * 40 + Vector2(-15, 5)
-	draw_string(ThemeDB.fallback_font, label, "Ship", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+	# Use the same hull artwork as the world ship; the bow points home.
+	var icon_size := Vector2(18, 40)
+	draw_set_transform(_point, _direction.angle() + PI / 2.0)
+	draw_texture_rect(SHIP_ICON, Rect2(-icon_size / 2.0, icon_size), false)
+	draw_set_transform(Vector2.ZERO)

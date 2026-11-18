@@ -183,6 +183,10 @@ func _graze_pose(old_position: Vector2, old_rotation: float, wanted_rotation: fl
 		for angle: float in [graze_rotation, old_rotation]:
 			for offset: Vector2 in [move, Vector2.ZERO]:
 				var spot := old_position + offset + normal * push
+				if speed > 0.0 and spot.is_equal_approx(old_position) and is_equal_approx(angle, old_rotation):
+					# An unchanged pose is safe but cannot free a wedged bow.
+					# Try all outward nudges before falling back to staying put.
+					continue
 				if not _is_pose_blocked(spot, angle):
 					return Transform2D(angle, spot)
 	return Transform2D(old_rotation, old_position)

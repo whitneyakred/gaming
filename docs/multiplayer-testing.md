@@ -20,7 +20,7 @@ Two tabs in one profile share identity and cannot join the same voyage twice.
 6. Leave and rejoin on the Mac: inventory should return without duplicate tools.
 7. End the host voyage: guests should return to the menu with an explanation,
    and the listing should disappear. Retry with Mac hosting.
-8. Host Private: the password field appears with 123. Edit it if desired. Check
+8. Host Private: the password field appears empty. Enter a password. Check
    wrong-password rejection and successful joining with the correct password.
 9. With four different profiles/devices, confirm occupancy 4/4 and full-crew
    rejection. Refresh/reload all clients after a game update.
