@@ -40,6 +40,9 @@ var _snapshot_serial: int = 0
 var _received_serial: int = -1
 var _prediction: Array[Dictionary] = []
 var _prediction_error := Vector2.ZERO
+var _trim_error := 0.0
+var _wheel_error := 0.0
+var _motion_buffer := preload("res://scripts/network/snapshot_buffer.gd").new()
 var _last_local_move := Vector2.ZERO
 var _last_local_held := false
 var _last_local_blocked := false
@@ -619,7 +622,7 @@ func _send_snapshot() -> void:
 				"progress": fishing.fight.progress, "tension": fishing.fight.tension, "green": fishing.fight.green_center,
 				"width": fishing.fight.green_width, "danger": fishing.fight.danger, "held": fishing.held, "catches": fishing.visual_catches}}
 	_snapshot_serial += 1
-	var data := {"serial": _snapshot_serial, "position": ship.global_position, "rotation": ship.global_rotation, "wind": ship.wind_velocity,
+	var data := {"serial": _snapshot_serial, "time": Time.get_ticks_msec() / 1000.0, "position": ship.global_position, "rotation": ship.global_rotation, "wind": ship.wind_velocity,
 		"sail": ship.sail_level, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees, "anchor": ship.anchor_deployed,
 		"island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "port_storage": VoyageState.get_ship_storage(18, 1).capture(), "drops": VoyageState.floor_items.get("ship", {})}
 	var packed := var_to_bytes(data).compress(FileAccess.COMPRESSION_GZIP)
@@ -673,6 +676,8 @@ func apply_snapshot(data: Dictionary) -> void:
 	_received_serial = data.serial
 	if not world_ready or multiplayer.is_server():
 		return
+	if int(data.get("seed", ship.world_seed)) != ship.world_seed:
+		_motion_buffer.clear()
 	ship.rebuild_world(int(data.get("seed", ship.world_seed)))
 	ship.survival.restore(data.get("survival", {}))
 	ship.get_node("IslandChallenges").locks = data.get("island_locks", {})
@@ -680,6 +685,7 @@ func apply_snapshot(data: Dictionary) -> void:
 	MapState.discovered_islands.merge(data.get("discovered", {}), true)
 	if known_before != MapState.discovered_islands.size(): MapState.changed.emit()
 	_last_snapshot = data
+	_motion_buffer.push(data)
 	ship.get_node("Cooking").restore(data.get("grill", {}))
 	for id: int in data.crew:
 		if not players.has(id):
@@ -775,21 +781,27 @@ func apply_snapshot(data: Dictionary) -> void:
 func _interpolate(delta: float) -> void:
 	if _last_snapshot.is_empty():
 		return
+	var visual: Dictionary = _motion_buffer.sample(delta)
+	if visual.is_empty(): return
 	var weight := 1.0 - exp(-18 * delta)
-	ship.global_position = ship.global_position.lerp(_last_snapshot.position, weight) if ship.global_position.distance_to(_last_snapshot.position) < 500 else _last_snapshot.position
-	ship.global_rotation = lerp_angle(ship.global_rotation, _last_snapshot.rotation, weight)
+	ship.global_position = visual.position
+	ship.global_rotation = visual.rotation
 	MapState.update_player_position(ship.global_position)
 	var local_player: Node = players.get(local_id)
 	var station := str(local_player.active_station.name) if is_instance_valid(local_player) and local_player.using_station else ""
 	# Interpolate remote controls instead of stepping them at snapshot frequency.
-	if station != "Sail": ship.set_sail_angle(rad_to_deg(lerp_angle(deg_to_rad(ship.sail_angle_degrees), deg_to_rad(_last_snapshot.trim), weight)))
-	if station != "Helm": ship.set_wheel_angle(lerpf(ship.wheel_angle_degrees, _last_snapshot.wheel, weight))
+	if station != "Sail": ship.set_sail_angle(rad_to_deg(lerp_angle(deg_to_rad(ship.sail_angle_degrees), deg_to_rad(visual.trim), weight)))
+	if station != "Helm": ship.set_wheel_angle(lerpf(ship.wheel_angle_degrees, visual.wheel, weight))
 	for id: int in players:
-		if _last_snapshot.crew.has(id):
+		if visual.crew.has(id):
 			var player: Node2D = players[id]
-			var target: Vector2 = _last_snapshot.crew[id].position
+			var target: Vector2 = visual.crew[id].position
 			if id != local_id:
-				player.position = player.position.lerp(target, weight) if player.position.distance_to(target) < 150 else target
+				var rendered: Dictionary = visual.crew[id]
+				var current: Dictionary = _last_snapshot.crew[id]
+				if rendered.get("outside") != current.get("outside") or rendered.get("station") != current.get("station") or rendered.get("respawn") != current.get("respawn"):
+					target = current.position
+				player.position = target
 			player.get_node("CrewName").rotation = -player.global_rotation
 
 func _predict_local(move: Vector2, delta: float) -> void:
@@ -799,6 +811,18 @@ func _predict_local(move: Vector2, delta: float) -> void:
 	_prediction_error -= correction
 	for frame: Dictionary in _prediction:
 		frame.position += correction
+	if player.active_station != ship.get_node("Sail"): _trim_error = 0.0
+	if player.active_station != ship.get_node("Helm"): _wheel_error = 0.0
+	var control_weight := 1.0 - exp(-8.0 * delta)
+	var trim_correction := _trim_error * control_weight
+	var wheel_correction := _wheel_error * control_weight
+	_trim_error -= trim_correction
+	_wheel_error -= wheel_correction
+	ship.set_sail_angle(ship.sail_angle_degrees + trim_correction)
+	ship.set_wheel_angle(ship.wheel_angle_degrees + wheel_correction)
+	for frame: Dictionary in _prediction:
+		frame.trim += trim_correction
+		frame.wheel += wheel_correction
 	player.move_crew(move, delta)
 	if player.active_station == ship.get_node("Sail"):
 		ship.set_sail_angle(ship.sail_angle_degrees + move.x * 34.0 * delta)
@@ -813,6 +837,8 @@ func _reconcile_local(entry: Dictionary, transition: bool) -> void:
 		player.position = entry.position
 		_prediction.clear()
 		_prediction_error = Vector2.ZERO
+		_trim_error = 0.0
+		_wheel_error = 0.0
 		ship.set_sail_angle(_last_snapshot.trim)
 		ship.set_wheel_angle(_last_snapshot.wheel)
 		return
@@ -825,12 +851,10 @@ func _reconcile_local(entry: Dictionary, transition: bool) -> void:
 	# Preserve controls applied since the acknowledged input, correcting only drift.
 	if entry.station == "Sail":
 		var error := wrapf(float(_last_snapshot.trim) - float(acknowledged.trim), -180.0, 180.0)
-		ship.set_sail_angle(ship.sail_angle_degrees + error * 0.25)
-		for frame: Dictionary in _prediction: frame.trim += error * 0.25
+		_trim_error = error
 	elif entry.station == "Helm":
 		var error := float(_last_snapshot.wheel) - float(acknowledged.wheel)
-		ship.set_wheel_angle(ship.wheel_angle_degrees + error * 0.25)
-		for frame: Dictionary in _prediction: frame.wheel += error * 0.25
+		_wheel_error = error
 
 func _peer_left(id: int) -> void:
 	if not online or not multiplayer.is_server():
@@ -900,6 +924,9 @@ func leave(message: String = "") -> void:
 	_pending.clear()
 	_rate.clear()
 	_last_snapshot.clear()
+	_motion_buffer.clear()
+	_trim_error = 0.0
+	_wheel_error = 0.0
 	_prediction.clear()
 	_prediction_error = Vector2.ZERO
 	_last_local_move = Vector2.ZERO

@@ -1,7 +1,7 @@
 # Local responsiveness and prompt disconnects
 
 Companion to [the multiplayer system guide](multiplayer-system.md). This describes
-the current implementation, not a proposed design. Updated November 15, 2026.
+the current implementation, not a proposed design. Updated November 18, 2026.
 
 ## Local movement and station controls
 
@@ -15,11 +15,11 @@ used by the host, including its collision and movement-lock rules. Sail trim
 and helm angles also react immediately when that player owns the station.
 Ownership itself is still confirmed by the host; taking a station is not guessed.
 
-Input is normally sent every 0.05 seconds. Direction changes send immediately,
-so starting and stopping do not wait for the next scheduled send. The sequence
-number is the client's physics-frame number. The host accepts only increasing
-sequences and includes its last accepted sequence as `crew[id].ack` in snapshots.
-The current network protocol is `holy-ship-coop-6`; old clients must reload.
+Changed controls send immediately; unchanged controls refresh every 0.5 seconds.
+The sequence number is the client's physics-frame number. The host accepts only
+increasing sequences and advances its acknowledgement while simulating held
+input between refreshes. Snapshots include that acknowledgement as crew[id].ack.
+World snapshots target 10 Hz. The current protocol is holy-ship-coop-13.
 
 Each guest retains at most 120 predicted frames, with position, sail trim and
 wheel angle. `_reconcile_local()` discards frames through the acknowledgement
@@ -33,10 +33,16 @@ errors over 150 world/design pixels, boarding changes and station changes reset
 the prediction history. Those resets deliberately favor host correctness over
 concealing a genuine teleport or movement-state change.
 
-Local sail/helm drift is corrected by 25% of the acknowledgement error per
-snapshot, preserving adjustments made since that input. Other players, the
-boat transform and remote station angles interpolate at rate 18 per second.
-Local player positions are excluded from that remote-player interpolation pass.
+Local sail/helm drift is corrected exponentially at rate 8 per second, preserving
+adjustments made since the acknowledged input. Ship and remote crew positions
+use the timestamped playback buffer described below. Remote station angles
+add exponential easing at rate 18 per second. Local player positions are
+excluded from remote-player playback.
+
+Opening the map retains an occupied station and its keyboard controls. Map
+clicks are not forwarded as held gameplay mouse input. Walking without a station
+remains blocked by the map in the online input path. Station UI and camera focus
+belong to the local operator; the shared station state still belongs to the host.
 
 This is bounded local prediction with acknowledgement-based correction, not a
 deterministic rollback simulation or a replacement for authority. WebSockets
@@ -49,6 +55,8 @@ hide latency: doing so can duplicate items or show a catch the host rejected.
 
 - `scripts/network/network_session.gd`: prediction history, input sending,
   acknowledgements, reconciliation, interpolation, and reset on leaving.
+- `scripts/network/snapshot_buffer.gd`: playback delay, bounded history, clock
+  adjustment, transition handling and local underrun counter.
 - `scripts/player.gd`: movement and movement-lock rules shared by prediction
   and host simulation.
 - `scripts/sailing/ship_motion.gd`: clamps for sail and helm values.
@@ -89,10 +97,10 @@ this departure path; `visibilitychange` is intentionally not used to kick player
 
 Browser lifecycle delivery is best effort. A crash, power loss or lost internet
 can prevent all exit messages from reaching the service. Existing safeguards
-remain: five-second client heartbeats, a 20-second client silence timeout,
-30-second server alarm checks with a 60-second socket-silence threshold, and
-75-second directory expiry refreshed by live rooms. These are not exact UI
-deadlines. Browsers already showing the list normally refresh every 15 seconds;
+remain: ten-second client heartbeats, a 20-second client silence timeout,
+120-second room housekeeping alarms with a 60-second socket-silence threshold,
+and 180-second directory leases. These are not exact UI deadlines. Browsers
+showing Browse crews refresh about every 30–35 seconds;
 **Refresh crews** fetches sooner, and opening Browse fetches a fresh list.
 
 ## Testing and observed results
@@ -140,11 +148,13 @@ Export the game and deploy Pages for changes to GDScript or menu/game assets.
 Deploy the harbor Worker for relay code changes. For changes spanning both,
 deploy the backend and matching game as described in the
 [release guide](online-services-setup.md), then have players reload.
-Protocol 6 adds local fishing input replay. Both game and Worker must use the
-matching protocol; existing players must reload. Save loading accepts protocols 1–6.
+Both game and Worker must use matching protocol identifiers. The smoothing
+addition keeps protocol 13 and supports older protocol-13 snapshots without
+timestamps. Have every player reload for consistent behavior. See the main
+multiplayer guide for save-version compatibility.
 
 
-## November 15 update: protocol 6
+## Historical context: November 15 / protocol 6
 
 Guest fishing runs locally at 60 Hz. Reliable batches of six hold/release inputs
 are sent at 10 Hz; the host replays the seeded fight and alone awards catches.
@@ -161,8 +171,60 @@ on normal exit/page navigation. Old native single saves migrate once. Protocols
 1–6 load. See [save slots](save-slots.md) for persistence and capacity details.
 
 
-## World survival update (protocol 8)
+## Historical context: world survival / protocol 8
 
 The bounded seeded world, shared sharks, health, death and sinking rules are
-implemented in [world survival](world-survival.md). Protocol 8 is current; both
-game and harbor must match. Saves from protocols 1–7 remain loadable.
+implemented in [world survival](world-survival.md). That release introduced protocol 8. The current protocol is 13;
+the game and harbor must match.
+
+
+## Guest smoothing update — November 18, 2026
+
+Guest ship movement now uses a bounded 150 ms snapshot playback buffer with
+host monotonic timestamps. Remote crew positions use that same timeline.
+Playback gently adjusts its clock for drift; duplicate/out-of-order snapshots
+are ignored, teleports and gaps over 500 ms reset it, and outages hold the last
+host pose rather than extrapolating through land. At most 12 snapshots remain
+in memory. SnapshotBuffer.underruns counts frames that exhaust the buffer for
+local diagnostics; it sends no telemetry. Older hosts without timestamps use
+the existing 10 Hz sequence as a fallback.
+
+Walking, helm angle and sail trim remain locally predicted. Helm/trim drift is
+now corrected exponentially at 8 per second, with matching corrections to the
+prediction history, instead of a visible 25% jump when a packet arrives.
+Ownership transitions discard pending control corrections. Remote boarding,
+respawns and station transitions bypass positional blending across different
+coordinate spaces. Ship physics/collision authority remains with the host;
+this pass does not predict the boat through shore collisions.
+
+The snapshot frequency (10 Hz), immediate changed inputs, unchanged-input
+refresh (0.5 s), room fan-out, heartbeat and discovery rates are unchanged.
+The only wire addition is a timestamp in the existing compressed snapshot.
+There are no added HTTP requests, telemetry uploads or database operations.
+This is compatible with protocol 13; deploy all peers for consistent behavior.
+
+Free-plan limits are account-wide, not a per-crew guarantee. Cloudflare's
+Durable Objects pricing lists 5 million SQL rows read/day, 100,000 rows
+written/day and 100,000 request units/day; incoming WebSocket messages use a
+20:1 billing ratio. Gameplay packet forwarding does not access SQL/KV, but
+admission, discovery, request gates, alarms and room lifecycle do. Fifty or
+more players can still exhaust request or duration allowances over long
+sessions. Check the dashboard before and after a realistic class-length test;
+this change does not claim unlimited free hosting or modify the account plan.
+Source: https://developers.cloudflare.com/durable-objects/platform/pricing/
+
+Regression commands (replace `godot` with your Godot executable):
+
+```powershell
+godot --headless --path . --script res://tests/network_smoothing.gd -- --settings-test
+godot --headless --path . --script res://tests/classroom_policy.gd -- --settings-test
+```
+
+The smoothing suite checks uneven arrivals at 30/60/144 FPS, stalled streams,
+stale packets, teleports, reset, and immediate local helm input with gradual
+correction. Real WAN/browser play remains necessary to judge perceived latency.
+
+Validation: three local ENet peers passed 49 existing multiplayer smoke checks
+(host 28, guests 13 and 8). The traffic-policy suite passed 8 checks, menu
+flow passed 61, and shore-recovery and playtest-UI suites passed. These are
+local/synthetic checks, not a 50-player production load or real WAN benchmark.

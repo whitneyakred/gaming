@@ -28,8 +28,10 @@ version-11 voyage saves remain readable.
   Unchanged controls refresh every half second. Local prediction and smooth
   remote interpolation remain active. Host acknowledgements advance for held
   inputs between refreshes; the stale-input watchdog stops controls after 1.5s.
-- Receiving guests retain only the newest broadcast snapshot, avoiding a queue
-  of obsolete world states after a frame stall. Reliable gameplay actions remain
+- The transport retains only the newest pending broadcast snapshot, avoiding
+  an obsolete receive backlog after a frame stall. Accepted snapshots feed a
+  separate bounded presentation buffer for [guest smoothing](networking-responsiveness.md).
+  This does not add relay messages or database operations. Reliable gameplay actions remain
   on the existing RPC path. Empty voyages skip snapshot encoding/compression.
 - WebSocket heartbeats are sent every ten seconds and handled by Cloudflare's
   hibernation auto-response API. Liveness checks include its heartbeat timestamp.

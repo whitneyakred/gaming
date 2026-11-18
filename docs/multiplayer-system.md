@@ -101,7 +101,7 @@ session; there is no automatic captain migration or always-running cloud world.
 5. Godot's hello/welcome exchange checks the game protocol and initializes the
    guest's world. Subsequent snapshots bring the client up to date.
 
-The current protocol is `holy-ship-coop-6`. The Worker configuration and
+The current protocol is `holy-ship-coop-13`. The Worker configuration and
 `NetworkSession.PROTOCOL` must agree. A protocol mismatch requires a refreshed
 browser game or matching desktop build; do not silently accept incompatible
 packet layouts.
@@ -126,8 +126,9 @@ competitive anti-cheat system: a modified host still controls its simulation.
 | Swimming and land movement | Part of the shared player/world state |
 | Camera, spyglass view and UI | Local to each player |
 
-Input updates and world snapshots run at 20 Hz. The host compresses each
-snapshot once before distributing it. Guests interpolate received movement;
+World snapshots target 10 Hz. Changed guest controls send immediately, while
+unchanged controls refresh every 0.5 seconds. The host compresses each snapshot
+once and the relay fans it out to the crew. Guests buffer remote movement;
 local movement is predicted immediately and reconciled against acknowledged inputs. Opening pause does not pause
 the shared simulation.
 
@@ -135,7 +136,10 @@ Clients keep up to 120 physics frames of predicted positions and station angles.
 Host snapshots include the last accepted input sequence. Small position errors
 are eased out; boarding/station transitions and large corrections reset the local
 prediction. Sail trim and helm respond locally, while observers interpolate them.
-Input direction changes are sent immediately between the regular 20 Hz updates.
+Guest ship and remote crew movement use a bounded 150 ms timestamped playback
+buffer. Local helm and sail corrections ease across frames without waiting to
+display the player's input. See [guest smoothing](networking-responsiveness.md#guest-smoothing-update--november-18-2026)
+for timing, outage behavior, tuning and regression tests.
 Prediction does not move inventory/catch authority to the client or eliminate
 WebSocket latency and corrections on poor connections.
 
@@ -173,7 +177,8 @@ inventories on departure. Saves contain boat position/rotation, shared chest,
 ship drops and remembered crew inventories. They are not a complete snapshot
 of every transient system: an active fishing minigame, for example, is not a
 durable cloud activity. Save files use a temporary file and rename for replacement.
-The loader accepts save protocols 1 through 6.
+The loader accepts save protocols 1–8, 11 and the current protocol 13.
+See `NetworkSession.load_world()` for the explicit compatibility list.
 
 In browser builds, world snapshots and identity use localStorage; other Godot preferences use browser storage. Clearing site
 data, using a different browser/profile, or changing website origin changes the
@@ -388,7 +393,7 @@ automatically roll back deployed Pages/Worker versions or data migrations.
 Coordinate frontend/backend versions and preserve local saves when rolling back.
 
 
-## November 15 update: protocol 6
+## Historical context: November 15 / protocol 6
 
 Guest fishing runs locally at 60 Hz. Reliable batches of six hold/release inputs
 are sent at 10 Hz; the host replays the seeded fight and alone awards catches.
@@ -405,8 +410,8 @@ on normal exit/page navigation. Old native single saves migrate once. Protocols
 1–6 load. See [save slots](save-slots.md) for persistence and capacity details.
 
 
-## World survival update (protocol 8)
+## Historical context: world survival / protocol 8
 
 The bounded seeded world, shared sharks, health, death and sinking rules are
-implemented in [world survival](world-survival.md). Protocol 8 is current; both
+implemented in [world survival](world-survival.md). Protocol 8 was introduced by that release; the current protocol is 13. Both
 game and harbor must match. Saves from protocols 1–7 remain loadable.
