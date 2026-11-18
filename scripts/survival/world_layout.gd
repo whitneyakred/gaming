@@ -14,6 +14,11 @@ static func generate(ship: Ship, seed_value: int) -> void:
 	var islands: Array[WorldIsland] = []
 	for i in ISLAND_COUNT:
 		var island := templates[i % templates.size()].duplicate() as WorldIsland
+		# Runtime totems own labels and occupancy; recreate them after rebuilding.
+		var old_totem := island.get_node_or_null("MinigameTotem")
+		if old_totem != null:
+			island.remove_child(old_totem)
+			old_totem.free()
 		island.name = "Island_%02d" % i
 		island.display_name = "Island %d" % (i + 1)
 		var factor := rng.randf_range(0.75, 2.3)

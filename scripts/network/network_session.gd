@@ -38,7 +38,6 @@ var _last_snapshot: Dictionary = {}
 var _restored: Dictionary = {}
 var _snapshot_serial: int = 0
 var _received_serial: int = -1
-var _badge: Label
 var _prediction: Array[Dictionary] = []
 var _prediction_error := Vector2.ZERO
 var _last_local_move := Vector2.ZERO
@@ -257,17 +256,7 @@ func load_game() -> void:
 			spawn_crew(1)
 	else:
 		ready_for_world.rpc_id(1)
-	var hud := CanvasLayer.new()
-	ship.add_child(hud)
-	hud.layer = 15
-	_badge = Label.new()
-	_badge.position = Vector2(18, 16)
-	_badge.add_theme_font_size_override("font_size", 14)
-	_badge.add_theme_color_override("font_outline_color", Color("102531"))
-	_badge.add_theme_constant_override("outline_size", 4)
-	hud.add_child(_badge)
 	if multiplayer.is_server(): save_world.call_deferred()
-	_badge.text = "Sailing together • " + ("Captain" if multiplayer.is_server() else "Crew")
 
 func _disable_local_systems(node: Node) -> void:
 	if node is ShipStation:
@@ -510,9 +499,14 @@ func input_frame(direction: Vector2, held: bool, blocked: bool, sequence: int) -
 		inputs[id]["ack"] = sequence - 1
 		inputs[id].merge({"move": direction.limit_length(), "held": held, "blocked": blocked, "stamp": Time.get_ticks_msec()}, true)
 
+# The map suppresses walking, but does not release an occupied station.
+func _map_blocks_movement() -> bool:
+	var player: CharacterBody2D = players.get(local_id)
+	return MapState.map_open and (not is_instance_valid(player) or not player.using_station)
+
 func _unhandled_input(event: InputEvent) -> void:
 	if IslandChallenges.local_active(): return
-	if not online or not world_ready or PauseMenu.is_paused() or MapState.map_open:
+	if not online or not world_ready or PauseMenu.is_paused() or _map_blocks_movement():
 		return
 	if event.is_action_pressed("interact") and not event.is_echo():
 		command("interact")
@@ -533,12 +527,12 @@ func _physics_process(delta: float) -> void:
 		var packed := (multiplayer.multiplayer_peer as HarborPeer).take_world_snapshot()
 		if not packed.is_empty(): world_snapshot(packed)
 	if players.has(local_id) and not dedicated:
-		var blocked: bool = PauseMenu.is_paused() or MapState.map_open or not DisplayServer.window_is_focused()
+		var blocked: bool = PauseMenu.is_paused() or _map_blocks_movement() or not DisplayServer.window_is_focused()
 		if DisplayServer.get_name() == "headless" or "--settings-test" in OS.get_cmdline_user_args():
-			blocked = PauseMenu.is_paused() or MapState.map_open
+			blocked = PauseMenu.is_paused() or _map_blocks_movement()
 		blocked = blocked or IslandChallenges.local_active()
 		var move := Vector2.ZERO if blocked else Input.get_vector("move_left", "move_right", "move_up", "move_down")
-		var held: bool = not blocked and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+		var held: bool = not blocked and not MapState.map_open and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 		if multiplayer.is_server():
 			inputs[local_id].merge({"move": move, "held": held, "blocked": blocked, "stamp": Time.get_ticks_msec()}, true)
 		else:

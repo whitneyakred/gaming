@@ -38,7 +38,7 @@ func _process(delta: float) -> void:
 	wind_arrow.rotation = ship.wind_velocity.angle() + PI / 2.0
 	wind_arrow.visible = not ship.wind_velocity.is_zero_approx()
 	helm_wheel.maximum_angle_degrees = maxf(ship.maximum_wheel_turns * 360.0, 1.0)
-	helm_wheel.set_helm_state(is_instance_valid(helm.operator), ship.wheel_angle_degrees)
+	helm_wheel.set_helm_state(is_instance_valid(helm.operator) and helm.operator == helm.local_player, ship.wheel_angle_degrees)
 	queue_redraw()
 
 func _update_camera(delta: float) -> void:
