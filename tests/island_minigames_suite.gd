@@ -157,6 +157,12 @@ func _test_every_island_loads() -> void:
 		_check(game != null, "Scene root must be an IslandGame")
 		if game == null:
 			continue
+		# This case checks dock access and the incomplete-objective gate, not
+		# surviving random attacks while walking. Hazard behavior is exercised
+		# explicitly by _test_coconut_squall below.
+		if game is CoconutSquall:
+			game._spawn_timer = INF
+			game._falling.clear()
 		_check(game.player != null and game.hud != null, "Player and HUD must be found")
 		_check(game.is_running(), "The run must start")
 		var terrain := game.get_node_or_null(^"Terrain") as IslandTerrain

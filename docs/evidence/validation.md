@@ -55,6 +55,12 @@ cycle and damage assertions remain. Five consecutive local survival runs passed
 72 checks each; this is fixture validation, not a claim of exhaustive shark
 navigation coverage. Future cycle failures include the world seed and seen modes.
 
+The next GitHub run passed all 72 survival checks but exposed a separate Coconut
+Squall fixture issue: random falling coconuts stayed active during the generic
+early-rowboat check, allowing a knockout unrelated to the exit gate. That dock
+check now suppresses random drops, matching the dedicated coconut test's setup.
+The dedicated test still checks hits, invulnerability, pickups and storm completion.
+
 From the repository root, use the installed Godot console executable in place of `godot`:
 
 ```sh
