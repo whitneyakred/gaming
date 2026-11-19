@@ -1,7 +1,7 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-13"
+const PROTOCOL := "holy-ship-coop-15"
 const SNAPSHOT_INTERVAL := 0.1
 const INPUT_REFRESH_INTERVAL := 0.5
 const DEFAULT_PORT := 24567
@@ -232,10 +232,11 @@ func load_game() -> void:
 	if multiplayer.is_server():
 		if not _restored.is_empty():
 			ship.rebuild_world(int(_restored.get("seed", ship.world_seed)))
-			MapState.discovered_islands = _restored.get("discovered", {})
+			MapState.restore_discoveries(_restored.get("discovered", {}))
+			VoyageState.restore_quest(_restored.get("paradise_quest", {}))
 			ship.global_position = _restored.get("position", Vector2.ZERO)
 			ship.global_rotation = _restored.get("rotation", 0.0)
-			if not _restored.has("seed"):
+			if not _restored.has("seed") or not _restored.has("paradise_quest"):
 				var hull: PackedVector2Array = ship.get_hull_polygon(ship.global_position, ship.global_rotation)
 				var bounds := Rect2(hull[0], Vector2.ZERO)
 				for point in hull: bounds = bounds.expand(point)
@@ -313,7 +314,7 @@ func spawn_crew(id: int) -> void:
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
 	label.add_theme_constant_override("outline_size", 3)
 	player.add_child(label)
-	player.modulate = [Color.WHITE, Color("c1e4ff"), Color("ffdab8"), Color("d2f4be")][posmod(players.size() - 1, 4)]
+	player.modulate = Color.WHITE
 	var local := id == local_id and not dedicated
 	service.hud.visible = local
 	service.hud.set_process(local)
@@ -421,6 +422,7 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 		"select":
 			service.hud.selected = clampi(int(args.get("index", 0)), 0, 3)
 		"interact":
+			if ship.get_node("ParadiseJourney").interact(player): return
 			var challenges := ship.get_node("IslandChallenges") as IslandChallenges
 			var island := challenges.nearest(player)
 			if island != null:
@@ -617,6 +619,7 @@ func _send_snapshot() -> void:
 		var fishing: RodFishing = service.get_node("Fishing")
 		crew[id] = {"island_challenge": player.island_challenge, "eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("ack", inputs[id].get("sequence", -1)), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
 			"station": str(player.active_station.name) if player.using_station else "", "inventory": service.inventory.capture(),
+			"access_motion": player.access_motion, "access_progress": player.access_progress,
 			"selected": service.hud.selected, "chest": service.hud.storage_open, "chest_id": service.active_chest_id, "grill_open": service.hud.grill_open, "revision": service.view_revision, "pickup_serial": service.pickup_serial, "drop_serial": service.drop_serial,
 			"fish": {"attempt": fishing.attempt_id, "seed": fishing.fight_seed, "state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
 				"progress": fishing.fight.progress, "tension": fishing.fight.tension, "green": fishing.fight.green_center,
@@ -624,7 +627,7 @@ func _send_snapshot() -> void:
 	_snapshot_serial += 1
 	var data := {"serial": _snapshot_serial, "time": Time.get_ticks_msec() / 1000.0, "position": ship.global_position, "rotation": ship.global_rotation, "wind": ship.wind_velocity,
 		"sail": ship.sail_level, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees, "anchor": ship.anchor_deployed,
-		"island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "port_storage": VoyageState.get_ship_storage(18, 1).capture(), "drops": VoyageState.floor_items.get("ship", {})}
+		"paradise_quest": VoyageState.quest_data(), "island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "port_storage": VoyageState.get_ship_storage(18, 1).capture(), "drops": VoyageState.floor_items.get("ship", {})}
 	var packed := var_to_bytes(data).compress(FileAccess.COMPRESSION_GZIP)
 	if multiplayer.multiplayer_peer is HarborPeer and _pending.is_empty() and packed.size() < 64000:
 		# One upload per crew; the relay fans it out. Pending peers must finish
@@ -680,6 +683,7 @@ func apply_snapshot(data: Dictionary) -> void:
 		_motion_buffer.clear()
 	ship.rebuild_world(int(data.get("seed", ship.world_seed)))
 	ship.survival.restore(data.get("survival", {}))
+	VoyageState.restore_quest(data.get("paradise_quest", {}))
 	ship.get_node("IslandChallenges").locks = data.get("island_locks", {})
 	var known_before := MapState.discovered_islands.size()
 	MapState.discovered_islands.merge(data.get("discovered", {}), true)
@@ -722,6 +726,8 @@ func apply_snapshot(data: Dictionary) -> void:
 		player.danger_time = entry.get("danger", 0.0)
 		var transition: bool = respawned or player.is_overboard != entry.outside or (str(player.active_station.name) if player.using_station else "") != entry.station
 		player.set_overboard(entry.outside)
+		player.access_motion = StringName(entry.get("access_motion", ""))
+		player.access_progress = clampf(float(entry.get("access_progress", 0.0)), 0.0, 1.0)
 		player.update_land(entry.land)
 		player.active_station = ship.get_node_or_null(NodePath(entry.station)) if entry.station != "" else null
 		if player.using_station:
@@ -892,7 +898,7 @@ func save_world() -> void:
 		return
 	for id: int in players:
 		_remember(id)
-	var data := {"discovered": MapState.discovered_islands, "seed": ship.world_seed, "version": PROTOCOL, "title": crew_title, "position": ship.global_position, "rotation": ship.global_rotation,
+	var data := {"paradise_quest": VoyageState.quest_data(), "discovered": MapState.discovered_islands, "seed": ship.world_seed, "version": PROTOCOL, "title": crew_title, "position": ship.global_position, "rotation": ship.global_rotation,
 		"grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "port_storage": VoyageState.get_ship_storage(18, 1).capture(), "drops": VoyageState.floor_items.get("ship", {}), "accounts": accounts}
 	if not VoyageSaves.store(data):
 		set_status(VoyageSaves.last_error)
@@ -900,7 +906,7 @@ func save_world() -> void:
 
 func load_world() -> void:
 	var data := VoyageSaves.world(VoyageSaves.selected)
-	if data.get("version") in [PROTOCOL, "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
+	if data.get("version") in [PROTOCOL, "holy-ship-coop-14", "holy-ship-coop-13", "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
 		_restored = data
 		accounts = data.get("accounts", {})
 
@@ -965,4 +971,3 @@ func island_begin(island_id: String, token: int) -> void:
 func island_end(token: int) -> void:
 	if world_ready and is_instance_valid(ship):
 		ship.get_node("IslandChallenges").close_local(token)
-

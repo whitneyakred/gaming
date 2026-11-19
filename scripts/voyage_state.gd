@@ -14,6 +14,101 @@ var _starter_granted: Dictionary[StringName, bool] = {}
 var ship_storage: ShipInventory
 var port_storage: ShipInventory
 var floor_items: Dictionary = {}
+signal quest_changed
+const KEY_IDS := ["bronze", "silver", "gold"]
+var paradise_quest: Dictionary = {}
+
+func quest_data() -> Dictionary:
+	return paradise_quest.duplicate(true)
+
+func restore_quest(data: Dictionary) -> void:
+	if paradise_quest == data: return
+	paradise_quest = data.duplicate(true)
+	quest_changed.emit()
+
+func has_key(key: String) -> bool:
+	return bool(paradise_quest.get(key, false))
+
+func grant_key(key: String, bag: PlayerInventory = null) -> bool:
+	if key not in KEY_IDS or bag == null: return false
+	reconcile_keys()
+	if has_key(key): return false
+	if not bag.try_add(StringName(key + "_key")): return false
+	paradise_quest[key] = true
+	quest_changed.emit()
+	return true
+
+func all_keys() -> bool:
+	return KEY_IDS.all(func(key: String) -> bool: return has_key(key))
+
+func open_paradise(bag: PlayerInventory = null) -> bool:
+	if paradise_quest.get("gate_open", false): return true
+	if bag == null: return false
+	var changed := false
+	for key in KEY_IDS:
+		if not paradise_quest.get(key + "_inserted", false) and bag.try_remove(StringName(key + "_key")):
+			paradise_quest[key + "_inserted"] = true
+			paradise_quest[key] = true
+			changed = true
+	var unlocked := KEY_IDS.all(func(key: String) -> bool: return paradise_quest.get(key + "_inserted", false))
+	if unlocked: paradise_quest["gate_open"] = true
+	if changed: quest_changed.emit()
+	return unlocked
+
+func complete_voyage() -> bool:
+	if not paradise_quest.get("gate_open", false): return false
+	paradise_quest["complete"] = true
+	quest_changed.emit()
+	return true
+
+const GROUND_ITEM_LIFETIME := 300.0
+
+func _physics_process(delta: float) -> void:
+	if NetworkSession.online and (not multiplayer.is_server() or not NetworkSession.world_ready): return
+	advance_ground_items(delta)
+	reconcile_keys()
+
+func advance_ground_items(delta: float) -> void:
+	for scene_drops: Dictionary in floor_items.values():
+		for drop_id in scene_drops.keys():
+			var entry: Dictionary = scene_drops[drop_id]
+			entry["age"] = float(entry.get("age", 0.0)) + delta
+			if entry.age >= GROUND_ITEM_LIFETIME:
+				scene_drops.erase(drop_id)
+				for service in get_tree().get_nodes_in_group("inventory_services"):
+					if service.drops == scene_drops: service.pickup_inside.erase(drop_id)
+
+func mark_keys(entries: Array, found: Dictionary) -> void:
+	for entry: Dictionary in entries:
+		if int(entry.get("quantity", 0)) <= 0: continue
+		var id := str(entry.get("id", ""))
+		for key in KEY_IDS:
+			if id == key + "_key": found[key] = true
+
+func reconcile_keys() -> void:
+	var found := {}
+	if NetworkSession.online:
+		var active_tokens := {}
+		for id in NetworkSession.services:
+			mark_keys(NetworkSession.services[id].inventory.slots, found)
+			active_tokens[NetworkSession.identities.get(id, {}).get("token", "")] = true
+		# A disconnected sailor's saved bag still owns its key.
+		for token in NetworkSession.accounts:
+			if not active_tokens.has(token): mark_keys(NetworkSession.accounts[token].get("inventory", []), found)
+	else:
+		for bag: PlayerInventory in _inventories.values(): mark_keys(bag.slots, found)
+	for chest in [ship_storage, port_storage]:
+		if chest != null: mark_keys(chest.slots, found)
+	for scene_drops: Dictionary in floor_items.values(): mark_keys(scene_drops.values(), found)
+	var changed := false
+	for key in KEY_IDS:
+		# An already opened gate stays open when upgrading an older voyage save.
+		var present: bool = found.has(key) or paradise_quest.get(key + "_inserted", false) or paradise_quest.get("gate_open", false)
+		if has_key(key) != present:
+			paradise_quest[key] = present
+			changed = true
+	if changed: quest_changed.emit()
+
 
 func get_ship_storage(capacity: int = 18, chest_id: int = 0) -> ShipInventory:
 	if chest_id == 1:
@@ -59,6 +154,8 @@ func reset() -> void:
 	ship_storage = null
 	port_storage = null
 	floor_items.clear()
+	paradise_quest.clear()
+	quest_changed.emit()
 
 
 func clear_voyage() -> void:

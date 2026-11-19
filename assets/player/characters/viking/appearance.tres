@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CharacterAppearance" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/visuals/character_appearance.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/player/characters/viking/walk.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/player/characters/viking/swim.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/player/characters/viking/actions.png" id="4"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Viking"
+walk_atlas = ExtResource("2")
+swim_atlas = ExtResource("3")
+action_atlas = ExtResource("4")
+action_regions = Array[Rect2]([Rect2(120, 101, 224, 319), Rect2(563, 72, 192, 317), Rect2(1006, 92, 192, 286), Rect2(1427, 119, 231, 283), Rect2(98, 484, 248, 360), Rect2(543, 484, 247, 360), Rect2(983, 484, 250, 360), Rect2(1425, 484, 244, 360)])
+action_anchors = PackedVector2Array(232, 416, 659, 385, 1102, 374, 1542, 398, 222, 840, 666, 840, 1108, 840, 1547, 840)
+columns = 6
+idle_column = 5
+walk_cycle = PackedInt32Array(0, 1, 2, 3, 4, 5)
+walk_fps = 8.0
+swim_fps = 5.0
+walk_column_offsets = PackedFloat32Array(40, 29, 18, 7, -4, -15)
+swim_column_offsets = PackedFloat32Array(26, 26, 26, 26, 26, 26)

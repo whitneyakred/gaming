@@ -17,6 +17,7 @@ var _floaters: Array[Dictionary] = []
 
 func _ready() -> void:
 	theme = HarborTheme.menu_theme()
+	$ProfileOverlay/ProfileCard/Rows/Portrait.texture = preload("res://assets/player/characters/viking/appearance.tres").portrait()
 	_ship_rest_y = logo_ship.position.y
 	logo.texture = HarborTheme.trimmed(logo.texture)
 	var wood := AtlasTexture.new()

@@ -17,6 +17,7 @@ var player_position := Vector2.ZERO
 var has_player_position := false
 var paradise_position := Vector2.ZERO
 var has_paradise_position := false
+var key_regions: Array[Dictionary] = []
 var selected_island_id := ""
 
 var has_destination := false
@@ -29,6 +30,7 @@ func reset() -> void:
 	markers.clear()
 	discovered_islands.clear()
 	island_catalog.clear()
+	key_regions.clear()
 	discovered_ocean.clear()
 	player_position = Vector2.ZERO
 	has_player_position = false
@@ -126,6 +128,16 @@ func discover_island(island_id: String, island_name: String, position: Vector2) 
 		return
 
 	discovered_islands[island_id] = {"name": island_name, "position": position}
+	changed.emit()
+
+
+func restore_discoveries(saved: Dictionary) -> void:
+	# Resolve against this layout: older saves predate the quest islands.
+	discovered_islands.clear()
+	for island_id in saved:
+		if not island_catalog.has(island_id): continue
+		var island: Dictionary = island_catalog[island_id]
+		discovered_islands[island_id] = {"name": island.name, "position": island.position}
 	changed.emit()
 
 

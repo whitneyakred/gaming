@@ -1,6 +1,14 @@
 class_name Ship
 extends ShipMotion
 
+## Waterline boundary for swimmers: excludes the raised bow spar and gives
+## the stern clearance for the swimmer's head above their position anchor.
+@export var swimming_hull_outline: PackedVector2Array = PackedVector2Array()
+
+func get_swimming_hull_polygon() -> PackedVector2Array:
+	var outline := hull_outline if swimming_hull_outline.is_empty() else swimming_hull_outline
+	return global_transform * outline
+
 # Sail and steer around an open map of islands. There is no nearest-island
 # text or arrow while voyaging: you find islands by sailing. Islands are solid:
 # the hull scrapes along a shore instead of sailing over it (each island's
@@ -33,6 +41,8 @@ static var anchored_rotation: float = 0.0
 @export var row_speed: float = 130.0               # rowboat speed, px/s
 ## Map pixels per "meter" shown in the status line.
 @export var pixels_per_meter: float = 10.0
+## Uncheck before exporting to remove the teleport menu and disable its actions.
+@export var developer_tools_enabled: bool = true
 
 enum State { SAILING, ANCHORED, ROWING }
 
@@ -99,6 +109,12 @@ func _ready() -> void:
 	var challenges := IslandChallenges.new()
 	challenges.name = "IslandChallenges"
 	add_child(challenges)
+	var journey := ParadiseJourney.new()
+	journey.name = "ParadiseJourney"
+	add_child(journey)
+	var dev_menu := preload("res://scripts/dev/voyage_dev_menu.gd").new()
+	dev_menu.name = "VoyageDevMenu"
+	add_child(dev_menu)
 	MapState.pixels_per_meter = pixels_per_meter
 	_rowboat_home = rowboat.position
 	stern_zone.body_entered.connect(_on_stern_entered)

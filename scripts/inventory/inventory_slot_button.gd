@@ -8,12 +8,34 @@ var selected: bool = false
 var hud: Node
 var slot_index: int = -1
 var is_storage: bool = false
+@export_range(0.1, 1.0, 0.05) var pickup_hold_seconds: float = 0.15
+var _pickup_hold: float = -1.0
+
+func _process(delta: float) -> void:
+	if _pickup_hold < 0.0: return
+	if not is_visible_in_tree() or not is_hovered() or not hud.service.can_handle_items() or hud.storage_open or hud.grill_open:
+		_pickup_hold = -1.0
+		return
+	_pickup_hold += delta
+	if _pickup_hold >= pickup_hold_seconds:
+		_pickup_hold = -1.0
+		hud.pick_cursor(slot_index, is_storage)
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		_pickup_hold = -1.0
+	elif event.is_action_pressed("ui_cancel") or event.is_action_pressed("interact"):
+		_pickup_hold = -1.0
 
 func _gui_input(event: InputEvent) -> void:
 	if hud == null or not event is InputEventMouseButton or not event.pressed: return
 	if event.button_index == MOUSE_BUTTON_LEFT:
 		if event.shift_pressed: hud.quick_transfer(slot_index, is_storage)
-		else: hud.pick_cursor(slot_index, is_storage)
+		elif is_storage or hud.storage_open or hud.grill_open:
+			hud.pick_cursor(slot_index, is_storage)
+		else:
+			hud.select_slot(slot_index)
+			_pickup_hold = 0.0
 		accept_event()
 	elif event.button_index == MOUSE_BUTTON_RIGHT:
 		var item := ItemDatabase.get_item(entry.get("id", &""))
@@ -38,6 +60,7 @@ func _ready() -> void:
 		add_theme_stylebox_override(state, style)
 	mouse_entered.connect(queue_redraw)
 	mouse_exited.connect(queue_redraw)
+	mouse_exited.connect(func() -> void: _pickup_hold = -1.0)
 
 func set_entry(value: Dictionary, key: String, active: bool) -> void:
 	entry = value

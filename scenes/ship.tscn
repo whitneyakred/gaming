@@ -5,8 +5,6 @@
 [ext_resource type="Texture2D" uid="uid://b3qfmpqpaoksv" path="res://assets/island_pixel.png" id="3"]
 [ext_resource type="Texture2D" path="res://assets/ship_clean.png" id="4"]
 [ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="5"]
-[ext_resource type="Texture2D" uid="uid://jf2hgacmc8nt" path="res://assets/rowboat.png" id="6"]
-[ext_resource type="Texture2D" uid="uid://v50473bfp0us" path="res://assets/player_viking.png" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/Cooking.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/helm_station.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/sail_station.tscn" id="10"]
@@ -31,6 +29,7 @@ player_id = &"player_1"
 
 [node name="Ship" type="Node2D" unique_id=1965887700]
 script = ExtResource("1")
+swimming_hull_outline = PackedVector2Array(-14, -232, -54, -166, -78, -96, -80, 118, -66, 192, -50, 232, 58, 232, 76, 186, 90, 106, 94, 64, 92, -58, 74, -138, 52, -184, 28, -218, 8, -232)
 hull_outline = PackedVector2Array(2, -288, -4, -282, -2, -262, -14, -232, -54, -166, -78, -96, -80, 118, -66, 178, -50, 206, 58, 206, 76, 172, 90, 106, 94, 64, 92, -58, 74, -138, 52, -184, 28, -218, 10, -262, 8, -282)
 
 [node name="Ocean" type="Node2D" parent="." unique_id=404710856]
@@ -422,19 +421,14 @@ build_mode = 1
 polygon = PackedVector2Array(4, -208, 24, -188, 40, -164, 56, -128, 66, -88, 72, -38, 74, 12, 72, 72, 68, 122, 62, 156, 52, 166, 22, 166, 22, 196, -10, 196, -10, 166, -44, 166, -54, 156, -60, 122, -64, 72, -66, 12, -64, -32, -126, -32, -126, -52, -62, -52, -58, -88, -48, -128, -32, -164, -16, -188)
 
 [node name="Rowboat" type="Node2D" parent="." unique_id=1126902144]
+visible = false
 position = Vector2(4, 238)
-
-[node name="Sprite2D" type="Sprite2D" parent="Rowboat" unique_id=978468845]
-texture_filter = 1
-scale = Vector2(2, 2)
-texture = ExtResource("6")
 
 [node name="Rider" type="Sprite2D" parent="Rowboat" unique_id=664807931]
 visible = false
 texture_filter = 1
 position = Vector2(0, -12)
 scale = Vector2(0.03, 0.03)
-texture = ExtResource("7")
 
 [node name="SternZone" type="Area2D" parent="." unique_id=1559865449]
 position = Vector2(6, 180)

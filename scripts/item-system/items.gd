@@ -6,6 +6,10 @@ const COCONUT_WHOLE_ICON := preload("res://assets/items/coconut_whole.png")
 
 
 func _ready() -> void:
+	for metal in ["bronze", "silver", "gold"]:
+		ItemDatabase.register_item(make_item(StringName(metal + "_key"), metal.capitalize() + " Key",
+			"Insert into the Paradise gate. Returns to its sanctuary if lost.", 1, ItemData.Category.TOOL,
+			load("res://assets/items/%s_key.png" % metal) as Texture2D))
 	ItemDatabase.register_item(make_item(
 		&"spyglass", "Spyglass",
 		"Hold left-click to zoom out. Move the mouse to scout; release to return.",

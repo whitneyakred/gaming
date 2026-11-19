@@ -22,6 +22,12 @@ var cursor_icon: TextureRect
 var cursor_count: Label
 var _cursor_position := Vector2.ZERO
 
+func select_slot(index: int) -> void:
+	selected = index
+	if NetworkSession.online:
+		NetworkSession.command("select", {"index": index})
+	_refresh()
+
 func bind_service(value: InventoryService) -> void:
 	service = value
 	layer = 5

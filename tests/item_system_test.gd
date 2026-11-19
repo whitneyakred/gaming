@@ -69,7 +69,7 @@ func _test_registered_catalog() -> void:
 		{
 			"id": &"fishing_rod",
 			"display_name": "Fishing Rod",
-			"description": "An old but useful tool for getting food and other items from the sea.",
+			"description": "Click water to cast. At a bite, click again; hold and release to keep tension green.",
 			"max_stack": 1,
 			"category": ItemData.Category.TOOL,
 			"icon_path": "res://assets/items/fishing_rod.svg",
@@ -111,7 +111,11 @@ func _test_registered_catalog() -> void:
 
 	var all_items: Array = item_database.call(&"get_all_items")
 	var island_ids: Array[StringName] = [&"gold_coin", &"wood", &"crab_meat", &"mango", &"banana", &"papaya", &"fresh_water", &"compass", &"gunpowder", &"dried_fish", &"glow_jar", &"cannonball", &"torch", &"honey"]
-	_check_equal(all_items.size(), expected_items.size() + island_ids.size(), "Catalog enumeration includes the island rewards")
+	_check_equal(all_items.size(), expected_items.size() + island_ids.size() + 5, "Catalog enumeration includes the island rewards")
+	for metal in ["bronze", "silver", "gold"]:
+		var key := item_database.call(&"get_item", StringName(metal + "_key")) as ItemData
+		_check(key != null and key.icon != null and key.max_stack == 1 and key.category == ItemData.Category.TOOL,
+			"Key has a holdable icon and does not stack", "Tool with icon and stack size 1", var_to_str(key))
 	var found_ids: Dictionary[StringName, int] = {}
 	for item in all_items:
 		_check(item != null, "Catalog enumeration contains no null entries", "An ItemData instance", var_to_str(item))

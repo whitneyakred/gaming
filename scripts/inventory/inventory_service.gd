@@ -28,6 +28,7 @@ var scene_key: String
 var hud: CanvasLayer
 
 func _ready() -> void:
+	add_to_group("inventory_services")
 	player = get_node(player_path) as CharacterBody2D
 	inventory = player.get("player_inventory") as PlayerInventory
 	storage = VoyageState.get_ship_storage(storage_slots)
@@ -161,7 +162,7 @@ func _spawn_drop(entry: Dictionary, point: Vector2) -> void:
 	if NetworkSession.online:
 		next_drop_id = NetworkSession.dropped_id
 		NetworkSession.dropped_id += 1
-	drops[next_drop_id] = {"id": entry.id, "quantity": entry.quantity, "position": point, "world": player.is_overboard}
+	drops[next_drop_id] = {"id": entry.id, "quantity": entry.quantity, "position": point, "world": player.is_overboard, "age": 0.0}
 	pickup_inside[next_drop_id] = player.position.distance_to(point) <= pickup_distance
 	next_drop_id += 1
 

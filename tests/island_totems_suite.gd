@@ -23,8 +23,9 @@ func run() -> void:
 	var player := ship.player
 	var bag: PlayerInventory = player.player_inventory
 	var seen := {}
-	check(ship.get_islands().size() == 30, "All 30 world islands exist")
+	check(ship.get_islands().size() == 34, "30 ordinary islands plus four quest islands exist")
 	for island in ship.get_islands():
+		if island is QuestIsland: continue
 		var totem := island.get_node("MinigameTotem") as MinigameTotem
 		check(Geometry2D.is_point_in_polygon(totem.global_position, island.get_coast()), "Totem is on land: " + str(island.name))
 		if seen.has(island.scene): continue

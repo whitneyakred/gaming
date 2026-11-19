@@ -1,10 +1,14 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/menus/title_screen.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/menus/menu_ocean.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/menus/harbor_button.gd" id="3"]
 [ext_resource type="Texture2D" path="res://assets/menus/title_wordmark.png" id="4"]
-[ext_resource type="Texture2D" path="res://assets/player_viking.png" id="5"]
+[ext_resource type="Texture2D" path="res://assets/player/characters/viking/walk.png" id="5"]
+
+[sub_resource type="AtlasTexture" id="Portrait_current"]
+atlas = ExtResource("5")
+region = Rect2(1280, 0, 256, 256)
 
 [node name="TitleScreen" type="Control" groups=["title_screen"]]
 layout_mode = 3
@@ -71,7 +75,7 @@ offset_left = 51.0
 offset_top = 351.0
 offset_right = 308.0
 offset_bottom = 395.0
-text = "CUSTOMIZE"
+text = "CHARACTER"
 script = ExtResource("3")
 title_plank = true
 
@@ -127,7 +131,7 @@ layout_mode = 2
 size_flags_vertical = 3
 texture_filter = 1
 mouse_filter = 2
-texture = ExtResource("5")
+texture = SubResource("Portrait_current")
 expand_mode = 1
 stretch_mode = 5
 

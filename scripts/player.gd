@@ -4,6 +4,9 @@ extends CharacterBody2D
 @export var walk_speed: float = 145.0
 @export var swim_speed: float = 65.0
 var is_overboard: bool = false
+var access_motion: StringName = &""
+var access_progress: float = 0.0
+var access_start := Vector2.ZERO
 var on_land: bool = false
 var inventory_open: bool = false
 var fishing_active: bool = false
@@ -22,7 +25,7 @@ var hurt_serial: int = 0
 var respawn_serial: int = 0
 var _deck_mask: int
 var _deck_layer: int
-var _sprite_position: Vector2
+@export var character_appearance: CharacterAppearance = preload("res://assets/player/characters/viking/appearance.tres")
 var using_station: bool:
 	get:
 		return is_instance_valid(active_station)
@@ -50,6 +53,9 @@ func leave_station(station: Node) -> void:
 
 
 func _ready() -> void:
+	var swim_wake := SwimWake.new()
+	swim_wake.name = "SwimWake"
+	add_child(swim_wake)
 	if minigame_avatar:
 		return
 	var initial_inventory := player_inventory
@@ -74,9 +80,12 @@ func _physics_process(_delta: float) -> void:
 func _process(_delta: float) -> void:
 	global_rotation = 0.0
 	visible = health > 0
+	# Deck props sit at zero. Water is below the hull, plank and ladder;
+	# shoreline walkers and crew on deck stay above the scenery.
+	z_index = -1 if is_overboard and not on_land and access_motion in [&"", &"dunk", &"surface", &"align"] else 1
 
 func move_crew(direction: Vector2, _delta: float) -> void:
-	if health <= 0 or using_station or inventory_open or island_challenge:
+	if health <= 0 or using_station or inventory_open or island_challenge or access_motion != &"":
 		velocity = Vector2.ZERO
 		return
 	# Read WASD / arrow keys; diagonal movement stays the same speed.
@@ -86,9 +95,11 @@ func move_crew(direction: Vector2, _delta: float) -> void:
 		var next := global_position + velocity * _delta
 		var ship := get_parent() as Ship
 		if ship:
-			var hull := ship.get_hull_polygon(ship.global_position, ship.global_rotation)
+			var hull := ship.get_swimming_hull_polygon()
 			if not Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([global_position, next]), hull).is_empty():
 				return
+			for island in ship.get_islands():
+				if island is QuestIsland and island.blocks_path(global_position, next): return
 		global_position = next
 		return
 	velocity = direction * walk_speed
@@ -96,6 +107,10 @@ func move_crew(direction: Vector2, _delta: float) -> void:
 	move_and_slide()
 
 func set_overboard(value: bool) -> void:
+	# Respawn/teleport callers must not leave a stale traversal controlling movement.
+	if not value:
+		access_motion = &""
+		access_progress = 0.0
 	if value == is_overboard:
 		return
 	if value:
@@ -104,26 +119,19 @@ func set_overboard(value: bool) -> void:
 		active_station = null
 		_deck_mask = collision_mask
 		_deck_layer = collision_layer
-		_sprite_position = idle_sprite.position
 		collision_mask = 0
 		collision_layer = 0
 		var world := global_transform
 		set_as_top_level(true)
 		global_transform = world
 		global_rotation = 0
-		idle_sprite.region_enabled = true
-		# Crop the existing portrait to helmet and face, above the shoulders.
-		var size := idle_sprite.texture.get_size()
-		idle_sprite.region_rect = Rect2(size * Vector2(0.31, 0.07), size * Vector2(0.36, 0.35))
-		idle_sprite.position = Vector2(0, -7)
 	else:
 		set_as_top_level(false)
 		rotation = 0
 		collision_mask = _deck_mask
 		collision_layer = _deck_layer
-		idle_sprite.region_enabled = false
-		idle_sprite.position = _sprite_position
 	is_overboard = value
+	if idle_sprite is CrewSprite: idle_sprite.refresh(0)
 	queue_redraw()
 	fishing_animation.stop()
 	fishing_animation.hide()
@@ -131,7 +139,7 @@ func set_overboard(value: bool) -> void:
 	velocity = Vector2.ZERO
 
 func _draw() -> void:
-	if is_overboard and not on_land:
+	if is_overboard and not on_land and not idle_sprite is CrewSprite:
 		draw_arc(Vector2(0, 3), 12, 0.0, PI, 16, Color(0.7, 0.9, 1.0, 0.6), 1.5)
 
 func play_fishing_animation() -> void:
@@ -145,8 +153,7 @@ func _on_fishing_animation_animation_finished() -> void:
 	idle_sprite.show()
 
 func update_land(is_land: bool) -> void:
+	if on_land == (is_overboard and is_land): return
 	on_land = is_overboard and is_land
-	if is_overboard:
-		idle_sprite.region_enabled = not on_land
-		idle_sprite.position = _sprite_position if on_land else Vector2(0, -7)
+	if idle_sprite is CrewSprite: idle_sprite.refresh(0)
 	queue_redraw()

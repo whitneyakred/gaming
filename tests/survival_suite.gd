@@ -20,8 +20,8 @@ func run() -> void:
 	world.set_physics_process(false)
 	var player := ship.player
 	var service: InventoryService = ship.get_node("InventorySystem")
-	check(ship.get_islands().size() == 30,"Thirty generated islands")
-	check(MapState.island_catalog.size() == 30,"All unknown island locations are mapped")
+	check(ship.get_islands().size() == 34,"Thirty ordinary plus four quest islands")
+	check(MapState.island_catalog.size() == 34,"All unknown island locations are mapped")
 	var first := ship.get_islands()[0].position
 	var seed_value := ship.world_seed
 	ship.rebuild_world(seed_value+1)
