@@ -34,10 +34,6 @@ static func generate(ship: Ship, seed_value: int) -> void:
 	for i in ISLAND_COUNT:
 		var island := templates[i % templates.size()].duplicate() as WorldIsland
 		# Runtime totems own labels and occupancy; recreate them after rebuilding.
-		for child in island.get_children():
-			if child is QuestClue:
-				island.remove_child(child)
-				child.free()
 		var old_totem := island.get_node_or_null("MinigameTotem")
 		if old_totem != null:
 			island.remove_child(old_totem)
@@ -65,24 +61,6 @@ static func generate(ship: Ship, seed_value: int) -> void:
 		ship.islands_root.add_child(island)
 		MapState.register_island(str(island.name), island.display_name, island.global_position, island == paradise)
 		MapState.island_catalog[str(island.name)]["coast"] = island.get_coast()
-	# A nearby ordinary island in each search region carries a guaranteed clue.
-	for region in MapState.key_regions:
-		var closest: WorldIsland
-		var distance := INF
-		for island in islands:
-			var gap: float = island.position.distance_to(region.center)
-			if gap < distance:
-				closest = island
-				distance = gap
-		if closest != null:
-			var clue := preload("res://scripts/islands/quest_clue.gd").new()
-			clue.key_id = region.key
-			closest.add_child(clue)
-			var coast := closest.get_coast()
-			var triangles := Geometry2D.triangulate_polygon(coast)
-			if triangles.size() >= 3:
-				clue.global_position = (coast[triangles[0]] + coast[triangles[1]] + coast[triangles[2]]) / 3.0
-			clue.global_scale = Vector2.ONE
 	MapState.world_bounds = Rect2(-HALF_SIZE, -HALF_SIZE, HALF_SIZE * 2, HALF_SIZE * 2)
 	MapState.changed.emit()
 	var challenges := ship.get_node_or_null("IslandChallenges")

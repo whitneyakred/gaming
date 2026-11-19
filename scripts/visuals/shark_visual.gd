@@ -2,6 +2,9 @@ class_name SharkVisual
 extends Node2D
 ## Shared body frames and fin foam for menu and gameplay sharks.
 const SHEET := preload("res://assets/menus/shark_swim_upright.png")
+# Dorsal fin endpoints in source-atlas pixels, following each swimming pose.
+const FIN_TIPS: Array[Vector2] = [Vector2(207,114),Vector2(550,114),Vector2(892,114),Vector2(1236,114),Vector2(206,470),Vector2(550,470),Vector2(892,470),Vector2(1238,470),Vector2(206,826),Vector2(550,826),Vector2(895,826),Vector2(1242,826)]
+const FIN_BASES: Array[Vector2] = [Vector2(209,205),Vector2(550,205),Vector2(888,205),Vector2(1232,205),Vector2(205,554),Vector2(548,554),Vector2(893,554),Vector2(1242,554),Vector2(213,910),Vector2(573,910),Vector2(903,910),Vector2(1241,910)]
 # Per-frame nose registration measured from opaque head pixels in the source atlas.
 # Sprite offsets change texture alignment only; the swimming path and fin foam stay fixed.
 const FRAME_OFFSETS: Array[Vector2] = [Vector2(-26.372,2.44),Vector2(-7.588,2.44),Vector2(9.729,2.44),Vector2(27.542,1.44),Vector2(-26.481,9.44),Vector2(-8.352,10.44),Vector2(8.594,10.44),Vector2(26.156,10.44),Vector2(-26.324,15.44),Vector2(-7.866,17.44),Vector2(8.769,16.44),Vector2(26.837,16.44)]
@@ -22,14 +25,17 @@ func _ready() -> void:
  sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
  sprite.show_behind_parent = true
  var cutout := ShaderMaterial.new()
- cutout.shader = preload("res://shaders/sprite_alpha.gdshader")
+ cutout.shader = preload("res://shaders/shark_water.gdshader")
  sprite.material = cutout
  add_child(sprite)
+ set_swim_time(0.0)
 func set_swim_time(value: float, phase: float = 0.0) -> void:
  swim_time = value
  var frame := int(value*4.5+phase)%12
  sprite.texture = frames[frame]
  sprite.offset = FRAME_OFFSETS[frame]
+ sprite.material.set_shader_parameter("fin_tip", FIN_TIPS[frame])
+ sprite.material.set_shader_parameter("fin_base", FIN_BASES[frame])
  queue_redraw()
 func _draw() -> void:
  if sprite == null: return

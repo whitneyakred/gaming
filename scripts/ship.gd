@@ -81,11 +81,13 @@ var _leaving_island: WorldIsland
 var _aground_island: WorldIsland
 var world_seed: int = 0
 var survival: SurvivalWorld
+var ocean_fish: OceanFish
 
 func rebuild_world(seed_value: int) -> void:
 	if world_seed == seed_value: return
 	world_seed = seed_value
 	WorldLayout.generate(self, world_seed)
+	if is_instance_valid(ocean_fish): ocean_fish.configure(world_seed, islands_root.get_children())
 
 func _ready() -> void:
 	super._ready()
@@ -103,6 +105,9 @@ func _ready() -> void:
 	ocean.set_as_top_level(true)
 	ocean.global_rotation = 0.0
 	rebuild_world(randi_range(1, 2147483646))
+	ocean_fish = OceanFish.new()
+	ocean_fish.name = "OceanFish"
+	add_child(ocean_fish)
 	survival = SurvivalWorld.new()
 	survival.name = "Survival"
 	add_child(survival)

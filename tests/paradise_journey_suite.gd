@@ -77,16 +77,6 @@ func run() -> void:
 		check(not VoyageState.grant_key(region.key), "Duplicate award harmless")
 	for key in VoyageState.KEY_IDS:
 		check(crew.player_inventory.get_quantity(StringName(key + "_key")) == 1, "Key occupies a real inventory slot")
-	var clues := 0
-	for island in ship.get_islands():
-		for child in island.get_children():
-			if child is QuestClue:
-				clues += 1
-				check(Geometry2D.is_point_in_polygon(child.global_position, island.get_coast()), "Clue is on accessible land")
-				crew.global_position = child.global_position
-				journey.interact(crew)
-				check(MapState.discovered_islands.has("Key_" + child.key_id), "Clue reveals exact key location")
-	check(clues == 3, "One clue per key region")
 	var service := ship.get_node("InventorySystem") as InventoryService
 	var bag: PlayerInventory = crew.player_inventory
 	var bronze := ship.get_island(&"Key_bronze") as QuestIsland

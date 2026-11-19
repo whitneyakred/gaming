@@ -13,8 +13,6 @@ func interact(crew: CharacterBody2D) -> bool:
 	if crew.health <= 0 or crew.inventory_open or crew.fishing_active or crew.island_challenge: return false
 	for island in ship.get_islands():
 		if island is QuestIsland and island.interact(crew): return true
-		for child in island.get_children():
-			if child is QuestClue and child.interact(crew): return true
 	return false
 
 func _unhandled_input(event: InputEvent) -> void:

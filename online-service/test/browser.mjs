@@ -18,7 +18,7 @@ page.on("console", (m) => {
     console.log(m.type(), m.text());
 });
 page.on("pageerror", (e) => console.log("PAGE_ERROR", e.message));
-await page.goto("http://127.0.0.1:8787/", { waitUntil: "networkidle" });
+await page.goto(process.env.HARBOR_TEST_URL ?? "http://127.0.0.1:8787/", { waitUntil: "networkidle" });
 await page.screenshot({ path: "../.godot/website-home.png", fullPage: true });
 await page.getByRole("link", { name: "PLAY FREE" }).click();
 await page.waitForTimeout(20000);

@@ -1,4 +1,4 @@
-import {mkdir,readFile,writeFile,copyFile,readdir,stat} from 'node:fs/promises';
+import {mkdir,readFile,writeFile,copyFile,readdir,stat,rm} from 'node:fs/promises';
 import {gzipSync} from 'node:zlib';
 import path from 'node:path';
 const root=path.resolve(import.meta.dirname,'..');
@@ -9,7 +9,24 @@ await copyFile(path.join(root,'assets/menus/title_wordmark.png'),path.join(out,'
 await copyFile(path.join(root,'builds/web/index.icon.png'),path.join(out,'icon.png'));
 for(const name of await readdir(path.join(root,'builds/web'))){
  const source=path.join(root,'builds/web',name);if(!(await stat(source)).isFile())continue;
- if(name.endsWith('.wasm'))await writeFile(path.join(out,'play',name+'.gz'),gzipSync(await readFile(source),{level:9}));
+ if(name.endsWith('.import'))continue;
+ if(name.endsWith('.pck')){
+  const packed=gzipSync(await readFile(source),{level:9});
+  const chunkSize=16*1024*1024;
+  const parts=[];
+  for(let offset=0;offset<packed.length;offset+=chunkSize){
+   const part=name+'.gz.part'+parts.length;
+   await writeFile(path.join(out,'play',part),packed.subarray(offset,offset+chunkSize));
+   parts.push(part);
+  }
+  await writeFile(path.join(out,'play',name+'.parts.json'),JSON.stringify({parts}));
+  await rm(path.join(out,'play',name),{force:true});
+  await rm(path.join(out,'play',name+'.gz'),{force:true});
+ }
+ else if(name.endsWith('.wasm')){
+  await writeFile(path.join(out,'play',name+'.gz'),gzipSync(await readFile(source),{level:9}));
+  await rm(path.join(out,'play',name),{force:true});
+ }
  else await copyFile(source,path.join(out,'play',name));
 }
 await writeFile(path.join(out,'_headers'),'/play/*\n  Cache-Control: no-cache\n  X-Content-Type-Options: nosniff\n/*\n  Referrer-Policy: same-origin\n  X-Frame-Options: SAMEORIGIN\n');

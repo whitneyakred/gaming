@@ -69,6 +69,11 @@ func _floater(texture: Texture2D, at: Vector2, dimensions: Vector2, angle: float
 	_floaters.append({"node": node, "rest": node.position, "angle": angle, "phase": float(index) * 1.71, "swimming": swimming})
 
 func _build_floaters() -> void:
+	var fish := OceanFish.new()
+	fish.name = "MenuFish"
+	fish.menu_mode = true
+	fish.max_fish = 225
+	$Composition/Props.add_child(fish)
 	for i in 5:
 		var shark := Node2D.new()
 		shark.set_script(preload("res://scripts/menus/title_shark.gd"))

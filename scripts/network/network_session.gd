@@ -682,6 +682,9 @@ func apply_snapshot(data: Dictionary) -> void:
 	if int(data.get("seed", ship.world_seed)) != ship.world_seed:
 		_motion_buffer.clear()
 	ship.rebuild_world(int(data.get("seed", ship.world_seed)))
+	# Fish locations are reconstructed from the existing seed and host timestamp.
+	# Sprite animation, fading and rendering remain local; no per-fish packets.
+	if is_instance_valid(ship.ocean_fish): ship.ocean_fish.synchronize(float(data.get("time", 0.0)))
 	ship.survival.restore(data.get("survival", {}))
 	VoyageState.restore_quest(data.get("paradise_quest", {}))
 	ship.get_node("IslandChallenges").locks = data.get("island_locks", {})

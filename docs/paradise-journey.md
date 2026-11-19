@@ -11,8 +11,6 @@ dedicated quest islands. Ocean rendering and red-water boundaries are unchanged.
 - Press **M** to open the voyage map. Large colored circles mark the search regions without labels.
   Question marks conceal undiscovered islands.
 - Sail into a search region and explore. Approaching a key island reveals it.
-  One ordinary island near each region's center has a chart sign: approach it
-  on foot and press **E** to reveal the key island and set your destination.
 - On each key sanctuary, walk to seals **I**, **II**, and **III**, pressing **E**
   at each in order. Out-of-order unlit seals reset the sequence; already lit
   seals are safe to revisit. Then press **E** at the central key pedestal.
@@ -79,7 +77,7 @@ includes the menu in exported builds. Turning it off hides the UI and rejects
 teleport actions. No code edit is needed.
 
 Search circles disappear as soon as their key island is discovered (including
-chart clues and dev teleports). Discovered key islands keep their colored marker
+dev teleports). Discovered key islands keep their colored marker
 without a text label. **Super walk** and **Super swim** independently toggle 8x
 player movement speed. Click again to restore normal speed; disabling Developer
 Tools Enabled also restores both speeds. Boosts are not saved between voyages.

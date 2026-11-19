@@ -36,11 +36,13 @@ func run() -> void:
 			await HarborService.host("Relay smoke", "test")
 		else:
 			NetworkSession.host_session("Captain", 24678, "test", false)
-		await host_tests()
+		if "--ambient-fish-test" in args: await ambient_fish_tests()
+		else: await host_tests()
 	else:
 		await wait(1 if role == "Alpha" else 2)
 		await join_test()
-		await client_tests()
+		if "--ambient-fish-test" in args: await ambient_fish_tests()
+		else: await client_tests()
 	if multiplayer.multiplayer_peer is HarborPeer:
 		var transport := multiplayer.multiplayer_peer as HarborPeer
 		var elapsed := maxf(1.0, (Time.get_ticks_msec() - started_msec) / 1000.0)
@@ -54,6 +56,37 @@ func run() -> void:
 	GameWindow.shutdown_audio()
 	await wait(0.1)
 	get_tree().quit(0 if failures == 0 else 1)
+
+func ambient_fish_tests() -> void:
+	for i in 150:
+		if NetworkSession.world_ready and NetworkSession.players.size() == 3: break
+		await wait(0.1)
+	check(NetworkSession.world_ready and NetworkSession.players.size() == 3, "Three peers joined fish synchronization test")
+	if not NetworkSession.world_ready or NetworkSession.players.size() != 3: return
+	var field: OceanFish = NetworkSession.ship.ocean_fish
+	if role == "host":
+		var sample_time := field.shared_time()
+		var school := FishSchool.create(field.world_seed, Vector2i(-2, 3))
+		var reference := FileAccess.open("res://.godot/fish-network-reference.bin", FileAccess.WRITE)
+		reference.store_var({"seed": field.world_seed, "time": sample_time, "pose": FishSchool.pose(school, school.members[0], sample_time)})
+		reference.close()
+		phase("ambient")
+		await wait(5.0)
+		phase("done")
+	else:
+		for i in 100:
+			if read_phase() == "ambient" and field._has_clock: break
+			await wait(0.1)
+		check(field._has_clock, "Guest initializes fish clock from actual host snapshots")
+		check(field.world_seed == int(NetworkSession._last_snapshot.get("seed", -1)), "Guest fish share received world seed")
+		check(absf(field.shared_time()-float(NetworkSession._last_snapshot.get("time", -999))) < 0.5, "Guest clock tracks host timeline")
+		var reference := FileAccess.open("res://.godot/fish-network-reference.bin", FileAccess.READ)
+		var data: Dictionary = reference.get_var()
+		reference.close()
+		var school := FishSchool.create(field.world_seed, Vector2i(-2, 3))
+		check(field.world_seed == int(data.seed), "Host and guest share school seed")
+		check(FishSchool.pose(school, school.members[0], data.time) == data.pose, "Independently reconstructed guest fish exactly matches host transform")
+		await wait(3.0)
 
 func join_test() -> void:
 	if "--relay-test" in OS.get_cmdline_user_args():
@@ -259,6 +292,9 @@ func client_tests() -> void:
 			"survival":
 				check(NetworkSession.ship.get_islands().size() == 30, "Guest has randomized world")
 				check(NetworkSession.ship.world_seed == int(NetworkSession._last_snapshot.seed), "Guest shares host seed")
+				check(NetworkSession.ship.ocean_fish.world_seed == NetworkSession.ship.world_seed, "Guest fish use host world seed")
+				check(NetworkSession.ship.ocean_fish._has_clock, "Guest fish receive host clock through existing snapshots")
+				check(absf(NetworkSession.ship.ocean_fish.shared_time() - float(NetworkSession._last_snapshot.time)) < 0.5, "Guest school movement stays on host timeline")
 				check(NetworkSession.ship.survival.sharks.any(func(shark): return shark.active), "Guests see host sharks")
 				if role == "Alpha": check(service.player.health == 14, "Guest receives third-heart damage")
 			"move":

@@ -479,8 +479,31 @@ export class VoyageRoom extends DurableObject<Env> {
   }
 }
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === "/play/index.pck") {
+      // Store sub-limit assets, but expose one streamed gzip response to Godot.
+      const manifestUrl = new URL("/play/index.pck.parts.json", url);
+      const manifestResponse = await env.ASSETS.fetch(new Request(manifestUrl));
+      if (!manifestResponse.ok) return new Response("Game pack unavailable", { status: 503 });
+      const manifest = await manifestResponse.json<{ parts: string[] }>();
+      const headers = { "Content-Type": "application/octet-stream", "Content-Encoding": "gzip", "Cache-Control": "no-cache" };
+      if (request.method === "HEAD") return new Response(null, { headers, encodeBody: "manual" });
+      const parts = await Promise.all(manifest.parts.map(name =>
+        env.ASSETS.fetch(new Request(new URL("/play/" + name, url)))));
+      if (parts.some(part => !part.ok || !part.body)) return new Response("Game pack incomplete", { status: 503 });
+      const stream = new TransformStream();
+      ctx.waitUntil((async () => {
+        try {
+          for (const part of parts) await part.body!.pipeTo(stream.writable, { preventClose: true });
+          await stream.writable.close();
+        } catch (error) { await stream.writable.abort(error).catch(() => {}); }
+      })());
+      return new Response(stream.readable, {
+        headers,
+        encodeBody: "manual",
+      });
+    }
     if (url.pathname === "/play/index.wasm") {
       url.pathname += ".gz";
       const asset = await env.ASSETS.fetch(new Request(url, request));

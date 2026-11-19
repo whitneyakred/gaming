@@ -2,7 +2,7 @@
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (!url.pathname.startsWith('/api/') && url.pathname !== '/play/index.wasm') {
+    if (!url.pathname.startsWith('/api/') && !['/play/index.wasm', '/play/index.pck'].includes(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
     const origin = request.headers.get('Origin');
