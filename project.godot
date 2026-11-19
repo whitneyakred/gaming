@@ -23,6 +23,7 @@ VoyageState="*res://scripts/voyage_state.gd"
 MapState="*res://scripts/map_system/MapState.gd"
 GameWindow="*res://scripts/game_window.gd"
 PauseMenu="*res://scenes/pause_menu.tscn"
+VoyageSurvival="*res://scenes/survival/voyage_survival.tscn"
 
 [display]
 

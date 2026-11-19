@@ -23,7 +23,7 @@ func _check(condition: bool, test_name: String) -> void:
 	push_error("Voyage inventory test failed: %s" % test_name)
 
 
-func _on_coconut_collected(_item_id: StringName) -> void:
+func _on_coconut_collected(_item_id: StringName, _quantity: int, _picker: Node2D) -> void:
 	coconut_collected_count += 1
 
 
@@ -68,7 +68,7 @@ func _run() -> void:
 	_check(returned_inventory.get_quantity(&"rope") == 1, "Items survive the player scene replacement")
 
 	var coconut := coconut_scene.instantiate() as Area2D
-	coconut.collected.connect(_on_coconut_collected)
+	coconut.picked_up.connect(_on_coconut_collected)
 	root.add_child(coconut)
 	await process_frame
 	coconut._on_body_entered(island_player)

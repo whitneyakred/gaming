@@ -247,6 +247,8 @@ func _warn_bag_full(item: ItemData) -> void:
 # Tells the ship scene to play the "row back to the ship" sequence. Only a
 # win marks the island as finished.
 func _row_back(won: bool) -> void:
+	if VoyageSurvival.dead:
+		return
 	Ship.returning_from_island = true
 	Ship.last_visit_won = won
 	get_tree().change_scene_to_file(return_scene)

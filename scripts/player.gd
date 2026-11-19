@@ -17,10 +17,11 @@ var using_station: bool:
 
 # Stations claim movement through this small interface, without player-to-helm coupling.
 var active_station: Node = null
+var fishing_animating: bool = false
 var facing_direction := Vector2.DOWN
 
 func try_use_station(station: Node) -> bool:
-	if is_overboard or not is_instance_valid(station) or using_station or not is_physics_processing():
+	if VoyageSurvival.dead or is_overboard or not is_instance_valid(station) or using_station or not is_physics_processing():
 		return false
 	active_station = station
 	velocity = Vector2.ZERO
@@ -42,6 +43,9 @@ func _ready() -> void:
 	var initial_inventory := player_inventory
 	var player_id := initial_inventory.player_id if initial_inventory != null else &"player_1"
 	player_inventory = VoyageState.get_player_inventory(player_id, initial_inventory)
+	if player_inventory.player_id == &"player_1":
+		VoyageSurvival.inventory = player_inventory
+	VoyageSurvival.died.connect(_on_survival_death)
 
 	# The prototype starts each crew member with the tool needed for its only
 	# available station. Other acquisition systems can add this item later.
@@ -50,8 +54,14 @@ func _ready() -> void:
 		player_inventory.add_item(fishing_rod)
 
 func _physics_process(_delta: float) -> void:
+	if VoyageSurvival.dead:
+		return
+	var moving_ship := get_parent() as ShipMotion
+	if moving_ship and absf(moving_ship.speed) > 5.0:
+		VoyageSurvival.spend_hunger(VoyageSurvival.sailing_cost_per_second * _delta)
 	if using_station:
 		velocity = Vector2.ZERO
+		VoyageSurvival.spend_hunger(VoyageSurvival.station_cost_per_second * _delta)
 		return
 	# Read WASD / arrow keys; diagonal movement stays the same speed.
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
@@ -66,13 +76,19 @@ func _physics_process(_delta: float) -> void:
 			if not Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([global_position, next]), hull).is_empty():
 				return
 		global_position = next
+		if not direction.is_zero_approx():
+			VoyageSurvival.spend_hunger(VoyageSurvival.walking_cost_per_second * _delta)
 		return
 	velocity = direction * walk_speed
 	# Godot moves the body and handles collisions with the deck boundary.
 	move_and_slide()
+	if get_real_velocity().length() > 1.0:
+		VoyageSurvival.spend_hunger(VoyageSurvival.walking_cost_per_second * _delta)
 
 ## Called by the hotbar when the player presses B with a selected item.
 func request_drop_item(item_id: StringName) -> void:
+	if VoyageSurvival.dead or using_station or get_tree().paused:
+		return
 	if is_overboard:
 		show_feedback("Can't drop items in the water")
 		return
@@ -133,6 +149,7 @@ func set_overboard(value: bool) -> void:
 		collision_layer = _deck_layer
 		idle_sprite.region_enabled = false
 		idle_sprite.position = _sprite_position
+	fishing_animating = false
 	is_overboard = value
 	queue_redraw()
 	fishing_animation.stop()
@@ -145,10 +162,25 @@ func _draw() -> void:
 		draw_arc(Vector2(0, 3), 12, 0.0, PI, 16, Color(0.7, 0.9, 1.0, 0.6), 1.5)
 
 func play_fishing_animation() -> void:
+	if VoyageSurvival.dead or using_station:
+		return
+	fishing_animating = true
 	idle_sprite.hide()
 	fishing_animation.show()
 	fishing_animation.play(&"fishing_side")
 
 func _on_fishing_animation_animation_finished() -> void:
+	fishing_animating = false
 	fishing_animation.hide()
 	idle_sprite.show()
+
+func _on_survival_death() -> void:
+	var station := active_station
+	active_station = null
+	fishing_animating = false
+	velocity = Vector2.ZERO
+	if is_instance_valid(station):
+		if station.has_method("release_control"):
+			station.call("release_control")
+		elif station.has_method("cancel_for_death"):
+			station.call("cancel_for_death")

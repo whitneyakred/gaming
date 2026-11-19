@@ -110,7 +110,7 @@ func _test_registered_catalog() -> void:
 	_check(missing_item == null, "Unknown item lookup", "null", var_to_str(missing_item))
 
 	var all_items: Array = item_database.call(&"get_all_items")
-	var island_ids: Array[StringName] = [&"gold_coin", &"wood", &"crab_meat", &"mango", &"banana", &"papaya", &"fresh_water", &"compass"]
+	var island_ids: Array[StringName] = [&"gold_coin", &"wood", &"crab_meat", &"mango", &"banana", &"papaya", &"fresh_water", &"compass", &"gunpowder", &"dried_fish", &"glow_jar", &"cannonball", &"torch", &"honey", &"potato"]
 	_check_equal(all_items.size(), expected_items.size() + island_ids.size(), "Catalog enumeration includes the island rewards")
 	var found_ids: Dictionary[StringName, int] = {}
 	for item in all_items:

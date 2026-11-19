@@ -47,7 +47,7 @@ func _run() -> void:
 	cooking.interact()
 	_settle(view)
 	_check(camera.global_position.distance_to(cooking.global_position) < 0.1, "Cooking must focus camera")
-	cooking._on_preparation_cancelled()
+	cooking._cancel()
 	_settle(view)
 	_check(camera.zoom.distance_to(normal) < 0.001, "Cancelling cooking must restore camera")
 	var fishing := ship.get_node("FishingStation")

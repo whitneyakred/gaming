@@ -41,7 +41,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			complete_attempt()
 
 func start_attempt() -> void:
-	if not is_instance_valid(interacting_player) or interacting_player.get("using_station"):
+	if VoyageSurvival.dead or not is_instance_valid(interacting_player) or interacting_player.get("using_station"):
 		return
 	if not interacting_player_has_fishing_rod():
 		status_label.text = "Fishing rod required"
@@ -69,6 +69,9 @@ func _on_hold_timer_timeout() -> void:
 	status_label.text = "Release!"
 
 func complete_attempt() -> void:
+	if VoyageSurvival.dead:
+		reset_attempt()
+		return
 	var item_id: StringName = loot_ids.pick_random()
 	var item: ItemData = ItemDatabase.get_item(item_id)
 
@@ -84,11 +87,13 @@ func complete_attempt() -> void:
 		return
 
 	if not player_inventory.add_item(item):
-		print("Could not keep %s: inventory or item stack is full." % item.display_name)
+		VoyageSurvival.notice.emit("Pack full - could not keep " + item.display_name)
 		reset_attempt()
 		return
 
-	print("Caught: %s" % item.display_name)
+	VoyageSurvival.notice.emit("Caught: " + item.display_name)
+	VoyageSurvival.changed.emit()
+	interacting_player.call("leave_station", self)
 	item_caught.emit(item_id)
 	if interacting_player != null and interacting_player.has_method("play_fishing_animation"):
 		interacting_player.call(&"play_fishing_animation")
@@ -139,3 +144,6 @@ func _on_body_exited(body: Node2D) -> void:
 func _exit_tree() -> void:
 	if is_instance_valid(interacting_player):
 		interacting_player.call("leave_station", self)
+
+func cancel_for_death() -> void:
+	reset_attempt()

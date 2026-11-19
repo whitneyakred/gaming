@@ -21,6 +21,8 @@ signal pause_changed(is_paused: bool)
 const PAUSE_ACTION: StringName = &"pause"
 
 @onready var _screen: Control = $Screen
+var _restart_button: Button
+
 @onready var _resume_button: Button = %ResumeButton
 
 
@@ -28,6 +30,11 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_screen.visible = false
 	_resume_button.pressed.connect(resume)
+	_restart_button = Button.new()
+	_restart_button.text = "Start new voyage"
+	_restart_button.pressed.connect(func() -> void: VoyageSurvival.restart())
+	$Screen/Center/Box.add_child(_restart_button)
+	_restart_button.hide()
 
 
 # Steps 1 and 4: the pause key pauses, and pressing it again resumes.
@@ -45,6 +52,8 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Freezes the game and shows the pause screen (steps 2 and 3).
 ## Does nothing if the game is already paused.
 func pause() -> void:
+	if VoyageSurvival.dead:
+		return
 	if is_paused():
 		return
 	get_tree().paused = true
@@ -56,12 +65,27 @@ func pause() -> void:
 ## Hides the pause screen and lets the game carry on from the values it was
 ## frozen at (step 5, POST-1). Does nothing if the game is not paused.
 func resume() -> void:
+	if VoyageSurvival.dead:
+		return
 	if not is_paused():
 		return
 	get_tree().paused = false
 	_screen.visible = false
+	_resume_button.show()
+	_restart_button.hide()
+	$Screen/Center/Box/Title.text = "Paused"
+	$Screen/Center/Box/Hint.text = "Press ESC to resume"
 	pause_changed.emit(false)
 
 
 func is_paused() -> bool:
 	return get_tree().paused
+
+func show_game_over() -> void:
+	get_tree().paused = true
+	_screen.show()
+	$Screen/Center/Box/Title.text = "Game over"
+	$Screen/Center/Box/Hint.text = "Your health reached zero."
+	_resume_button.hide()
+	_restart_button.show()
+	pause_changed.emit(true)

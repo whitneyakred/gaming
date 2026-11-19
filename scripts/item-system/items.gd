@@ -7,6 +7,9 @@ const COCONUT_WHOLE_ICON := preload("res://assets/items/coconut_whole.png")
 
 func _ready() -> void:
 	ItemDatabase.register_item(make_item(
+		&"potato", "Potato", "A filling galley ingredient.", 20, ItemData.Category.FOOD, preload("res://assets/cooking/potato.svg")
+	))
+	ItemDatabase.register_item(make_item(
 		&"fish_cod",
 		"Sea Bass",
 		"A common sea fish.",
