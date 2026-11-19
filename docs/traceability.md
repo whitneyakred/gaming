@@ -140,6 +140,6 @@ Implementation references identify the relevant subsystem, not a claim that ever
 | Requirement | Design | Code | Test | Release |
 |---|---|---|---|---|
 | `ROB-HARBOR-unavailable` | [Reliability](reliability.md) | [Handler](../online-service/src/index.ts) | [Failure test](../online-service/test/degradation.test.mjs) | v0.2.0 |
-| `PER-HARBOR-discovery` (proposed) | [SLI and limits](reliability.md) | [Probe](../tools/measure-harbor.mjs) | [Recorded sample](evidence/harbor-slo.json) | v0.2.0 |
+| `PER-HARBOR-discovery` (initial checkpoint target) | [SLI and limits](reliability.md) | [Probe](../tools/measure-harbor.mjs) | [Recorded sample](evidence/harbor-slo.json) | v0.2.0 |
 
 Local test outcomes and known failures: [validation record](evidence/validation.md).

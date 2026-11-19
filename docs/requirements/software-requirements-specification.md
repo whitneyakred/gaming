@@ -346,4 +346,4 @@ _**The specific failure to watch for: invented precision.** A generated specific
 
 ## Checkpoint reliability contract
 
-[ROB-HARBOR-unavailable and proposed PER-HARBOR-discovery](../reliability.md) define the API degradation oracle and measured SLO. The performance target needs team confirmation. These supplement the historical quality attributes above.
+[ROB-HARBOR-unavailable and PER-HARBOR-discovery](../reliability.md) define the API degradation oracle and measured SLO. The initial checkpoint target was adopted at the project contact’s request on November 19, 2026. These supplement the historical quality attributes above.

@@ -135,30 +135,37 @@ func run() -> void:
 	scope._update_view(scope.zoom_seconds)
 	check(scope._scope_camera.global_position.is_equal_approx(scope._previous_camera.global_position+scope._previous_camera.offset),"Spyglass returns to current camera position")
 	player.set_overboard(true)
-	player.global_position=Vector2(1600,0)
-	# Choose clear water for the complete AI cycle, independent of random islands.
-	for candidate in range(2000, 10000, 500):
-		var center := Vector2(candidate, -8000)
-		var clear := true
-		for angle in 24:
-			for radius in [0, 200, 500, 1000, 1800]:
-				if not world.is_water(center + Vector2(radius,0).rotated(angle*TAU/24.0)): clear=false
-		if clear:
-			player.global_position=center
-			break
+	# Test the attack cycle outside every obstacle's bounds. Sampling rings can
+	# miss coastlines between samples, and the old search could find no candidate.
+	# Only advance_sharks runs here, so boundary-water metabolism is independent.
+	var right_edge := ship.global_position.x
+	for point in ship.get_hull_polygon(ship.global_position, ship.global_rotation):
+		right_edge = maxf(right_edge, point.x)
+	for island in ship.get_islands():
+		for point in island.get_coast():
+			right_edge = maxf(right_edge, point.x)
+	player.global_position = Vector2(right_edge + 2400, 0)
+	player.velocity = Vector2.ZERO
 	player.update_land(false)
 	player.swim_time=11
-	world.sharks[0].active=false
-	world.sharks[0].target=0
-	world.sharks[0].alpha=0
+	# Earlier cases exercised death, departure and teleporting. Start both
+	# attackers fresh so neither carries a previous target or navigation route.
+	for shark in world.sharks:
+		shark.active=false
+		shark.target=0
+		shark.alpha=0
+	world.routes.clear()
+	world.route_timers.clear()
 	world.advance_sharks(1.0/60.0,world.crew())
+	var arena := Rect2(player.global_position - Vector2.ONE * 2000, Vector2.ONE * 4000)
+	check(world.navigation.bounds.all(func(bound): return not bound.intersects(arena)),"Shark attack arena excludes every island and the hull")
 	check(Vector2(world.sharks[0].position).distance_to(player.global_position)>1500 and world.sharks[0].alpha<0.1,"Shark arrives from far away with fade-in")
 	var modes := {}
 	var hurt_before: int=player.hurt_serial
 	for frame in 2400:
 		world.advance_sharks(1.0/60.0,world.crew())
 		modes[world.sharks[0].mode]=true
-	check(modes.has("circle") and modes.has("dive") and modes.has("lunge") and modes.has("retreat"),"Shark circles, dives, lunges and retreats")
+	check(modes.has("circle") and modes.has("dive") and modes.has("lunge") and modes.has("retreat"),"Shark circles, dives, lunges and retreats (seed=%s, modes=%s)" % [seed_value, modes.keys()])
 	check(player.hurt_serial>hurt_before,"Lunging shark can damage its target")
 	world.respawn(1)
 	player.player_inventory.try_add(&"spyglass")

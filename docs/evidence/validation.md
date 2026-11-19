@@ -46,6 +46,21 @@ GitHub CI exposed two further co-op test assumptions: a short movement pulse was
 
 ## Reproduction
 
+PR #104's initial workflow failed the shark attack-cycle and damage assertions.
+The survival test's sampled-water search could miss coastlines or exhaust its
+candidates without failing setup. The fixture now places the attack arena beyond
+all coastline and hull bounds, asserts that its entire 4,000-unit square is clear,
+and resets both sharks and cached routes left by earlier scenarios. All original
+cycle and damage assertions remain. Five consecutive local survival runs passed
+72 checks each; this is fixture validation, not a claim of exhaustive shark
+navigation coverage. Future cycle failures include the world seed and seen modes.
+
+The next GitHub run passed all 72 survival checks but exposed a separate Coconut
+Squall fixture issue: random falling coconuts stayed active during the generic
+early-rowboat check, allowing a knockout unrelated to the exit gate. That dock
+check now suppresses random drops, matching the dedicated coconut test's setup.
+The dedicated test still checks hits, invulnerability, pickups and storm completion.
+
 From the repository root, use the installed Godot console executable in place of `godot`:
 
 ```sh
