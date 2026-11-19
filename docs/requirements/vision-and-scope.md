@@ -243,23 +243,15 @@ The connected cooking/survival slice uses food from islands/fishing, recipe expe
 
 ### 4.3 MVP Scope
 
-**Current milestone: single-player.** The owner confirmed on 2026-10-20 that co-op remains deferred. Existing code supports deck movement, helm/sail propulsion, cooking/fishing interactions, item metadata and a small inventory, docking at two hand-placed islands, rowboat scene transitions, and timed coconut/treasure challenges. See [minimal MVP](../minimal-mvp.md) for the source map and known limits.
+**Current milestone (confirmed November 19): solo and co-op; MVP classroom demo December 4, 2026.** Co-op is included in the approved release scope. Existing implementation includes online Harbor rooms, local network sessions, voyage saves, inventory, survival and island progression. This confirms inclusion, not complete acceptance of every old use-case extension.
 
-**Planned, not delivered:** SURV/FTG stats, WAVE capsize, SHIP repairs, SYS shared chests and slot inventory, MAP charts, EVT events/trading, and PROG voyage lifecycle. The current tests do not prove those use cases. Large inventory, crafting, and progression expansions still require an explicit milestone decision.
-
-**Deferred co-op:** Host/join, LAN replication, disconnect recovery, joint repair, and multi-crew occupancy/competition. The retained design cap is four including the Host. The local player owns applicable session controls; local state authority does not require a networking abstraction.
-
-**Source ownership:** Use this section for milestone status; [business rules](business-rules.md) for domain constraints; [use cases](use-cases.md) for planned flows; [glossary](project-glossary.md) for terms; [specification](software-requirements-specification.md) for cross-cutting constraints/quality; area designs for implementation proposals. Historical interviews, brainstorming, and template examples do not override these. If two designs make incompatible choices, record the issue instead of treating either as automatically approved.
-
-**Next milestone:** The team still needs to choose a narrow subset of the remaining planned behaviors and its acceptance criteria. The entire backlog and a delivery date have not been approved.
+The earlier feature table describes a historical baseline. [Traceability](../traceability.md) distinguishes code references from test verification. The team must still choose the essential unfinished v1.0.0 rows using real capacity and the calibration forecast; no new systems are authorized by their presence in the backlog.
 
 ### 4.4 Deployment Considerations
 
-Open `project.godot` in Godot and use **Run Project (F5)**. Windows is the initial desktop target in the specification; minimum hardware, tested OS versions, distribution, and a browser support matrix remain undecided.
+The repository provides browser/desktop play and the existing Harbor service for internet co-op. Solo play must remain available independently of internet matchmaking. Saves and their limitations are described in [save slots](../save-slots.md); online hosting and dependencies are described in [multiplayer system](../multiplayer-system.md). The deployed website is not automatically proof of a tagged release: record the deployed and release commit separately.
 
-Preserve Web-export compatibility without describing a browser release as delivered: the minimal-MVP guide says the optional export preset was removed and may be added later. No hosting deployment or external service is currently required by the documented local prototype.
-
-Before distribution, decide how players obtain builds, learn controls, report problems, and identify versions. Voyages are not saved between sessions. Scene-to-scene retention, intended session length, future networking details, and post-course maintenance still require work. No existing user-data migration is identified.
+Open project.godot in Godot and choose **Run Project (F5)**. Use the [checkpoint release procedure](../checkpoint-3.md) for tagged demo builds.
 
 ## Review Questions and Documentation Conflicts
 

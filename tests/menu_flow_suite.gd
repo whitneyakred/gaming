@@ -47,7 +47,12 @@ func run() -> void:
 	title._process(0.5)
 	check(title.logo.get_global_rect() == logo_rect, "Lettering remains still while water animates")
 	check(title.logo_ship.position.is_equal_approx(ship_rest), "Broken hull remains stationary")
-	var shark: Node2D = title.get_node("Composition/Props").get_child(0)
+	var sharks: Array[Node] = title.get_node("Composition/Props").get_children().filter(func(child: Node) -> bool: return child is SharkVisual)
+	check(sharks.size() == 5, "Title screen contains five patrol sharks alongside ambient fish")
+	if sharks.is_empty():
+		get_tree().quit(1)
+		return
+	var shark: Node2D = sharks[0]
 	var shark_rest: Vector2 = shark.sprite.position
 	var swim_frame: Texture2D = shark.sprite.texture
 	shark._process(0.25)

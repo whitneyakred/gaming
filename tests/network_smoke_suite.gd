@@ -290,7 +290,7 @@ func client_tests() -> void:
 			"eat":
 				if role=="Alpha": NetworkSession.command("eat",{"index":0,"revision":service.view_revision})
 			"survival":
-				check(NetworkSession.ship.get_islands().size() == 30, "Guest has randomized world")
+				check(NetworkSession.ship.get_islands().size() == WorldLayout.ISLAND_COUNT + 4, "Guest has ordinary islands plus three key islands and Paradise")
 				check(NetworkSession.ship.world_seed == int(NetworkSession._last_snapshot.seed), "Guest shares host seed")
 				check(NetworkSession.ship.ocean_fish.world_seed == NetworkSession.ship.world_seed, "Guest fish use host world seed")
 				check(NetworkSession.ship.ocean_fish._has_clock, "Guest fish receive host clock through existing snapshots")

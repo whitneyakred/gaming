@@ -521,9 +521,11 @@ export default {
     const origin = request.headers.get("Origin");
     if (origin && origin !== url.origin)
       return error("Use the game's own website to connect.", 403);
-    return route(request, env, url).catch(() =>
-      error("The harbor is unavailable. Please try again shortly.", 503),
-    );
+    return route(request, env, url).catch(() => {
+      // Do not log URLs, request bodies, tickets, identities or exception text.
+      console.error(JSON.stringify({ event: "harbor_dependency_failure", status: 503 }));
+      return error("The harbor is unavailable. Please try again shortly.", 503);
+    });
   },
 } satisfies ExportedHandler<Env>;
 async function route(request: Request, env: Env, url: URL): Promise<Response> {
