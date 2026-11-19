@@ -1,0 +1,118 @@
+{
+  "requirement": "PER-HARBOR-discovery",
+  "target_status": "proposed, team approval pending",
+  "source_commit": "fc674619b5cde69a45305d00767dd8ee11b86782",
+  "base": "https://holy-ship.pages.dev",
+  "started": "2026-11-19T20:56:37.156Z",
+  "ended": "2026-11-19T20:56:59.088Z",
+  "target": 0.95,
+  "threshold_ms": 2000,
+  "good": 20,
+  "total": 20,
+  "sli": 1,
+  "allowed_bad": 1,
+  "actual_bad": 0,
+  "limitation": "20 synthetic discovery requests from one location; not gameplay, joins, frames, sustained uptime or uncached backend coverage.",
+  "events": [
+    {
+      "status": 200,
+      "elapsed_ms": 1212,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 78,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 91,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 80,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 57,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 188,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 81,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 48,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 43,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 55,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 131,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 90,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 45,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 53,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 84,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 163,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 47,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 74,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 70,
+      "good": true
+    },
+    {
+      "status": 200,
+      "elapsed_ms": 44,
+      "good": true
+    }
+  ]
+}

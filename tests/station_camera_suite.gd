@@ -3,6 +3,7 @@ extends Node
 var failures: int = 0
 
 func _ready() -> void:
+	get_tree().create_timer(45).timeout.connect(func() -> void: get_tree().quit(1))
 	_run.call_deferred()
 
 func _check(condition: bool, message: String) -> void:
@@ -43,13 +44,14 @@ func _run() -> void:
 		_check(view.vignette.modulate.a < 0.001, "Leaving must fade out the vignette")
 		_check(camera.global_position.distance_to(ship.global_position) < 0.1, "Leaving must restore ship framing")
 	var cooking := ship.get_node("Cooking")
-	cooking.crew_nearby.append(player)
-	cooking._update_display()
-	_check(not cooking.prompt.visible, "Cooking proximity prompt must stay hidden")
-	cooking.interact()
+	var service: InventoryService = ship.get_node("InventorySystem")
+	player.position = cooking.position + Vector2(-20, 12)
+	service.hud.grill_open = true
+	service.hud._process(0.0)
 	_settle(view)
-	_check(camera.global_position.distance_to(cooking.global_position) < 0.1, "Cooking must focus camera")
-	cooking._on_preparation_cancelled()
+	_check(service.hud.grill_panel.visible and player.inventory_open, "Nearby cooking opens shared grill panel")
+	_check(not player.using_station and camera.zoom.distance_to(normal) < 0.001, "Shared grill preserves camera and does not claim exclusive station")
+	service.hud.close()
 	_settle(view)
 	_check(camera.zoom.distance_to(normal) < 0.001, "Cancelling cooking must restore camera")
 	var fishing := ship.get_node("InventorySystem/Fishing")

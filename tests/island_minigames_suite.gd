@@ -400,6 +400,12 @@ func _test_smugglers_den() -> void:
 	_check(game._guards.size() == 3, "Three guards must patrol")
 	var guard: Dictionary = game._guards[0]
 	var guard_node: Node2D = guard.node
+	# Fix the patrol position and starting direction during exposure. A moving
+	# guard can turn away before the grace interval; the normal idle glance remains.
+	guard.wait = INF
+	guard.facing = Vector2.DOWN
+	guard.sweep = 0.0
+	game.guard_speed = 0.0
 	var time_before := game.time_remaining
 	game.player.global_position = guard_node.global_position + game._look_direction(guard) * 60.0
 	await _wait(0.5)
@@ -760,10 +766,15 @@ func _test_inventory_survives_ship() -> void:
 	var inventory := ship.player.get("player_inventory") as PlayerInventory
 	_check(inventory == _inventory(), "The ship's player must use the voyage inventory")
 	_check(inventory.get_quantity(&"gold_coin") == coins, "Island coins must still be there on the ship")
-	_check(ship.get_islands().size() == WorldLayout.ISLAND_COUNT, "Generated island count matches the world layout")
+	_check(ship.get_islands().size() == WorldLayout.ISLAND_COUNT + 4, "World includes ordinary islands, three key sanctuaries and Paradise")
 	var challenge_scenes := {}
-	for island in ship.get_islands(): challenge_scenes[island.scene] = true
-	_check(challenge_scenes.size() == ISLANDS.size(), "All nineteen original challenges remain on the map")
+	for island in ship.get_islands():
+		if not island is QuestIsland: challenge_scenes[island.scene] = true
+	for scene in ISLANDS:
+		_check(challenge_scenes.has(scene), "Original challenge remains on the map: " + scene)
 	_check(not ship.status_label.visible, "No nearest-island text while sailing")
 	for island in ship.get_islands():
-		_check(ResourceLoader.exists(island.scene), "%s must point at a real scene" % island.name)
+		if island is QuestIsland:
+			_check(island.scene_file_path == "res://scenes/islands/quest_island.tscn", "%s uses the in-world quest scene" % island.name)
+		else:
+			_check(ResourceLoader.exists(island.scene), "%s must point at a real scene" % island.name)

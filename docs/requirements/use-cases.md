@@ -1,5 +1,8 @@
 # Use Cases
 
+> **November 19 scope update:** The owner confirmed solo and co-op for the **December 4, 2026** MVP demo. Earlier single-player-only/deferred-co-op and unimplemented-system descriptions below are historical baselines, not current release status. Current implementation evidence and unresolved verification gaps are in [traceability](../traceability.md); the [checkpoint plan](../checkpoint-3.md) owns readiness. Do not interpret the full backlog as a promised December scope.
+
+
 **Project:** Holy Ship
 
 **Team:** Whitney Akred, Leiton Peterson, Ivan Lopez, Liliana Matte, Gustavo Castillo, Shana Billiot

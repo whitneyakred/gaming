@@ -118,8 +118,18 @@ func host_tests() -> void:
 	a.player.position = Vector2(-30, 90)
 	await wait(0.4)
 	phase("move")
-	await wait(0.9)
+	# CI hosts three processes on fewer cores. Hold the input until the host
+	# observes movement, with a bounded deadline rather than a short pulse.
+	for attempt in 60:
+		if a.player.position.x > -10: break
+		await wait(0.05)
 	check(a.player.position.x > -10, "Client movement input advances server-owned player")
+	phase("move_done")
+	for attempt in 40:
+		if NetworkSession.inputs[alpha].move == Vector2.ZERO: break
+		await wait(0.05)
+	check(NetworkSession.inputs[alpha].move == Vector2.ZERO, "Host receives released movement before next phase")
+	await wait(0.2)
 	a.player.position = a.storage_position
 	b.player.position = b.storage_position
 	VoyageState.get_ship_storage().restore([]) # Isolate the chest race from starter fuel.
@@ -137,10 +147,14 @@ func host_tests() -> void:
 	VoyageState.get_ship_storage().add_items(ItemDatabase.get_item(&"gold_coin"),21)
 	await wait(0.4)
 	phase("split_one")
-	await wait(0.6)
+	for attempt in 60:
+		if a.inventory.get_quantity(&"gold_coin") == 1: break
+		await wait(0.05)
 	check(a.inventory.get_quantity(&"gold_coin")==1 and int(a.storage.slots[0].quantity)==20,"Guest takes exactly one from shared chest")
 	phase("split_half")
-	await wait(0.6)
+	for attempt in 60:
+		if a.inventory.get_quantity(&"gold_coin") == 11: break
+		await wait(0.05)
 	check(a.inventory.get_quantity(&"gold_coin")==11 and int(a.storage.slots[0].quantity)==10,"Guest splits shared chest stack in half")
 	phase("split_invalid")
 	await wait(0.6)
@@ -230,7 +244,12 @@ func host_tests() -> void:
 	var old_scene := get_tree().current_scene
 	a.player.move_crew(Vector2.RIGHT, 0.1)
 	check(a.player.global_position.distance_to(inside) > 10, "Land movement uses walking speed")
-	a.player.global_position = Vector2(9000, 9000)
+	# A random island can occupy (9000, 9000). Select water beyond every coast
+	# instead of assuming a fixed coordinate is water for every world seed.
+	var water_x := 0.0
+	for world_island in ship.get_islands():
+		for point in world_island.get_coast(): water_x = maxf(water_x, point.x)
+	a.player.global_position = Vector2(water_x + 500.0, 0)
 	ship.get_node("SwimAccess").update_crew(a.player)
 	check(not a.player.on_land and old_scene == get_tree().current_scene, "Leaving island returns to swimming without a scene change")
 	phase("land")
@@ -290,7 +309,7 @@ func client_tests() -> void:
 			"eat":
 				if role=="Alpha": NetworkSession.command("eat",{"index":0,"revision":service.view_revision})
 			"survival":
-				check(NetworkSession.ship.get_islands().size() == 30, "Guest has randomized world")
+				check(NetworkSession.ship.get_islands().size() == WorldLayout.ISLAND_COUNT + 4, "Guest has ordinary islands plus three key islands and Paradise")
 				check(NetworkSession.ship.world_seed == int(NetworkSession._last_snapshot.seed), "Guest shares host seed")
 				check(NetworkSession.ship.ocean_fish.world_seed == NetworkSession.ship.world_seed, "Guest fish use host world seed")
 				check(NetworkSession.ship.ocean_fish._has_clock, "Guest fish receive host clock through existing snapshots")
@@ -303,7 +322,9 @@ func client_tests() -> void:
 					NetworkSession._predict_local(Vector2.RIGHT, 1.0 / 60.0)
 					check(service.player.position.x > before.x, "Local movement responds before a host snapshot")
 					Input.action_press("move_right")
-					await wait(0.3)
+					for attempt in 80:
+						if read_phase() != "move": break
+						await wait(0.05)
 					Input.action_release("move_right")
 			"chest":
 				check(NetworkSession.players.size() == 3, "Late join sees entire crew")
@@ -313,10 +334,17 @@ func client_tests() -> void:
 			"split_one", "split_half", "split_invalid":
 				if role == "Alpha":
 					if current == "split_one":
+						for attempt in 40:
+							if service.hud.storage_open and service.storage_view[0].get("id", &"") == &"gold_coin" and int(service.storage_view[0].get("quantity", 0)) == 21: break
+							await wait(0.05)
 						service.hud.pick_cursor(0, true)
-						service.hud._place_one(service.hud.buttons[3])
+						check(not service.hud.cursor_data.is_empty(), "Guest receives chest stock before selecting stack")
+						if not service.hud.cursor_data.is_empty(): service.hud._place_one(service.hud.buttons[3])
 					else:
 						if current == "split_half":
+							for attempt in 40:
+								if not service.hud.cursor_data.is_empty() and service.hud.cursor_data.amount == 20: break
+								await wait(0.05)
 							check(not service.hud.cursor_data.is_empty() and service.hud.cursor_data.amount == 20, "Host acknowledgement keeps remaining stack on guest cursor")
 							service.hud.cancel_cursor()
 						NetworkSession.command("drag", {"index":0,"storage":true,"destination":3,"amount":10 if current=="split_half" else 9999,"revision":service.view_revision})

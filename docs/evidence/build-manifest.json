@@ -1,0 +1,32 @@
+{
+  "status": "local working-tree candidate; not tagged or published",
+  "source_base": "fc674619b5cde69a45305d00767dd8ee11b86782",
+  "built_at": "2026-11-19T21:52:16.938Z",
+  "files": [
+    {
+      "path": "builds/holy-ship-harbor-windows/HolyShip.exe",
+      "bytes": 109168640,
+      "sha256": "3d19ee4a764e8bb153bfa7f811f98e0dfb0139c9e0c8bc6b76b93d3ed09185bf"
+    },
+    {
+      "path": "builds/holy-ship-harbor-windows/HolyShip.pck",
+      "bytes": 31554100,
+      "sha256": "a3858d118d2e7b0e89fc5ada00dd97d5c37ee03b921e7b5cbe4412d517abe75d"
+    },
+    {
+      "path": "builds/web/index.html",
+      "bytes": 5441,
+      "sha256": "7764154c09dac540a64d9890e910c521b35e19173117f996200bfe3fe94a3efd"
+    },
+    {
+      "path": "builds/web/index.wasm",
+      "bytes": 39514754,
+      "sha256": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0"
+    },
+    {
+      "path": "builds/web/index.pck",
+      "bytes": 31554100,
+      "sha256": "a3858d118d2e7b0e89fc5ada00dd97d5c37ee03b921e7b5cbe4412d517abe75d"
+    }
+  ]
+}
