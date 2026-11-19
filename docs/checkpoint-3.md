@@ -1,67 +1,39 @@
 # Checkpoint 3 readiness — November 19, 2026
 
-Confirmed by the project owner: the MVP demo is **December 4, 2026**, and includes **co-op**. Preparation branch: `checkpoint-readiness`. This file records work and blockers; it does not certify the release.
-
-[Copy-ready TA evidence links and explicit gaps](ta-checkpoint-message.md). Review PR: [#102](https://github.com/whitneyakred/gaming/pull/102), targeting `systems-revamp`. The authenticated contributor can push but cannot administer required-check rules.
+Holy Ship, Team 13. MVP demo: **December 4, 2026**, including solo and co-op. [TA message](ta-checkpoint-message.md).
 
 ## Evidence index
 
-| Checklist item | Evidence | Remaining gate |
+| Checklist item | Current evidence | Remaining action |
 |---|---|---|
-| Release | [Release notes draft](releases/v0.2.0.md) | Local browser/Windows candidates built; review/merge, tag final commit, publish release and rehearse from tag |
-| Fan-out | [Traceability](traceability.md), `node tools/check-traceability.mjs` | Resolve named coverage gaps; no automatic Verified claims |
-| Pipeline | [Workflow](../.github/workflows/godot-ci.yml) | Admin must select required checks; link green run and deliberately red PR |
-| Observability | [Reliability](reliability.md), [platform failure log](evidence/platform-failure-log.json) | Platform capture obtained; new dependency-error logging awaits reviewed deployment |
-| Calibration | [Calibration worksheet](estimates/calibration.md) | Team actuals, individual estimates, biggest misses, capacity |
-| Charter rule | [AGENTS.md](../AGENTS.md), [originating review](room-error-review.md) | Merged through PR #102 into systems-revamp |
-| SLO | [Definition and probe](reliability.md) | 20/20 measured; initial target adopted; final release/deployment identity pending |
-| Degradation | [Production-handler test](../online-service/test/degradation.test.mjs) | See local validation record; API and crew-menu tests pass; recovery-removed test fails as required |
+| Release | [Published v0.2.0 and Windows download](https://github.com/whitneyakred/gaming/releases/tag/v0.2.0), [build identity](releases/v0.2.0.md) | Human solo/co-op rehearsal from this exact download |
+| Fan-out | [Traceability](traceability.md); local paths/headings and 48 UC IDs checked | Partial coverage and specification differences remain named; team must reconcile unfinished scope |
+| Pipeline | [Four green checks](https://github.com/whitneyakred/gaming/actions/runs/44632691797), [required-check ruleset](https://github.com/whitneyakred/gaming/rules/26707729), [intentional red PR #103](https://github.com/whitneyakred/gaming/pull/103) | Capture blocked merge evidence after the demonstration checks finish; never merge #103 |
+| Observability | [Reliability](reliability.md), [sanitized platform failure log](evidence/platform-failure-log.json) | Existing live evidence is preserved; the service was not redeployed for this release |
+| Calibration | [Recovered coarse estimates and capacity forecast](estimates/calibration.md) | Individual estimates, WAR actuals, completed/remaining classifications and biggest misses |
+| Charter rule | [AGENTS.md](../AGENTS.md), [originating review](room-error-review.md), [merged #102](https://github.com/whitneyakred/gaming/pull/102) | No additional merge needed |
+| SLO | [Definition](reliability.md), [20/20 measurement](evidence/harbor-slo.json) | Adopted 19/20 within two seconds target; sample is not a monthly uptime claim |
+| Degradation | [Production-handler test](../online-service/test/degradation.test.mjs), [menu recovery test](../tests/harbor_degradation_suite.gd), green CI above | Recovery-removed negative test remains part of CI |
 
-## Team information required
+## Release and link preservation
 
-The [reported responsibility breakdown and missing-record procedure](estimates/calibration.md#reported-areas-of-responsibility) now identify whom to ask for each area. Responsibilities do not establish actual hours or equal contributions. When WAR records are unavailable, ask the TA about separately labeled retrospective estimates rather than substituting invented actuals.
+PR #104 merged into systems-revamp at `a74b40a67c6eab1849952f7e15eaf77f39c09cab`. Its tree exactly matches the passing PR head `5dd8a50acade19216855450d78f02b8f9b80bb12`. The annotated v0.2.0 tag points to that merge. The release includes the unmodified CI Windows ZIP and checksum; packaged startup and normal Quit passed.
 
-1. Each teammate: original estimate ranges by use-case ID, estimate date, WAR entries since that date, actual hours and one sentence explaining the biggest miss. Do not estimate historical actuals from commits.
-2. We report approximately 15 hours per teammate through December 4 (90 gross hours); identify the hours reserved for integration, rehearsal and fixing bugs.
-3. Team: identify which use cases are finished and which unfinished v1.0.0 rows are essential. Co-op and the demo date are confirmed; the entire backlog is not.
-4. Reviewer: link the review/PR supporting the charter rule and approve its wording. A local review document is useful provenance, but it does not establish a merged PR.
-5. Repository admin: enable required checks and provide the red/green PR evidence. Cloudflare owner: capture deployment identity, logs and metrics.
+Do not move or replace v0.2.0. Earlier links pinned to `343afb5599e0067be34e5bd05d49c425f6b0bcb4` and older CI runs remain valid historical evidence. The team's calibration link follows systems-revamp and displays current documentation. The live browser deployment was not changed and is not claimed to match the tag.
 
-## Merge protection and release procedure
+## Pipeline demonstration
 
-On GitHub, open **Settings → Rules → Rulesets → Protect Main → Require status checks to pass → Add checks**. Select `Lint & Repo Checks`, `Checkpoint Evidence & Harbor Tests`, `Godot Smoke Tests`, and `Export Windows` after those checks appear. Save the ruleset. Confirm an ordinary contributor cannot merge a deliberately failing draft PR; then repair/close that PR. Record its URL here. The audited ruleset had an empty required-check list.
+Whitney's active Protect Main ruleset now requires Lint & Repo Checks, Checkpoint Evidence & Harbor Tests, Godot Smoke Tests and Export Windows, plus one approval, on the default branch. It does not protect systems-revamp.
 
-The GDScript lint/format steps remain advisory and are recorded as debt; the Harbor TypeScript check, dependency-failure test, link check and repository hygiene are blocking. The Godot Smoke Tests job runs a selected regression subset; the three-client co-op regression also runs in CI; exhaustive specification-extension coverage remains separate. Passing CI is not complete gameplay acceptance.
+PR #103 intentionally omits a script UID and must never be merged. Its target was corrected from systems-revamp to protected main, keeping the same URL, and a content-identical commit triggered fresh checks. The [required Lint & Repo Checks job failed](https://github.com/whitneyakred/gaming/actions/runs/44634819810/job/135950501390) on that corrected target. Capture the failed-check and blocked-merge UI together; no merge attempt was made. Reviewer approval can independently block a PR; include the failed required check in the evidence rather than claiming an approval block alone proves the check gate. Close #103 without merging after the TA has reviewed the evidence; the closed URL will remain available.
 
-Review and merge the gameplay base and readiness work into the intended release branch before tagging. Do not tag an unreviewed preparation commit merely to meet the version requirement. On the tested release commit:
+## What only the team can supply
 
-```sh
-git tag -a v0.2.0 -m "Holy Ship Checkpoint 3"
-git push origin v0.2.0
-```
+1. Run the published Windows download through the solo/co-op classroom demo. Record who tested, when, and the tag. Earlier successful rehearsal is useful but predates the tag.
+2. Transfer existing WAR/estimate records into the calibration worksheet, if Whitney has collected them elsewhere. Each finished case needs person, estimate range/date, actual hours/source, ratio and biggest miss. The supplied 2–3-hour summary cannot be allocated across unidentified cases automatically.
+3. Classify remaining MVP work. Reported capacity is 90 hours; a proposed 18-hour reserve leaves 72 usable hours. The worksheet gives sensitivity scenarios, not a fabricated calibrated yes/no.
+4. Post the updated TA message or a follow-up in the same Slack thread. Nothing here has been sent to Slack.
 
-On GitHub **Releases → Draft a new release**, select `v0.2.0`, generate notes, then replace technical-only wording with the reviewed release notes. Attach/export the build from that commit. Rehearse a solo voyage and a two-player co-op voyage from the tag, including host departure and reconnect/error behavior. Record the tag SHA and deployment SHA; do not assume the current website matches the tag.
+## Validation limits
 
-## Slack draft — replace pending fields before posting
-
-Checkpoint 3 — Holy Ship:
-- Release/demo: PENDING published v0.2.0 URL and SHA
-- Fan-out: PENDING merged traceability permalink
-- CI gate: PENDING green run, red PR, ruleset evidence
-- Observability: PENDING deployed health, metrics and failure-log evidence
-- Calibration/December 4 forecast: PENDING completed worksheet permalink
-- Review-derived charter rule: PENDING merged PR and originating review
-- Measured SLO: PENDING result permalink and confirmed target
-- Degradation test: PENDING merged test and red/green run evidence
-
-Post one message in the team Slack channel by November 19, 11:59 p.m. This draft has not been sent.
-
-## Local validation
-
-The project contact reports that the demo rehearsal is good. This does not establish rehearsal from a v0.2.0 tag, which has not yet been published.
-
-See [November 19 results and repaired regressions](evidence/validation.md). The previously identified failing suites have been repaired and passed locally; full specification-extension review and remote CI evidence remain pending.
-
-## Prepared local builds
-
-The existing release script exported browser and Windows candidates and passed its deployment dry run. [Build manifest](evidence/build-manifest.json) records hashes. Windows files are `builds/holy-ship-harbor-windows/HolyShip.exe` and `HolyShip.pck`; keep them together. Browser output is `builds/web/`, with deployment assembly in `web-site/dist/`. These are ignored build artifacts, not published releases. The matching Godot runtime successfully loaded the exported pack and used normal Quit via `tools/export_smoke.gd`.
+CI covers selected game regressions and three-client co-op, not every specification extension. GDScript style checks remain advisory. [Validation record](evidence/validation.md) preserves details. These gaps are disclosed; this file does not certify full assignment completion.
