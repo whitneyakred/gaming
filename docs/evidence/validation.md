@@ -46,6 +46,15 @@ GitHub CI exposed two further co-op test assumptions: a short movement pulse was
 
 ## Reproduction
 
+PR #104's initial workflow failed the shark attack-cycle and damage assertions.
+The survival test's sampled-water search could miss coastlines or exhaust its
+candidates without failing setup. The fixture now places the attack arena beyond
+all coastline and hull bounds, asserts that its entire 4,000-unit square is clear,
+and resets both sharks and cached routes left by earlier scenarios. All original
+cycle and damage assertions remain. Five consecutive local survival runs passed
+72 checks each; this is fixture validation, not a claim of exhaustive shark
+navigation coverage. Future cycle failures include the world seed and seen modes.
+
 From the repository root, use the installed Godot console executable in place of `godot`:
 
 ```sh
