@@ -2,6 +2,8 @@
 
 Confirmed by the project owner: the MVP demo is **December 4, 2026**, and includes **co-op**. Preparation branch: `checkpoint-readiness`. This file records work and blockers; it does not certify the release.
 
+[Copy-ready TA evidence links and explicit gaps](ta-checkpoint-message.md). Review PR: [#102](https://github.com/whitneyakred/gaming/pull/102), targeting `systems-revamp`. The authenticated contributor can push but cannot administer required-check rules.
+
 ## Evidence index
 
 | Checklist item | Evidence | Remaining gate |
@@ -9,7 +11,7 @@ Confirmed by the project owner: the MVP demo is **December 4, 2026**, and includ
 | Release | [Release notes draft](releases/v0.2.0.md) | Local browser/Windows candidates built; review/merge, tag final commit, publish release and rehearse from tag |
 | Fan-out | [Traceability](traceability.md), `node tools/check-traceability.mjs` | Resolve named coverage gaps; no automatic Verified claims |
 | Pipeline | [Workflow](../.github/workflows/godot-ci.yml) | Admin must select required checks; link green run and deliberately red PR |
-| Observability | [Reliability](reliability.md) | Deploy reviewed logging, collect platform log/metrics evidence |
+| Observability | [Reliability](reliability.md), [platform failure log](evidence/platform-failure-log.json) | Platform capture obtained; new dependency-error logging awaits reviewed deployment |
 | Calibration | [Calibration worksheet](estimates/calibration.md) | Team actuals, individual estimates, biggest misses, capacity |
 | Charter rule | [AGENTS.md](../AGENTS.md), [originating review](room-error-review.md) | Reviewer validates provenance; merge rule by PR and insert link |
 | SLO | [Definition and probe](reliability.md) | 20/20 measured; confirm target and deployment version |

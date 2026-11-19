@@ -20,6 +20,8 @@ Set `HARBOR_REMOVE_RECOVERY=1` and rerun: the test must fail. This changes only 
 
 ## Deployed observability evidence still required
 
+November 19 platform capture: [sanitized live-tail event](evidence/platform-failure-log.json) records a deliberately invalid `POST /api/crews` returning HTTP 400, with Worker version and CPU/wall-time metrics. [Client response](evidence/deployed-invalid-request.json) and [health snapshot](evidence/deployed-health.json) corroborate the probe. The stream was filtered to our unique header; no actual player data is published. An invocation outcome of `ok` means the Worker handled the request successfully; the HTTP request still failed validation with 400. This is not the mocked dependency exception and does not establish deployment of the new error logging.
+
 The existing Worker configuration enables sampled logs. The new failure event is `harbor_dependency_failure` with status 503; it intentionally contains no request URL, user identity, body, password, ticket or exception text. After deployment, open the Harbor service in Cloudflare Workers & Pages and inspect its logs and request/error metrics. Record a platform log event and timestamp from a controlled failure in a preview deployment. Do not deliberately break live players' rooms.
 
 `/api/health` reports process/protocol health only; it does not exercise dependencies. Link both the health response and platform metrics in the checkpoint evidence. Sampling may omit a single failure; use a preview with full log sampling for this exercise. The local mocked test cannot substitute for a platform log-stream capture.
