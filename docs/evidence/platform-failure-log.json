@@ -1,0 +1,13 @@
+{
+  "source": "Cloudflare Workers live tail, filtered by X-Checkpoint-Probe:readiness-5659777",
+  "script": "holy-ship-harbor",
+  "version": "8545407f-e983-48e3-af26-1b68935b97cd",
+  "event_timestamp": 1795125923783,
+  "outcome": "ok",
+  "method": "POST",
+  "path": "/api/crews",
+  "status": 400,
+  "wall_time_ms": 1,
+  "cpu_time_ms": 1,
+  "description": "Deliberately invalid JSON null POST; expected 400. No room created, no live player session altered. Request headers, IPs and geo data omitted."
+}

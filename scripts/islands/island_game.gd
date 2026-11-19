@@ -15,6 +15,10 @@ extends Node2D
 signal run_started
 signal run_won
 signal run_lost(reason: String)
+signal embedded_finished(won: bool)
+
+# Totems run the original scene in a private viewport, with a prize-only bag.
+var embedded: bool = false
 
 @export_group("Timer")
 ## Seconds until time runs out. Set to 0 for an island with no time limit
@@ -56,8 +60,8 @@ var _run_ended: bool = false
 var _timer_paused: bool = false
 var _bag_full_warned_at: int = -100000
 # The bag as it was when you landed, so a game over can take back the prize.
-var _bag_on_arrival: Array[ItemData] = []
-var _quantities_on_arrival: Dictionary[StringName, int] = {}
+var _bag_on_arrival: Array[Dictionary] = []
+var _floor_on_arrival: Dictionary = {}
 
 const COIN_ITEM_ID: StringName = &"gold_coin"
 
@@ -75,8 +79,13 @@ func _ready() -> void:
 
 	var bag := get_inventory()
 	if bag:
-		_bag_on_arrival = bag.inventory.duplicate()
-		_quantities_on_arrival = bag.quantities.duplicate()
+		_bag_on_arrival = bag.capture()
+	if not embedded:
+		_floor_on_arrival = VoyageState.floor_items.get(scene_file_path, {}).duplicate(true)
+		var inventory_system := preload("res://scenes/inventory/inventory_system.tscn").instantiate()
+		inventory_system.chest_enabled = false
+		inventory_system.player_path = NodePath("../" + str(player_path))
+		add_child(inventory_system)
 
 	_setup_game()
 	refresh_hud()
@@ -245,6 +254,9 @@ func _warn_bag_full(item: ItemData) -> void:
 # Tells the ship scene to play the "row back to the ship" sequence. Only a
 # win marks the island as finished.
 func _row_back(won: bool) -> void:
+	if embedded:
+		embedded_finished.emit(won)
+		return
 	Ship.returning_from_island = true
 	Ship.last_visit_won = won
 	get_tree().change_scene_to_file(return_scene)
@@ -254,9 +266,10 @@ func _take_back_prizes() -> void:
 	var bag := get_inventory()
 	if bag == null:
 		return
-	bag.inventory = _bag_on_arrival.duplicate()
-	bag.quantities = _quantities_on_arrival.duplicate()
-	bag.emit_changed()
+	bag.restore(_bag_on_arrival)
+	# Roll back loose items too: otherwise failure could duplicate dropped gear.
+	if not embedded:
+		VoyageState.floor_items[scene_file_path] = _floor_on_arrival.duplicate(true)
 
 func _end_run() -> void:
 	_run_ended = true

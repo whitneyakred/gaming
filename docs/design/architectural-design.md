@@ -1,5 +1,8 @@
 # Architectural Design
 
+> **November 19 scope update:** The owner confirmed solo and co-op for the **December 4, 2026** MVP demo. Earlier single-player-only/deferred-co-op and unimplemented-system descriptions below are historical baselines, not current release status. Current implementation evidence and unresolved verification gaps are in [traceability](../traceability.md); the [checkpoint plan](../checkpoint-3.md) owns readiness. Do not interpret the full backlog as a promised December scope.
+
+
 > **Scope (2026-10-20):** The current milestone is single-player. Host/client synchronization, LAN sessions, joint actions, and multi-player capacity are retained only as deferred co-op design. Local gameplay uses the local simulation as authority. Planned behavior is not a claim of implementation; see [scope and status](../requirements/vision-and-scope.md#43-mvp-scope).
 
 **Project:** Holy Ship
@@ -437,6 +440,8 @@ These scenarios define observable checks without inventing frame-rate, timing, a
 | `TD-item-validation` | Debt | Registration relies on debug assertions and does not reject invalid stack limits; unknown IDs return null. | Add release-safe validation and missing-item handling when gameplay consumes the catalog. | item_database.gd; item_data.gd |
 | `TD-placeholder-ocean` | Debt | The repeating decorative ocean does not generate world chunks or hazards. | Replace the shortcut with chunked content during navigation work. | project.godot; `KD-world-chunks` |
 | `TD-fixed-islands` | Debt | Islands are hand-placed nodes in ship.tscn rather than chunk-generated, so the map cannot grow with travel. | Move island placement into chunk generation during navigation work; keep island content as separate scenes. | ship.tscn; `KD-world-chunks`; isle.md |
+| `TD-advisory-style` | Debt | GDScript lint and format are continue-on-error; style failures do not block merging. | Baseline or repair findings before making these checks mandatory. | .github/workflows/godot-ci.yml |
+| `TD-checkpoint-coverage` | Debt | CI does not execute the complete Godot/multiplayer suite; platform failure logs and full extension coverage remain pending. | Track evidence in checkpoint-3.md and traceability.md. | Checkpoint readiness review |
 | `TD-manual-verification` | Debt | The sailing integration test covers only part of the prototype; planned systems lack implementation tests and a documented automated pipeline. | Add focused checks as slices arrive and automate validation when targets are chosen. | Repository tree; section 7.2 |
 
 Saving, survival, and networking are unimplemented features, not automatically technical debt; their absence fits the narrow milestone.

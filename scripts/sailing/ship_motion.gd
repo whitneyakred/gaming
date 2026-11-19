@@ -64,6 +64,8 @@ func _ready() -> void:
 	_wind_change_left = _next_wind_interval()
 
 func _process(delta: float) -> void:
+	if NetworkSession.online and not multiplayer.is_server():
+		return
 	# Separate from movement so anchored/docking ships still experience wind shifts.
 	if not changing_wind_enabled:
 		_target_wind_angle = wind_velocity.angle()
@@ -92,7 +94,7 @@ func set_sail_level(level: int) -> void:
 		sail_changed.emit()
 
 func set_sail_angle(degrees: float) -> void:
-	var bounded_angle := clampf(degrees, -60.0, 60.0)
+	var bounded_angle := wrapf(degrees, -180.0, 180.0)
 	if not is_equal_approx(sail_angle_degrees, bounded_angle):
 		sail_angle_degrees = bounded_angle
 		sail_changed.emit()
@@ -181,6 +183,10 @@ func _graze_pose(old_position: Vector2, old_rotation: float, wanted_rotation: fl
 		for angle: float in [graze_rotation, old_rotation]:
 			for offset: Vector2 in [move, Vector2.ZERO]:
 				var spot := old_position + offset + normal * push
+				if speed > 0.0 and spot.is_equal_approx(old_position) and is_equal_approx(angle, old_rotation):
+					# An unchanged pose is safe but cannot free a wedged bow.
+					# Try all outward nudges before falling back to staying put.
+					continue
 				if not _is_pose_blocked(spot, angle):
 					return Transform2D(angle, spot)
 	return Transform2D(old_rotation, old_position)

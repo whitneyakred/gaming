@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "holy-ship-harbor",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "assets": {"directory":"./public","binding":"ASSETS","run_worker_first":["/api/*","/play/index.wasm","/play/index.pck"]},
+  "durable_objects": {"bindings":[
+    {"name":"ROOMS","class_name":"VoyageRoom"},
+    {"name":"DIRECTORY","class_name":"CrewDirectory"},
+    {"name":"GATES","class_name":"RequestGate"}
+  ]},
+  "migrations":[{"tag":"v1","new_sqlite_classes":["VoyageRoom","CrewDirectory","RequestGate"]}],
+  "observability":{"enabled":true,"head_sampling_rate":0.1,"logs":{"enabled":true,"invocation_logs":false}},
+  "vars":{"PROTOCOL":"holy-ship-coop-15"}
+}

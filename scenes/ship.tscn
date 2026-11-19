@@ -3,34 +3,33 @@
 [ext_resource type="Script" uid="uid://c67w16b568gkl" path="res://scripts/ship.gd" id="1"]
 [ext_resource type="Script" uid="uid://cdk143q5q8kk7" path="res://scripts/ocean.gd" id="2"]
 [ext_resource type="Texture2D" uid="uid://b3qfmpqpaoksv" path="res://assets/island_pixel.png" id="3"]
-[ext_resource type="Texture2D" uid="uid://j300wr6xkyiv" path="res://assets/ship_sailing.png" id="4"]
+[ext_resource type="Texture2D" path="res://assets/ship_clean.png" id="4"]
 [ext_resource type="PackedScene" uid="uid://b4qs64q8qtgd" path="res://scenes/player.tscn" id="5"]
-[ext_resource type="Texture2D" uid="uid://jf2hgacmc8nt" path="res://assets/rowboat.png" id="6"]
-[ext_resource type="Texture2D" uid="uid://v50473bfp0us" path="res://assets/player_viking.png" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/Cooking.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/helm_station.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/sail_station.tscn" id="10"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/sailing_demo.tscn" id="11"]
-[ext_resource type="PackedScene" uid="uid://ujrk5hekymxt" path="res://scenes/stations/fishing_station.tscn" id="12"]
 [ext_resource type="Script" uid="uid://ctrdifj18g6xg" path="res://scripts/item-system/item_data.gd" id="12_tbq4g"]
 [ext_resource type="Script" uid="uid://cx41u6oa2ga7r" path="res://scripts/inventory-system/player_inventory.gd" id="13_mx31c"]
 [ext_resource type="Script" path="res://scripts/islands/world_island.gd" id="14"]
 [ext_resource type="Texture2D" path="res://assets/island_large.png" id="15"]
 [ext_resource type="PackedScene" uid="uid://b324lul81i3po" path="res://scenes/maps/MapUI.tscn" id="16_map"]
 [ext_resource type="PackedScene" path="res://scenes/sailing/anchor_station.tscn" id="16"]
+[ext_resource type="PackedScene" path="res://scenes/inventory/inventory_system.tscn" id="17_inventory"]
 
 [ext_resource type="Script" path="res://scripts/sailing/swim_access.gd" id="swim_access"]
 
 [sub_resource type="RectangleShape2D" id="SternShape"]
 size = Vector2(44, 40)
 
-[sub_resource type="Resource" id="Resource_fs4we"]
+[sub_resource type="Resource" id="Resource_dschd"]
 resource_local_to_scene = true
 script = ExtResource("13_mx31c")
 player_id = &"player_1"
 
 [node name="Ship" type="Node2D" unique_id=1965887700]
 script = ExtResource("1")
+swimming_hull_outline = PackedVector2Array(-14, -232, -54, -166, -78, -96, -80, 118, -66, 192, -50, 232, 58, 232, 76, 186, 90, 106, 94, 64, 92, -58, 74, -138, 52, -184, 28, -218, 8, -232)
 hull_outline = PackedVector2Array(2, -288, -4, -282, -2, -262, -14, -232, -54, -166, -78, -96, -80, 118, -66, 178, -50, 206, 58, 206, 76, 172, 90, 106, 94, 64, 92, -58, 74, -138, 52, -184, 28, -218, 10, -262, 8, -282)
 
 [node name="Ocean" type="Node2D" parent="." unique_id=404710856]
@@ -38,15 +37,15 @@ z_index = -20
 script = ExtResource("2")
 world_anchored = true
 
-[node name="Islands" type="Node2D" parent="."]
+[node name="Islands" type="Node2D" parent="." unique_id=458453185]
 
-[node name="CoconutIsland" type="Node2D" parent="Islands"]
+[node name="CoconutIsland" type="Node2D" parent="Islands" unique_id=217667889]
 position = Vector2(-360, -2260)
 script = ExtResource("14")
 display_name = "Coconut Island"
 scene = "res://scenes/island.tscn"
 
-[node name="Sprite2D" type="Sprite2D" parent="Islands/CoconutIsland"]
+[node name="Sprite2D" type="Sprite2D" parent="Islands/CoconutIsland" unique_id=1594066392]
 texture_filter = 1
 scale = Vector2(2, 2)
 texture = ExtResource("3")
@@ -64,7 +63,7 @@ script = ExtResource("14")
 display_name = "Treasure Island"
 scene = "res://scenes/islands/treasure_island.tscn"
 
-[node name="Sprite2D" type="Sprite2D" parent="Islands/TreasureIsland"]
+[node name="Sprite2D" type="Sprite2D" parent="Islands/TreasureIsland" unique_id=1314040907]
 texture_filter = 1
 position = Vector2(-1, -47)
 scale = Vector2(0.8, 0.8)
@@ -411,7 +410,8 @@ polygon = PackedVector2Array(107.8, -206.8, 85.8, -189.2, 72.6, -189.2, 55, -176
 
 [node name="ShipSprite" type="Sprite2D" parent="." unique_id=1638528428]
 texture_filter = 1
-scale = Vector2(2, 2)
+position = Vector2(0, -4.5)
+scale = Vector2(1.23, 1.35)
 texture = ExtResource("4")
 
 [node name="DeckBoundary" type="StaticBody2D" parent="." unique_id=1305653966]
@@ -421,19 +421,14 @@ build_mode = 1
 polygon = PackedVector2Array(4, -208, 24, -188, 40, -164, 56, -128, 66, -88, 72, -38, 74, 12, 72, 72, 68, 122, 62, 156, 52, 166, 22, 166, 22, 196, -10, 196, -10, 166, -44, 166, -54, 156, -60, 122, -64, 72, -66, 12, -64, -32, -126, -32, -126, -52, -62, -52, -58, -88, -48, -128, -32, -164, -16, -188)
 
 [node name="Rowboat" type="Node2D" parent="." unique_id=1126902144]
+visible = false
 position = Vector2(4, 238)
-
-[node name="Sprite2D" type="Sprite2D" parent="Rowboat" unique_id=978468845]
-texture_filter = 1
-scale = Vector2(2, 2)
-texture = ExtResource("6")
 
 [node name="Rider" type="Sprite2D" parent="Rowboat" unique_id=664807931]
 visible = false
 texture_filter = 1
 position = Vector2(0, -12)
 scale = Vector2(0.03, 0.03)
-texture = ExtResource("7")
 
 [node name="SternZone" type="Area2D" parent="." unique_id=1559865449]
 position = Vector2(6, 180)
@@ -441,52 +436,31 @@ position = Vector2(6, 180)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="SternZone" unique_id=957179238]
 shape = SubResource("SternShape")
 
-[node name="FishingStation" parent="." unique_id=623152807 instance=ExtResource("12")]
-position = Vector2(36, -120)
-
-[node name="Marker" parent="FishingStation" index="0" unique_id=1644867928]
-position = Vector2(10, -5)
-scale = Vector2(0.75, 0.875)
-
-[node name="ProgressBar" parent="FishingStation" index="1" unique_id=1974804629]
-offset_left = 33.0
-offset_top = -50.0
-offset_right = 123.0
-offset_bottom = -36.0
-
-[node name="StatusLabel" parent="FishingStation" index="2" unique_id=109003463]
-offset_left = 5.0
-offset_top = -73.0
-offset_right = 149.0
-offset_bottom = -50.0
-
-[node name="CollisionPolygon2D" parent="FishingStation" index="4" unique_id=437309802]
-position = Vector2(1, -3.7252903e-09)
-polygon = PackedVector2Array(-2.9204216, -17.992813, 0, 0, 7.0366516, 13.030159, 24.220943, 8.06752, 12.158115, -25.009048)
-
 [node name="Cooking" parent="." unique_id=1082873872 instance=ExtResource("8")]
 position = Vector2(66, 72)
 
 [node name="Helm" parent="." unique_id=228609837 node_paths=PackedStringArray("ship", "local_player") instance=ExtResource("9")]
-position = Vector2(-5, 130)
+position = Vector2(6, 130)
 ship = NodePath("..")
 local_player = NodePath("../Player")
 interaction_distance = 32.0
 
 [node name="Sail" parent="." unique_id=1300635341 node_paths=PackedStringArray("ship", "local_player") instance=ExtResource("10")]
+position = Vector2(6, 0)
 ship = NodePath("..")
 local_player = NodePath("../Player")
 
-[node name="Anchor" parent="." node_paths=PackedStringArray("ship", "local_player") instance=ExtResource("16")]
+[node name="Anchor" parent="." unique_id=1726864904 node_paths=PackedStringArray("ship", "local_player") instance=ExtResource("16")]
 position = Vector2(-45, 65)
 ship = NodePath("..")
 local_player = NodePath("../Player")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1396266102]
+zoom = Vector2(0.85, 0.85)
 
 [node name="Player" parent="." unique_id=656477266 instance=ExtResource("5")]
 position = Vector2(-30, 90)
-player_inventory = SubResource("Resource_fs4we")
+player_inventory = SubResource("Resource_dschd")
 
 [node name="SailingDemo" parent="." unique_id=2090647486 node_paths=PackedStringArray("ship", "helm", "camera") instance=ExtResource("11")]
 ship = NodePath("..")
@@ -519,9 +493,9 @@ anchor_right = 0.9
 anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 0.0
-offset_top = -70.0
+offset_top = -165.0
 offset_right = 0.0
-offset_bottom = -18.0
+offset_bottom = -113.0
 grow_vertical = 0
 theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
@@ -532,23 +506,10 @@ horizontal_alignment = 1
 autowrap_mode = 3
 mouse_filter = 2
 
-[node name="ControlsLabel" type="Label" parent="HUD" unique_id=1865941422]
-anchor_right = 0.7
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 18.0
-offset_top = -120.0
-offset_right = -18.0
-offset_bottom = -78.0
-grow_vertical = 0
-autowrap_mode = 3
-mouse_filter = 2
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
-text = "E / Space: use / leave station | WASD: walk
-Sail: W/S deployment, A/D trim | Helm: A/D steer"
-
-[editable path="FishingStation"]
-
 [node name="SwimAccess" type="Node2D" parent="."]
 script = ExtResource("swim_access")
+
+[node name="InventorySystem" parent="." instance=ExtResource("17_inventory")]
+
+
+

@@ -23,6 +23,19 @@ var _message_token: int = 0
 var _toast_token: int = 0
 var _inventory: PlayerInventory
 
+func _ready() -> void:
+	# Reserve the bottom row for the shared icon hotbar and its controls.
+	prompt_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	prompt_label.offset_left = -350
+	prompt_label.offset_right = 350
+	prompt_label.offset_top = -164
+	prompt_label.offset_bottom = -124
+	toast_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	toast_label.offset_left = 16
+	toast_label.offset_right = 420
+	toast_label.offset_top = -194
+	toast_label.offset_bottom = -166
+
 
 func set_objective(text: String) -> void:
 	objective_label.text = text
@@ -88,11 +101,19 @@ func show_toast(text: String, seconds: float = 1.6) -> void:
 		toast_label.visible = false
 
 func _refresh_bag() -> void:
-	if _inventory == null:
-		bag_label.visible = false
+	if get_parent() is IslandGame and get_parent().embedded:
+		var entries: PackedStringArray = []
+		if _inventory:
+			for item_id in _inventory.quantities:
+				var item := ItemDatabase.get_item(item_id)
+				entries.append("%d %s" % [_inventory.get_quantity(item_id), item.display_name])
+		bag_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+		bag_label.offset_left = 16
+		bag_label.offset_right = -16
+		bag_label.offset_top = -48
+		bag_label.offset_bottom = -16
+		bag_label.text = "Challenge bag: " + (", ".join(entries) if not entries.is_empty() else "empty — win to keep your prizes")
+		bag_label.visible = true
 		return
-	bag_label.visible = true
-	var parts: PackedStringArray = []
-	for item in _inventory.inventory:
-		parts.append("%s x%d" % [item.display_name, _inventory.get_quantity(item.id)])
-	bag_label.text = "Bag: " + (", ".join(parts) if not parts.is_empty() else "empty")
+	# The reusable inventory HUD now renders the bag with icons.
+	bag_label.visible = false

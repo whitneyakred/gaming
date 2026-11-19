@@ -1,0 +1,17 @@
+extends SceneTree
+func _initialize() -> void:
+	var ship = load("res://scripts/sailing/ship_motion.gd").new()
+	ship.set_sail_angle(120)
+	assert(is_equal_approx(ship.sail_angle_degrees,120.0))
+	ship.set_sail_angle(181)
+	assert(is_equal_approx(ship.sail_angle_degrees,-179.0))
+	ship.set_sail_angle(-181)
+	assert(is_equal_approx(ship.sail_angle_degrees,179.0))
+	ship.set_sail_angle(1085)
+	assert(is_equal_approx(ship.sail_angle_degrees,5.0))
+	assert(is_equal_approx(wrapf(-179.0-179.0,-180.0,180.0),2.0))
+	var middle := rad_to_deg(lerp_angle(deg_to_rad(179.0),deg_to_rad(-179.0),0.5))
+	assert(is_equal_approx(absf(middle),180.0))
+	ship.free()
+	print("SAIL ROTATION: 6 checks passed")
+	quit()

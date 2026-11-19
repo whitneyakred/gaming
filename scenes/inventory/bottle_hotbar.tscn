@@ -1,0 +1,51 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/inventory_ui/hotbar_bottle_leaning_x.png" id="1"]
+[ext_resource type="Script" path="res://scripts/inventory/inventory_slot_button.gd" id="2"]
+
+[node name="BottleHotbar" type="Control"]
+texture_filter = 1
+mouse_filter = 2
+
+[node name="HotbarArt" type="TextureRect" parent="."]
+offset_right = 337.0
+offset_bottom = 119.0
+mouse_filter = 2
+texture = ExtResource("1")
+expand_mode = 1
+
+[node name="Slot1" type="Button" parent="."]
+offset_left = 50.2
+offset_top = 30.3
+offset_right = 108.2
+offset_bottom = 96.3
+script = ExtResource("2")
+slot_size = Vector2(58, 66)
+parchment_slot = true
+
+[node name="Slot2" type="Button" parent="."]
+offset_left = 112.3
+offset_top = 30.3
+offset_right = 170.3
+offset_bottom = 96.3
+script = ExtResource("2")
+slot_size = Vector2(58, 66)
+parchment_slot = true
+
+[node name="Slot3" type="Button" parent="."]
+offset_left = 173.0
+offset_top = 30.3
+offset_right = 231.0
+offset_bottom = 96.3
+script = ExtResource("2")
+slot_size = Vector2(58, 66)
+parchment_slot = true
+
+[node name="Slot4" type="Button" parent="."]
+offset_left = 233.7
+offset_top = 30.3
+offset_right = 291.7
+offset_bottom = 96.3
+script = ExtResource("2")
+slot_size = Vector2(58, 66)
+parchment_slot = true

@@ -10,16 +10,25 @@ extends Node2D
 @export_range(0.0, 0.5) var station_vignette_opacity: float = 0.22
 @export_range(1.0, 20.0) var camera_response: float = 7.0
 var _normal_zoom: Vector2 = Vector2.ONE
+var _station_zoom: float = 1.0
 var _focus_offset: Vector2 = Vector2.ZERO
 ## Rowboat framing is controlled by the ship during island travel.
 var view_offset: Vector2 = Vector2.ZERO
-@onready var wind_arrow: Label = $HUD/Wind/Arrow
+@onready var wind_arrow: TextureRect = $HUD/Wind/Arrow
 @onready var helm_wheel: HelmWheelWidget = $HUD/HelmWheel
 @onready var vignette: ColorRect = $StationOverlay/Vignette
 
 func _ready() -> void:
 	if is_instance_valid(camera):
 		_normal_zoom = camera.zoom
+		get_viewport().size_changed.connect(_refresh_camera_scale)
+		GameWindow.preferences_changed.connect(_refresh_camera_scale)
+		_refresh_camera_scale()
+
+func _refresh_camera_scale() -> void:
+	if is_instance_valid(camera):
+		# Match vertical world coverage immediately on resize, independently of UI scale.
+		camera.zoom = _normal_zoom * (get_viewport_rect().size.y / 720.0) * float(GameWindow.preferences.camera_zoom) * _station_zoom
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(ship):
@@ -28,7 +37,8 @@ func _process(delta: float) -> void:
 	# Show the actual smoothed wind, not its next random target. The camera does not rotate.
 	wind_arrow.rotation = ship.wind_velocity.angle() + PI / 2.0
 	wind_arrow.visible = not ship.wind_velocity.is_zero_approx()
-	helm_wheel.set_helm_state(is_instance_valid(helm.operator), ship.wheel_angle_degrees)
+	helm_wheel.maximum_angle_degrees = maxf(ship.maximum_wheel_turns * 360.0, 1.0)
+	helm_wheel.set_helm_state(is_instance_valid(helm.operator) and helm.operator == helm.local_player, ship.wheel_angle_degrees)
 	queue_redraw()
 
 func _update_camera(delta: float) -> void:
@@ -41,11 +51,12 @@ func _update_camera(delta: float) -> void:
 	var focused := is_instance_valid(station) and station != ship and ship.stations_enabled
 	var target_offset := station.global_position - ship.global_position if focused and station != helm else Vector2.ZERO
 	var multiplier := helm_zoom_multiplier if station == helm else station_zoom_multiplier
-	var target_zoom := _normal_zoom * multiplier if focused else _normal_zoom
+	var target_zoom := multiplier if focused else 1.0
 	var weight := 1.0 - exp(-camera_response * delta)
 	_focus_offset = _focus_offset.lerp(target_offset, weight)
 	camera.global_position = ship.global_position + _focus_offset + view_offset
-	camera.zoom = camera.zoom.lerp(target_zoom, weight)
+	_station_zoom = lerpf(_station_zoom, target_zoom, weight)
+	_refresh_camera_scale()
 	vignette.modulate.a = lerpf(vignette.modulate.a, station_vignette_opacity if focused else 0.0, weight)
 
 func _draw() -> void:
@@ -65,3 +76,4 @@ func _draw() -> void:
 			var offset := Vector2(posmod(x * 37 + y * 17, 53), posmod(y * 29 + x * 11, 47))
 			var point := to_local(Vector2(x, y) * cell_size + offset)
 			draw_line(point, point + Vector2(12, 0), Color(0.35, 0.65, 0.72, 0.4), 2.0)
+

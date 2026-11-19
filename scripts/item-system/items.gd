@@ -1,24 +1,40 @@
 extends Node
 
+const SEABASS_ICON := preload("res://assets/items/seabass_alive.png")
+const ROPE_ICON := preload("res://assets/items/rope_var1.png")
+const COCONUT_WHOLE_ICON := preload("res://assets/items/coconut_whole.png")
+
+
 func _ready() -> void:
+	for metal in ["bronze", "silver", "gold"]:
+		ItemDatabase.register_item(make_item(StringName(metal + "_key"), metal.capitalize() + " Key",
+			"Insert into the Paradise gate. Returns to its sanctuary if lost.", 1, ItemData.Category.TOOL,
+			load("res://assets/items/%s_key.png" % metal) as Texture2D))
+	ItemDatabase.register_item(make_item(
+		&"spyglass", "Spyglass",
+		"Hold left-click to zoom out. Move the mouse to scout; release to return.",
+		1, ItemData.Category.TOOL, preload("res://assets/items/spyglass.svg")
+	))
 	ItemDatabase.register_item(make_item(
 		&"fish_cod",
-		"Cod",
-		"A common ocean fish.",
+		"Sea Bass",
+		"A common sea fish.",
 		10,
-		ItemData.Category.FOOD
+		ItemData.Category.FOOD,
+		SEABASS_ICON
 	))
 	ItemDatabase.register_item(make_item(
 		&"rope",
 		"Rope",
 		"Strong cordage for general shipboard tasks.",
 		25,
-		ItemData.Category.MATERIAL
+		ItemData.Category.MATERIAL,
+		ROPE_ICON
 	))
 	ItemDatabase.register_item(make_item(
 		&"fishing_rod",
 		"Fishing Rod",
-		"An old but useful tool for getting food and other items from the sea.",
+		"Click water to cast. At a bite, click again; hold and release to keep tension green.",
 		1,
 		ItemData.Category.TOOL
 	))
@@ -27,9 +43,14 @@ func _ready() -> void:
 		"Coconut",
 		"A fresh coconut gathered from a tropical island.",
 		20,
-		ItemData.Category.FOOD
+		ItemData.Category.FOOD,
+		COCONUT_WHOLE_ICON
 	))
 
+	ItemDatabase.register_item(make_item(
+		&"coal", "Coal", "Slow-burning fuel for the ship's grill.",
+		30, ItemData.Category.MATERIAL, preload("res://assets/items/coal.svg")
+	))
 	# --- Island rewards ---
 	ItemDatabase.register_item(make_item(
 		&"gold_coin",
@@ -40,7 +61,7 @@ func _ready() -> void:
 	ItemDatabase.register_item(make_item(
 		&"wood",
 		"Wood",
-		"Chopped timber. Used to patch leaks in the hull.",
+		"Timber for the grill or hull repairs.",
 		30
 	))
 	ItemDatabase.register_item(make_item(
@@ -87,8 +108,8 @@ func _ready() -> void:
 	))
 	ItemDatabase.register_item(make_item(
 		&"dried_fish",
-		"Dried Fish",
-		"Salted fish dried on a seaside rack. Keeps for the whole voyage.",
+		"Cooked Fish",
+		"Freshly grilled sea bass, ready to eat.",
 		20,
 		ItemData.Category.FOOD
 	))
@@ -127,6 +148,7 @@ func make_item(
 	item_description: String,
 	item_max_stack: int = 1,
 	item_category: ItemData.Category = ItemData.Category.FOOD,
+	item_icon: Texture2D = null,
 	item_draw_weight: float = 1.0,
 	item_sell_value: int = 0
 ) -> ItemData:
@@ -136,6 +158,10 @@ func make_item(
 	item.description = item_description
 	item.max_stack = item_max_stack
 	item.category = item_category
+	item.icon = item_icon
+	var icon_path := "res://assets/items/%s.svg" % item_id
+	if item.icon == null and ResourceLoader.exists(icon_path):
+		item.icon = load(icon_path) as Texture2D
 	item.draw_weight = item_draw_weight
 	item.sell_value = item_sell_value
 	return item

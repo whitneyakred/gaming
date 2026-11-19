@@ -1,6 +1,14 @@
 class_name Ship
 extends ShipMotion
 
+## Waterline boundary for swimmers: excludes the raised bow spar and gives
+## the stern clearance for the swimmer's head above their position anchor.
+@export var swimming_hull_outline: PackedVector2Array = PackedVector2Array()
+
+func get_swimming_hull_polygon() -> PackedVector2Array:
+	var outline := hull_outline if swimming_hull_outline.is_empty() else swimming_hull_outline
+	return global_transform * outline
+
 # Sail and steer around an open map of islands. There is no nearest-island
 # text or arrow while voyaging: you find islands by sailing. Islands are solid:
 # the hull scrapes along a shore instead of sailing over it (each island's
@@ -33,6 +41,8 @@ static var anchored_rotation: float = 0.0
 @export var row_speed: float = 130.0               # rowboat speed, px/s
 ## Map pixels per "meter" shown in the status line.
 @export var pixels_per_meter: float = 10.0
+## Uncheck before exporting to remove the teleport menu and disable its actions.
+@export var developer_tools_enabled: bool = true
 
 enum State { SAILING, ANCHORED, ROWING }
 
@@ -69,13 +79,22 @@ var _docked_island: WorldIsland
 var _leaving_island: WorldIsland
 # The island whose shore the hull last touched.
 var _aground_island: WorldIsland
-# Keeps the "Ran aground" line up for a moment while grazing, so it doesn't
-# flicker on frames where the hull is briefly clear of the shore.
-var _aground_message_left: float = 0.0
-const AGROUND_MESSAGE_SECONDS := 0.8
+var world_seed: int = 0
+var survival: SurvivalWorld
+var ocean_fish: OceanFish
+
+func rebuild_world(seed_value: int) -> void:
+	if world_seed == seed_value: return
+	world_seed = seed_value
+	WorldLayout.generate(self, world_seed)
+	if is_instance_valid(ocean_fish): ocean_fish.configure(world_seed, islands_root.get_children())
 
 func _ready() -> void:
 	super._ready()
+	var wake := Node2D.new()
+	wake.set_script(preload("res://scripts/sailing/ship_wake.gd"))
+	wake.name = "Wake"
+	add_child(wake)
 	# Islands stay put in world space (their positions in ship.tscn are map
 	# coordinates) while the deck, stations, and player move together.
 	islands_root.set_as_top_level(true)
@@ -85,13 +104,23 @@ func _ready() -> void:
 	islands_root.z_index = -10
 	ocean.set_as_top_level(true)
 	ocean.global_rotation = 0.0
+	rebuild_world(randi_range(1, 2147483646))
+	ocean_fish = OceanFish.new()
+	ocean_fish.name = "OceanFish"
+	add_child(ocean_fish)
+	survival = SurvivalWorld.new()
+	survival.name = "Survival"
+	add_child(survival)
+	var challenges := IslandChallenges.new()
+	challenges.name = "IslandChallenges"
+	add_child(challenges)
+	var journey := ParadiseJourney.new()
+	journey.name = "ParadiseJourney"
+	add_child(journey)
+	var dev_menu := preload("res://scripts/dev/voyage_dev_menu.gd").new()
+	dev_menu.name = "VoyageDevMenu"
+	add_child(dev_menu)
 	MapState.pixels_per_meter = pixels_per_meter
-	for island in get_islands():
-		MapState.register_island(
-			str(island.name),
-			island.display_name,
-			island.global_position,
-			island.display_name.to_lower() == "paradise island")
 	_rowboat_home = rowboat.position
 	stern_zone.body_entered.connect(_on_stern_entered)
 	stern_zone.body_exited.connect(_on_stern_exited)
@@ -115,19 +144,17 @@ func _ready() -> void:
 	MapState.update_player_position(global_position)
 
 func _physics_process(delta: float) -> void:
+	if NetworkSession.online and not multiplayer.is_server():
+		return
 	if _state == State.SAILING or _state == State.ANCHORED:
 		super._physics_process(delta)
 		if _leaving_island and _distance_to_shore(_leaving_island) > anchor_island_distance:
 			_leaving_island = null
 		if _state == State.SAILING:
-			_aground_message_left = AGROUND_MESSAGE_SECONDS if aground else maxf(_aground_message_left - delta, 0.0)
-			if _aground_message_left > 0.0:
-				_set_status("Ran aground! Steer to slide along the shore or away from it.")
-			else:
-				_update_sailing_status()
+			_update_sailing_status()
 	MapState.update_player_position(global_position)
 	ocean.global_position = global_position
-	prompt_label.visible = _state == State.ANCHORED and _player_at_stern and not player.using_station
+	prompt_label.visible = false
 
 func _process(delta: float) -> void:
 	super._process(delta)
@@ -153,11 +180,8 @@ func _view_offset_showing(point: Vector2, current: Vector2) -> Vector2:
 		signf(from_center.y) * maxf(absf(from_center.y) - half.y, 0.0))
 	return current + shift
 
-func _unhandled_input(event: InputEvent) -> void:
-	if _state == State.ANCHORED and _player_at_stern and not player.using_station:
-		if event.is_action_pressed("interact") and not event.is_echo():
-			get_viewport().set_input_as_handled()
-			_row_to_island()
+func _unhandled_input(_event: InputEvent) -> void:
+	pass
 
 # --- Islands on the map --------------------------------------------------------
 
@@ -227,14 +251,9 @@ func _get_shore_normal(at: Vector2) -> Vector2:
 	var away := at - _aground_island.get_nearest_coast_point(at)
 	return away.normalized() if away.length() > 0.01 else Vector2.ZERO
 
-# While voyaging the status line stays empty: no nearest-island name,
-# distance, or arrow. It only speaks up when the anchor is down out at sea.
-# Anchoring and rowing use it for their own messages.
+# Anchor interaction remains local to the station, without a persistent banner.
 func _update_sailing_status() -> void:
-	if anchor_deployed:
-		_set_status("Anchor lowered. Press E at the anchor to sail again.")
-	else:
-		_set_status("")
+	_set_status("")
 
 # --- Anchoring and the rowboat -------------------------------------------------
 
@@ -262,7 +281,7 @@ func _on_anchor_changed(deployed: bool) -> void:
 func _anchor_at(island: WorldIsland) -> void:
 	_state = State.ANCHORED
 	_docked_island = island
-	_set_status("Anchored near %s! Head to the back of the ship to row ashore, or raise the anchor to sail on." % island.display_name)
+	_set_status("")
 
 # Ship-local points from the stern to the island's dock, going around the
 # island's coast and around the ship itself rather than over either.

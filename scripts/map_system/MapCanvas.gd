@@ -1,6 +1,19 @@
 extends Control
 
 const MAP_MARGIN := Vector2(64, 130)
+var ship_heading: float = 0.0
+func _process(_delta: float) -> void:
+	if not is_visible_in_tree(): return
+	var scene := get_tree().current_scene
+	var ship := scene.get_node_or_null("Ship") if scene != null else null
+	if ship is Node2D and not is_equal_approx(ship_heading, ship.global_rotation):
+		ship_heading = ship.global_rotation
+		queue_redraw()
+func heading_marker(center: Vector2, scale_factor: float = 1.0) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for point in [Vector2(0,-11),Vector2(7,8),Vector2(0,4),Vector2(-7,8)]:
+		points.append(center + (point * scale_factor).rotated(ship_heading))
+	return points
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -67,7 +80,7 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _get_clicked_island(world_position: Vector2) -> String:
-	var hit_tolerance := 90.0 * MapState.world_bounds.size.x / get_map_rect().size.x
+	var hit_tolerance := 14.0 * MapState.world_bounds.size.x / get_map_rect().size.x
 	for island_id in MapState.discovered_islands:
 		var island: Dictionary = MapState.discovered_islands[island_id]
 		if world_position.distance_to(Vector2(island["position"])) <= hit_tolerance:
@@ -105,21 +118,32 @@ func _draw() -> void:
 		draw_line(Vector2(x, rect.position.y), Vector2(x, rect.end.y), Color(0.6, 0.8, 0.9, 0.08))
 		draw_line(Vector2(rect.position.x, y), Vector2(rect.end.x, y), Color(0.6, 0.8, 0.9, 0.08))
 
-	for island in MapState.discovered_islands.values():
-		var island_position := Vector2(island["position"])
-		var position := world_to_map(island_position)
-		var island_radius := clampf(80.0 * pixels_per_world_unit, 4.0, 15.0)
-		draw_circle(position, island_radius + 2.0, Color("#80c7cb"))
-		draw_circle(position, island_radius, Color("#7fae65"))
-		draw_circle(position + Vector2(island_radius * 0.45, -island_radius * 0.25), island_radius * 0.42, Color("#a5c979"))
-		draw_string(
-			font,
-			position + Vector2(island_radius + 8.0, 5.0),
-			str(island["name"]),
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			16,
-			Color.WHITE)
+	for region in MapState.key_regions:
+		if MapState.discovered_islands.has(region.island): continue
+		var center := world_to_map(region.center)
+		var radius: float = region.radius * pixels_per_world_unit
+		var color := QuestIsland.key_color(region.key)
+		draw_circle(center, radius, Color(color, 0.08))
+		draw_arc(center, radius, 0, TAU, 72, color, 2.0, true)
+	for island_id in MapState.island_catalog:
+		if island_id == "Paradise": continue
+		if MapState.discovered_islands.has(island_id): continue
+		var point := world_to_map(MapState.island_catalog[island_id].position)
+		draw_string(font, point + Vector2(-5,6), "?", HORIZONTAL_ALIGNMENT_LEFT,-1,20,Color("e5c987"))
+	for island_id in MapState.discovered_islands:
+		var island: Dictionary = MapState.discovered_islands[island_id]
+		var coast: PackedVector2Array = MapState.island_catalog.get(island_id, {}).get("coast", PackedVector2Array())
+		var outline := PackedVector2Array()
+		for point in coast: outline.append(world_to_map(point))
+		if outline.size() >= 3:
+			draw_colored_polygon(outline, Color("77956d"))
+			outline.append(outline[0])
+			draw_polyline(outline,Color("d9c79c"),1.5,true)
+		else: draw_circle(world_to_map(island.position),4,Color("77956d"))
+		if str(island_id).begins_with("Key_"):
+			var key := str(island_id).trim_prefix("Key_")
+			var point := world_to_map(island.position)
+			draw_circle(point, 6, QuestIsland.key_color(key), false, 2)
 
 	for marker in MapState.markers:
 		var marker_position := world_to_map(marker)
@@ -135,8 +159,8 @@ func _draw() -> void:
 
 	if MapState.has_player_position:
 		var player_map_position := world_to_map(MapState.player_position)
-		draw_circle(player_map_position, 8.0, Color("#f5f1d5"))
-		draw_circle(player_map_position, 5.0, Color("#e84c4c"))
+		draw_colored_polygon(heading_marker(player_map_position, 1.35), Color("#f5f1d5"))
+		draw_colored_polygon(heading_marker(player_map_position), Color("#e84c4c"))
 
 	if MapState.has_destination:
 		var destination_position := world_to_map(MapState.destination)
@@ -154,11 +178,11 @@ func _draw() -> void:
 
 	if MapState.has_paradise_position:
 		var paradise_map_position := world_to_map(MapState.paradise_position)
-		draw_circle(paradise_map_position, 8.0, Color("#ffdc78"))
+		draw_circle(paradise_map_position, 12.0, Color("#ffdc78"))
 		draw_string(
 			font,
 			paradise_map_position + Vector2(10, -8),
-			"Paradise Island: %d m" % MapState.get_marker_distance_meters(MapState.paradise_position),
+			"Paradise",
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
 			14,

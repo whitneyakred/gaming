@@ -1,5 +1,11 @@
 # Island minigames
 
+> Current editor integration: approach each world island's center totem and press
+> **E**. One player can run that island's original challenge at a time. See
+> [island totems](island-totems.md) for access, return, reward, and co-op behavior.
+> The docking/scene-transition description below documents the earlier prototype;
+> the individual game rules remain useful.
+
 Nineteen islands sit on the sailing map. Sail into an island's yellow docking circle, walk to the stern, and press **E** to row over. Every island uses the shared `IslandGame` flow ([`island_game.gd`](../scripts/islands/island_game.gd)): a countdown with the pirate-ship track, a task, and the rowboat home. Finish the task, then walk back into the rowboat before time runs out. If time runs out, the island restarts.
 
 There is no nearest-island text or arrow while sailing. You find islands by exploring. The yellow docking circle still appears when you are close to one.

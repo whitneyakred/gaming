@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]   # also check every PR before merging
+    branches: [ "main", "systems-revamp", "checkpoint-readiness" ]
 
 env:
   GODOT_VERSION: "4.7.2"   # editor + templates CI downloads; any 4.7.x works with this project
@@ -14,6 +14,73 @@ permissions:
   contents: write
 
 jobs:
+  godot-smoke:
+    name: Godot Smoke Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Godot
+        run: |
+          curl --fail --location "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o "$RUNNER_TEMP/godot.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          echo "$RUNNER_TEMP/godot" >> "$GITHUB_PATH"
+      - name: Import and parse
+        run: |
+          set -euo pipefail
+          "Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --editor --path . --import --quit 2>&1 | tee "$RUNNER_TEMP/import.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|Compile Error' "$RUNNER_TEMP/import.log"
+      - name: Run checkpoint regression subset
+        run: |
+          set -euo pipefail
+          for suite in pause_game survival grill paradise_journey voyage_saves menu_flow harbor_degradation sailing_integration wind_integration station_camera_integration island_minigames swim_transition_test; do
+            timeout 240s "Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path . --script "res://tests/$suite.gd" -- --settings-test 2>&1 | tee "$RUNNER_TEMP/$suite.log"
+            ! grep -E 'SCRIPT ERROR|Parse Error|Compile Error|^ERROR:' "$RUNNER_TEMP/$suite.log"
+          done
+      - name: Run three-client co-op regression
+        run: |
+          set -euo pipefail
+          pids=()
+          trap 'kill "${pids[@]}" 2>/dev/null || true' EXIT
+          for role in host alpha beta; do
+            timeout 90s "Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path . --script res://tests/network_smoke.gd -- --settings-test "--test-$role" > "$RUNNER_TEMP/coop-$role.log" 2>&1 &
+            pids+=("$!")
+          done
+          result=0
+          for pid in "${pids[@]}"; do wait "$pid" || result=1; done
+          for role in host alpha beta; do
+            cat "$RUNNER_TEMP/coop-$role.log"
+            if grep -E 'SCRIPT ERROR|Parse Error|Compile Error|^ERROR:' "$RUNNER_TEMP/coop-$role.log"; then result=1; fi
+          done
+          exit "$result"
+
+  checkpoint:
+    name: Checkpoint Evidence & Harbor Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: online-service/package-lock.json
+      - run: npm ci
+        working-directory: online-service
+      - run: npm run check
+        working-directory: online-service
+      - name: Prove dependency test fails without recovery
+        run: |
+          set -euo pipefail
+          if HARBOR_REMOVE_RECOVERY=1 node --test online-service/test/degradation.test.mjs > "$RUNNER_TEMP/degradation-red.log" 2>&1; then
+            cat "$RUNNER_TEMP/degradation-red.log"
+            echo 'Recovery-removed test unexpectedly passed'
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/degradation-red.log"
+          grep -q 'Error: private-ticket-must-not-leak' "$RUNNER_TEMP/degradation-red.log"
+      - run: node --test online-service/test/degradation.test.mjs
+      - run: node tools/check-traceability.mjs
+
   checks:
     name: Lint & Repo Checks
     runs-on: ubuntu-latest
@@ -62,7 +129,7 @@ jobs:
 
   export-windows:
     name: Export Windows
-    needs: checks
+    needs: [checks, checkpoint, godot-smoke]
     runs-on: ubuntu-latest
 
     steps:

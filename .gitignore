@@ -15,3 +15,21 @@ desktop.ini
 
 # Exported game builds
 builds/
+
+# Local online-services credentials (never commit)
+.local/
+# Downloaded native SDK dependencies and export templates; use tools/install-eos.ps1.
+addons/epic-online-services-godot/bin/
+export_templates/
+
+# Browser harbor development dependencies
+online-service/node_modules/
+online-service/.wrangler/
+online-service/.dev.vars
+online-service/dist/
+online-service/public/
+web-site/dist/
+
+# Pages local development cache
+.wrangler/
+web-site/.wrangler/

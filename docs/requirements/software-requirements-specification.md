@@ -1,5 +1,8 @@
 # Software Requirements Specification
 
+> **November 19 scope update:** The owner confirmed solo and co-op for the **December 4, 2026** MVP demo. Earlier single-player-only/deferred-co-op and unimplemented-system descriptions below are historical baselines, not current release status. Current implementation evidence and unresolved verification gaps are in [traceability](../traceability.md); the [checkpoint plan](../checkpoint-3.md) owns readiness. Do not interpret the full backlog as a promised December scope.
+
+
 **Project:** Holy Ship
 **Team:** Team 13
 **Client:** None — student-led project; product decisions belong to the development team.
@@ -244,13 +247,13 @@ The game does not interface with specialized hardware. Version 1.0 uses standard
 
 _[Other software systems yours connects to: what crosses the boundary, in which direction, in what format, and what happens when the other side is unavailable.]_
 
-The game uses the Godot game engine and locally imported art assets. Version 1.0 does not integrate with external software systems, web services, or third-party APIs during gameplay.
+The game uses the Godot game engine and locally imported art assets. The confirmed co-op release integrates with the Harbor service; see [current interfaces and hosting](../multiplayer-system.md).
 
 ### 8.4 API document
 
 _[Link to your API documentation. It is generated from the code, so link it rather than transcribing endpoints that will be stale within a week.]_
 
-Not applicable. Version 1.0 does not provide or consume an external API.
+Co-op consumes the Harbor API documented in [multiplayer system](../multiplayer-system.md).
 
 ### 8.5 Communications interfaces
 
@@ -340,3 +343,7 @@ _[Delegate: converting prose requirements into EARS shapes; checking that every 
 _Keep human: the numbers. Every threshold in section 9 is a commitment somebody has to live with, and an agent will supply a plausible one (99.9% uptime, 200ms response) that nobody asked for and no one can meet. A number in this document either came from your client, from a measurement, or from a decision your team made deliberately and can defend._
 
 _**The specific failure to watch for: invented precision.** A generated specification reads as authoritative at exactly the points where it is guessing. Check every number, every browser version, every retention period against something real, and put the ones you cannot verify in [OPEN-ISSUES.md](OPEN-ISSUES.md) instead of leaving a confident guess in the document your team will build from.]_
+
+## Checkpoint reliability contract
+
+[ROB-HARBOR-unavailable and proposed PER-HARBOR-discovery](../reliability.md) define the API degradation oracle and measured SLO. The performance target needs team confirmation. These supplement the historical quality attributes above.

@@ -105,6 +105,7 @@ func _walk_direct(player: Node2D, target: Vector2, max_seconds: float, tolerance
 
 
 func _load(path: String) -> IslandGame:
+	_make_room()
 	get_tree().change_scene_to_file(path)
 	await get_tree().scene_changed
 	await _frames(2)
@@ -164,7 +165,7 @@ func _test_every_island_loads() -> void:
 		game.try_escape()
 		await _frames(2)
 		_check(game.is_running(), "The rowboat must refuse to leave before the task is done")
-		_check(game.hud.bag_label.visible and game.hud.bag_label.text.begins_with("Bag:"), "The HUD must show the bag")
+		_check(game.get_node("InventorySystem/InventoryHUD").buttons.size() == 4, "The icon HUD must show four hotbar slots")
 		# Walking straight down the dock reaches the rowboat.
 		var rowboat := game.get_node(^"Rowboat") as Area2D
 		await _walk_to(game.player, rowboat.global_position, 6.0, 10.0)
@@ -399,6 +400,12 @@ func _test_smugglers_den() -> void:
 	_check(game._guards.size() == 3, "Three guards must patrol")
 	var guard: Dictionary = game._guards[0]
 	var guard_node: Node2D = guard.node
+	# Fix the patrol position and starting direction during exposure. A moving
+	# guard can turn away before the grace interval; the normal idle glance remains.
+	guard.wait = INF
+	guard.facing = Vector2.DOWN
+	guard.sweep = 0.0
+	game.guard_speed = 0.0
 	var time_before := game.time_remaining
 	game.player.global_position = guard_node.global_position + game._look_direction(guard) * 60.0
 	await _wait(0.5)
@@ -477,13 +484,12 @@ func _test_parrot_point() -> void:
 	_check(inventory.get_quantity(&"fresh_water") == water_before + 2, "The parrot must reward fresh water")
 
 
-## The voyage bag only holds 12 kinds of item, and the islands give out more
-## kinds than that. Empty it (keeping coins, coconuts and the rod) so each
-## island's reward has room.
+## Reward tests start with space, as when unloading supplies before a visit.
+## Keep coins for the cross-scene persistence checks; four slots are the limit.
 func _make_room() -> void:
 	var bag := _inventory()
 	for item in bag.inventory.duplicate():
-		if item.id not in [&"gold_coin", &"coconut", &"fishing_rod"]:
+		if item.id != &"gold_coin":
 			bag.remove_item(item.id, bag.get_quantity(item.id))
 
 
@@ -760,7 +766,15 @@ func _test_inventory_survives_ship() -> void:
 	var inventory := ship.player.get("player_inventory") as PlayerInventory
 	_check(inventory == _inventory(), "The ship's player must use the voyage inventory")
 	_check(inventory.get_quantity(&"gold_coin") == coins, "Island coins must still be there on the ship")
-	_check(ship.get_islands().size() == 19, "All nineteen islands must be on the map")
+	_check(ship.get_islands().size() == WorldLayout.ISLAND_COUNT + 4, "World includes ordinary islands, three key sanctuaries and Paradise")
+	var challenge_scenes := {}
+	for island in ship.get_islands():
+		if not island is QuestIsland: challenge_scenes[island.scene] = true
+	for scene in ISLANDS:
+		_check(challenge_scenes.has(scene), "Original challenge remains on the map: " + scene)
 	_check(not ship.status_label.visible, "No nearest-island text while sailing")
 	for island in ship.get_islands():
-		_check(ResourceLoader.exists(island.scene), "%s must point at a real scene" % island.name)
+		if island is QuestIsland:
+			_check(island.scene_file_path == "res://scenes/islands/quest_island.tscn", "%s uses the in-world quest scene" % island.name)
+		else:
+			_check(ResourceLoader.exists(island.scene), "%s must point at a real scene" % island.name)

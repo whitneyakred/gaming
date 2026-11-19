@@ -28,7 +28,7 @@ func _screen_visible() -> bool:
 
 
 func _resume_button() -> Button:
-	return PauseMenu.get_node("Screen/Center/Box/ResumeButton") as Button
+	return PauseMenu._resume_button
 
 
 # Presses and releases the P key, as the player would.
@@ -79,6 +79,7 @@ func _run() -> void:
 # Row "Pause-game: repeated calls" (unit): pause() while paused and resume()
 # while running change nothing and emit nothing.
 func _test_repeated_calls() -> void:
+	await _open("res://scenes/main.tscn")
 	var emitted: Array[bool] = []
 	var record := func(is_paused: bool) -> void: emitted.append(is_paused)
 	PauseMenu.pause_changed.connect(record)

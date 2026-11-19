@@ -40,19 +40,19 @@ func _run() -> void:
 		return
 
 	var inventory: Variant = _new_inventory()
-	_check(inventory.max_inv_space == 4, "PlayerInventory keeps four distinct-item spaces")
+	_check(inventory.max_inv_space == 4, "PlayerInventory keeps four fixed stack slots")
 	_check(inventory.add_item(cod), "add_item adds one valid item")
 	_check(inventory.get_quantity(&"fish_cod") == 1, "get_quantity returns the stored amount")
 	_check(inventory.try_add(&"fish_cod", 2), "try_add adds a valid amount")
 	_check(inventory.get_quantity(&"fish_cod") == 3, "try_add updates the stored amount")
-	_check(not inventory.try_add(&"fish_cod", 8), "try_add rejects an amount beyond the item stack limit")
+	_check(not inventory.try_add(&"fish_cod", 38), "try_add rejects an amount beyond total slot capacity")
 	_check(inventory.get_quantity(&"fish_cod") == 3, "Rejected try_add does not partially change quantity")
 	_check(not inventory.try_add(&"fish_cod", 0), "try_add rejects zero amount")
 	_check(not inventory.try_add(&"missing_item", 1), "try_add rejects an unknown item ID")
 	_check(inventory.remove_item(&"fish_cod", 1), "remove_item removes a valid amount")
 	_check(inventory.get_quantity(&"fish_cod") == 2, "remove_item updates the stored amount")
 	_check(inventory.try_remove(&"fish_cod", 2), "try_remove removes the requested amount")
-	_check(inventory.get_quantity(&"fish_cod") == 0 and inventory.inventory.is_empty(), "Removing the last item frees its distinct-item space")
+	_check(inventory.get_quantity(&"fish_cod") == 0 and inventory.inventory.is_empty(), "Removing the last item frees its slot")
 	_check(not inventory.try_remove(&"fish_cod", 1), "try_remove rejects an unavailable item")
 	_check(not inventory.try_remove(&"rope", 0), "try_remove rejects zero amount")
 
@@ -64,7 +64,7 @@ func _run() -> void:
 	_check(inventory.move_item(&"fishing_rod", 0), "move_item reorders an owned item type")
 	_check(inventory.inventory[0].id == &"fishing_rod", "move_item puts the item at the requested index")
 	_check(not inventory.move_item(&"missing_item", 0), "move_item rejects an item that is not owned")
-	_check(not inventory.move_item(&"fishing_rod", 4), "move_item rejects an index outside occupied entries")
+	_check(not inventory.move_item(&"fishing_rod", 4), "move_item rejects an index outside slot capacity")
 
 	var signal_inventory: Variant = _new_inventory()
 	var change_count := {"value": 0}
