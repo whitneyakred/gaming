@@ -68,6 +68,16 @@ jobs:
         working-directory: online-service
       - run: npm run check
         working-directory: online-service
+      - name: Prove dependency test fails without recovery
+        run: |
+          set -euo pipefail
+          if HARBOR_REMOVE_RECOVERY=1 node --test online-service/test/degradation.test.mjs > "$RUNNER_TEMP/degradation-red.log" 2>&1; then
+            cat "$RUNNER_TEMP/degradation-red.log"
+            echo 'Recovery-removed test unexpectedly passed'
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/degradation-red.log"
+          grep -q 'Error: private-ticket-must-not-leak' "$RUNNER_TEMP/degradation-red.log"
       - run: node --test online-service/test/degradation.test.mjs
       - run: node tools/check-traceability.mjs
 

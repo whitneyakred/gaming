@@ -13,7 +13,7 @@ Environment: Windows, Godot 4.7.2 stable, Node 24.19.0. Branch: `checkpoint-read
 | Voyage saves | 15 checks, 0 failures |
 | Sail rotation | 6 checks passed |
 | Menu flow after stale prop-selection fix | 62 checks, 0 failures |
-| Three-client local co-op after island-count assertion fix | Host 28, Alpha 16, Beta 11 checks; all 0 failures. Local ENet, not deployed browser relay |
+| Three-client local co-op after island-count assertion fix | Host 29, Alpha 17, Beta 11 checks; all 0 failures after bounded synchronization fixes. Local ENet, not deployed browser relay |
 | Harbor degradation crew-menu test | PASS; displays error, clears busy state, remains offline |
 | Harbor production-handler dependency test | 1 passing test |
 | Same test with recovery removed in memory | Exit 1: injected dependency exception escaped; recovery restored gives exit 0 |
@@ -41,6 +41,8 @@ All four previously failing suites now pass locally:
 The changed tests retain failure assertions rather than bypassing them. The guard test still checks detection, return to dock and time penalty. Shared grill coverage also remains in the separate 21-check grill suite. The old rowboat main-flow specification remains historical and unresolved for full use-case verification; passing the current demo behavior does not verify retired rowboat extensions.
 
 The repaired suites, swimming regression and three-client co-op regression are included in the blocking Godot CI job. Local results do not claim a completed GitHub run or exhaustive use-case extension coverage. Two earlier fixes also remain passing: the menu selects actual SharkVisual children; co-op includes the four quest islands. The three-client local run requires normal local-network access.
+
+GitHub CI exposed two further co-op test assumptions: a short movement pulse was sensitive to runner scheduling, and the hard-coded sea coordinate could lie on a randomized island. The test now holds movement until the host observes it (bounded timeout) and selects water beyond all generated coastlines. The same movement and land-to-water assertions remain mandatory. CI also explicitly runs the dependency test with recovery removed, requires the injected exception, then runs the restored test green.
 
 ## Reproduction
 
