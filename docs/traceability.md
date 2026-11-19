@@ -23,7 +23,7 @@ The vision's two proposed objectives are `BO-independent-play` and `BO-player-en
 | `FEAT-ship-repair` | SHIP |
 | `FEAT-floating-chests` | Open idea; no dedicated active use case |
 | `FEAT-voyage-progress` | PROG, MAP |
-| `FEAT-cooperative-play` | PROG (deferred co-op) |
+| `FEAT-cooperative-play` | PROG (solo and co-op confirmed for the December 4 MVP) |
 | `FEAT-session-setup` | PROG |
 | `FEAT-trading-encounters` | EVT, SYS |
 | `FEAT-ocean-encounters` | EVT, WAVE, SYS |
