@@ -4,13 +4,13 @@
 
 `ROB-HARBOR-unavailable`: If a room service call rejects, the Harbor API shall return HTTP 503, `Cache-Control: no-store`, and JSON error text `The harbor is unavailable. Please try again shortly.` It shall not expose exception details, identities or tickets. When host/join receives that error, the crew menu shall show that guidance, release its busy state and remain offline so the player can retry.
 
-`PER-HARBOR-discovery` (proposed acceptance target; team confirmation required): at least 95% of 20 consecutive synthetic crew-discovery requests shall return HTTP success and a JSON crews array within 2 seconds. The window is one recorded 20-request run, spaced one second after each response. The SLI is good responses / all attempts, including timeouts and parse errors. The error budget is one bad request per run. This intentionally measures a small demo-readiness window, not monthly uptime.
+`PER-HARBOR-discovery` (adopted initial checkpoint target at the project contact’s request, November 19, 2026): at least 95% of 20 consecutive synthetic crew-discovery requests shall return HTTP success and a JSON crews array within 2 seconds. The window is one recorded 20-request run, spaced one second after each response. The SLI is good responses / all attempts, including timeouts and parse errors. The error budget is one bad request per run. This intentionally measures a small demo-readiness window, not monthly uptime.
 
-Run `node tools/measure-harbor.mjs https://holy-ship.pages.dev docs/evidence/harbor-slo.json` from the repository root. The output records UTC timestamps, counts, durations and the local source commit (not the deployed commit). It exits nonzero when the proposed target is missed. Record the deployed version separately. A cached discovery response can pass while a backend is broken; this does not measure joining, room RPCs, WebSockets, school Wi-Fi or game frame rate.
+Run `node tools/measure-harbor.mjs https://holy-ship.pages.dev docs/evidence/harbor-slo.json` from the repository root. The output records UTC timestamps, counts, durations and the local source commit (not the deployed commit). It exits nonzero when the target is missed. Record the deployed version separately. A cached discovery response can pass while a backend is broken; this does not measure joining, room RPCs, WebSockets, school Wi-Fi or game frame rate.
 
 ## Dependency failure and mutation
 
-Current measurement: [20/20 good discovery requests](evidence/harbor-slo.json), November 19, 2026. This meets the proposed target for that sample only. Target approval and deployment identity are pending.
+Current measurement: [20/20 good discovery requests](evidence/harbor-slo.json), November 19, 2026. This meets the target for that sample only. The target was adopted after this measurement; the original JSON retains its historical proposed-status label. Mapping the deployed build to the final release commit is still pending.
 
 `node --test online-service/test/degradation.test.mjs` runs the production API handler with a throwing room-service binding. It checks the attempted external call, response status, safe error body, cache prevention and sanitized log event. Node substitutes only the Cloudflare base class; this is a boundary unit test, not a deployed Cloudflare runtime test.
 

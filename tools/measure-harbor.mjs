@@ -20,7 +20,7 @@ for (let i = 0; i < 20; i++) {
   if (i < 19) await new Promise(resolve => setTimeout(resolve, 1000));
 }
 const good = events.filter(e => e.good).length;
-const result = { requirement: 'PER-HARBOR-discovery', target_status: 'proposed, team approval pending',
+const result = { requirement: 'PER-HARBOR-discovery', target_status: 'adopted initial checkpoint target, 2026-11-19',
   source_commit: execFileSync('git', ['rev-parse', 'HEAD'], {encoding:'utf8'}).trim(),
   base, started, ended: new Date().toISOString(), target: 0.95, threshold_ms: 2000,
   good, total: events.length, sli: good / events.length, allowed_bad: 1, actual_bad: events.length-good,

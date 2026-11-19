@@ -13,8 +13,8 @@ Confirmed by the project owner: the MVP demo is **December 4, 2026**, and includ
 | Pipeline | [Workflow](../.github/workflows/godot-ci.yml) | Admin must select required checks; link green run and deliberately red PR |
 | Observability | [Reliability](reliability.md), [platform failure log](evidence/platform-failure-log.json) | Platform capture obtained; new dependency-error logging awaits reviewed deployment |
 | Calibration | [Calibration worksheet](estimates/calibration.md) | Team actuals, individual estimates, biggest misses, capacity |
-| Charter rule | [AGENTS.md](../AGENTS.md), [originating review](room-error-review.md) | Reviewer validates provenance; merge rule by PR and insert link |
-| SLO | [Definition and probe](reliability.md) | 20/20 measured; confirm target and deployment version |
+| Charter rule | [AGENTS.md](../AGENTS.md), [originating review](room-error-review.md) | Merged through PR #102 into systems-revamp |
+| SLO | [Definition and probe](reliability.md) | 20/20 measured; initial target adopted; final release/deployment identity pending |
 | Degradation | [Production-handler test](../online-service/test/degradation.test.mjs) | See local validation record; API and crew-menu tests pass; recovery-removed test fails as required |
 
 ## Team information required
@@ -22,7 +22,7 @@ Confirmed by the project owner: the MVP demo is **December 4, 2026**, and includ
 The [reported responsibility breakdown and missing-record procedure](estimates/calibration.md#reported-areas-of-responsibility) now identify whom to ask for each area. Responsibilities do not establish actual hours or equal contributions. When WAR records are unavailable, ask the TA about separately labeled retrospective estimates rather than substituting invented actuals.
 
 1. Each teammate: original estimate ranges by use-case ID, estimate date, WAR entries since that date, actual hours and one sentence explaining the biggest miss. Do not estimate historical actuals from commits.
-2. Leiton reports approximately 15 hours per teammate through December 4 (90 gross hours). Teammates should confirm this; identify the hours reserved for integration, rehearsal and fixing bugs.
+2. We report approximately 15 hours per teammate through December 4 (90 gross hours); identify the hours reserved for integration, rehearsal and fixing bugs.
 3. Team: identify which use cases are finished and which unfinished v1.0.0 rows are essential. Co-op and the demo date are confirmed; the entire backlog is not.
 4. Reviewer: link the review/PR supporting the charter rule and approve its wording. A local review document is useful provenance, but it does not establish a merged PR.
 5. Repository admin: enable required checks and provide the red/green PR evidence. Cloudflare owner: capture deployment identity, logs and metrics.
@@ -57,6 +57,8 @@ Checkpoint 3 — Holy Ship:
 Post one message in the team Slack channel by November 19, 11:59 p.m. This draft has not been sent.
 
 ## Local validation
+
+The project contact reports that the demo rehearsal is good. This does not establish rehearsal from a v0.2.0 tag, which has not yet been published.
 
 See [November 19 results and repaired regressions](evidence/validation.md). The previously identified failing suites have been repaired and passed locally; full specification-extension review and remote CI evidence remain pending.
 

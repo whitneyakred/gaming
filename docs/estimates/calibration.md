@@ -1,10 +1,10 @@
 # Calibration and December 4 forecast
 
-Status: original individual estimates and WAR actuals remain unavailable. Leiton reports approximately 15 future hours per teammate through December 4 (90 gross team hours); individual confirmation and integration reserve are pending. Blank values mean unknown, never zero. This worksheet includes every matrix use case so finished cases cannot silently disappear. The team must classify completion before calculating ratios.
+Status: we report approximately 15 future hours per teammate through December 4 (90 gross team hours). The project contact has confirmed the team estimate summary. Original individual estimates, WAR source entries and the integration reserve have not been entered in this worksheet. Blank values mean unknown, never zero. This worksheet includes every matrix use case so finished cases cannot silently disappear. The team must classify completion before calculating ratios.
 
 ## Reported areas of responsibility
 
-Source: Leiton's retrospective description, November 19, 2026. This is a starting point for collecting records, not a complete contribution ledger, an exclusive ownership assignment, or evidence of equal hours. Each teammate should confirm their entries. Cross-cutting work can support several use cases; allocate its hours once rather than repeating the same hours on every row.
+Source: team retrospective summary supplied through the project contact, November 19, 2026. This is a starting point for collecting records, not a complete contribution ledger, an exclusive ownership assignment, or evidence of equal hours. This summary does not establish separately recorded hours for each person. Cross-cutting work can support several use cases; allocate its hours once rather than repeating the same hours on every row.
 
 | Team member | Reported work areas | Records to collect |
 |---|---|---|
@@ -22,7 +22,7 @@ Source: Leiton's retrospective description, November 19, 2026. This is a startin
 3. Ask the TA whether retrospective estimates can be accepted as supplemental evidence. Until that is confirmed, the required calibration remains incomplete and actual/estimate ratios remain unknown.
 4. Collect remaining availability independently of past work. A future-hours forecast can use explicitly labeled assumptions, but cannot be presented as an evidence-based calibration forecast without the required inputs.
 
-No per-person hours or equal-work allocation have been inferred from the responsibility list. Leiton reports a retrospective range of approximately 2–3 hours per use case for the teammates in their listed areas. This is a single-person recollection, not individual attestation or WAR evidence. It is recorded as supplemental context only; it is not inserted into the original-estimate or WAR-actual columns, and no equal-contribution claim is made. Exact use-case attribution and treatment of cross-cutting work remain unconfirmed.
+We report a retrospective range of approximately 2–3 hours per assigned use case in the work areas above. This is a retrospective team estimate, not a transcription of WAR records. It is recorded as supplemental context only; it is not inserted into the original-estimate or WAR-actual columns, and no equal-contribution claim is made. Exact use-case attribution and treatment of cross-cutting work remain unconfirmed.
 
 ## Use-case worksheet
 
@@ -81,16 +81,16 @@ For each completed case record one row per person: person, original estimate low
 
 Add one row per contributing teammate and a team total for each finished case. Cases marked Out or unfinished need classification, not fabricated actuals. Original coarse estimates: [source](coarse-estimates.csv).
 
-**Forecast:** unfinished v1.0.0 midpoint sum **PENDING** × team calibration ratio **PENDING** = forecast work **PENDING h**; gross team capacity through **2026-12-04** **90 h (Leiton-reported)**, less integration/rehearsal reserve **PENDING**; fits: **UNKNOWN**. If over capacity, agree scope changes with the team/client and update release cells by PR. Co-op inclusion is confirmed; its old Out estimate must be reviewed.
+**Forecast:** unfinished v1.0.0 midpoint sum **PENDING** × team calibration ratio **PENDING** = forecast work **PENDING h**; gross team capacity through **2026-12-04** **90 h (team-reported)**, less integration/rehearsal reserve **PENDING**; fits: **UNKNOWN**. If over capacity, agree scope changes with the team/client and update release cells by PR. Co-op inclusion is confirmed; its old Out estimate must be reviewed.
 
 | Team member | Available hours through Dec 4 | Integration/rehearsal reserve | Usable hours |
 |---|---|---|---|
-| Whitney | Approximately 15 (reported by Leiton) | PENDING | PENDING |
-| Leiton | Approximately 15 (reported by Leiton) | PENDING | PENDING |
-| Ivan | Approximately 15 (reported by Leiton) | PENDING | PENDING |
-| Liliana | Approximately 15 (reported by Leiton) | PENDING | PENDING |
-| Gustavo | Approximately 15 (reported by Leiton) | PENDING | PENDING |
-| Shana | Approximately 15 (reported by Leiton) | PENDING | PENDING |
+| Whitney | Approximately 15 (team-reported) | PENDING | PENDING |
+| Leiton | Approximately 15 (team-reported) | PENDING | PENDING |
+| Ivan | Approximately 15 (team-reported) | PENDING | PENDING |
+| Liliana | Approximately 15 (team-reported) | PENDING | PENDING |
+| Gustavo | Approximately 15 (team-reported) | PENDING | PENDING |
+| Shana | Approximately 15 (team-reported) | PENDING | PENDING |
 
 Do not multiply 2–3 hours by every teammate and every use case: the report concerns assigned areas, not six people working on every case. For calibration, collect **person + use-case ID + hours**; totals alone cannot produce per-use-case or per-person ratios.
 
