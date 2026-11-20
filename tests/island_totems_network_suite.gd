@@ -47,6 +47,7 @@ func run() -> void:
 	NetworkSession.leave()
 	await wait(0.2)
 	GameWindow.shutdown_audio()
+	await wait(0.1)
 	get_tree().quit(0 if failures == 0 else 1)
 
 func host_tests() -> void:

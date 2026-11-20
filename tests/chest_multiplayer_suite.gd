@@ -106,6 +106,8 @@ func run() -> void:
 	print("CHEST MULTIPLAYER ", role, ": ", failures, " failures")
 	NetworkSession.leave()
 	await wait(0.2)
+	GameWindow.shutdown_audio()
+	await wait(0.1)
 	get_tree().quit(failures)
 
 

@@ -78,6 +78,32 @@ func _phase_seconds(phase: StringName) -> float:
 		&"climb": return climb_seconds
 		_: return step_seconds
 
+## Guests animate only the host-confirmed phase. Never complete boarding, trigger
+## a splash, or unlock movement speculatively when snapshots stop arriving.
+func advance_guest_access(crew: CharacterBody2D, delta: float) -> void:
+	crew.access_progress = minf(1.0, crew.access_progress + maxf(delta, 0.0) / _phase_seconds(crew.access_motion))
+	_place_access(crew)
+
+func sync_guest_access(crew: CharacterBody2D, entry: Dictionary, host_transform: Transform2D) -> void:
+	var progress := clampf(float(entry.get("access_progress", 0.0)), 0.0, 1.0)
+	var t := progress
+	var target: Vector2
+	match crew.access_motion:
+		&"jump":
+			target = water_entry
+			t = clampf((t - 0.15) / 0.85, 0.0, 1.0)
+		&"align": target = ladder_water
+		&"climb": target = ladder_lip
+		&"step_on": target = ladder_top
+		_:
+			crew.position = entry.position
+			return
+	# Recover the phase origin from its authoritative point on the path. Use the
+	# host transform, not the delayed rendered ship, then follow the rendered ship.
+	var point: Vector2 = host_transform.affine_inverse() * Vector2(entry.position)
+	crew.access_start = (point - target * t) / (1.0 - t) if t < 0.999 else target
+	_place_access(crew)
+
 func _place_access(crew: CharacterBody2D) -> void:
 	var t: float = crew.access_progress
 	var target: Vector2

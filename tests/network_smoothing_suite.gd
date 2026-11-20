@@ -61,6 +61,48 @@ func run() -> void:
 	ship.set_physics_process(false)
 	NetworkSession.ship = ship
 	NetworkSession.players[NetworkSession.local_id] = ship.player
+	var service := ship.get_node("InventorySystem") as InventoryService
+	NetworkSession.services[NetworkSession.local_id] = service
+	var hud_state := {"selected": 0, "chest": true, "grill_open": false}
+	NetworkSession._local_selection = 3
+	service.hud.selected = 3
+	NetworkSession._apply_hud_state(NetworkSession.local_id, hud_state)
+	check(service.hud.selected == 3 and NetworkSession._selection_dirty, "Old snapshot cannot undo local hotbar selection; mismatch schedules retry")
+	hud_state.selected = 3
+	NetworkSession._apply_hud_state(NetworkSession.local_id, hud_state)
+	check(not NetworkSession._selection_dirty, "Matching host selection stops retries")
+	NetworkSession._local_close_until = Time.get_ticks_msec() + 2000
+	NetworkSession._apply_hud_state(NetworkSession.local_id, hud_state)
+	check(not service.hud.storage_open and not ship.player.inventory_open, "Stale open snapshot cannot reopen locally closed panel")
+	hud_state.chest = false
+	NetworkSession._apply_hud_state(NetworkSession.local_id, hud_state)
+	check(NetworkSession._local_close_until == 0, "Host close confirmation clears temporary protection")
+	NetworkSession._local_selection = -1
+	hud_state.selected = 1
+	NetworkSession._apply_hud_state(NetworkSession.local_id, hud_state)
+	check(service.hud.selected == 1, "Initial restored selection still comes from host")
+	NetworkSession.services.clear()
+	var access := ship.get_node("SwimAccess") as SwimAccess
+	var crew := ship.player
+	for phase: StringName in [&"jump", &"align", &"climb", &"step_on", &"dunk", &"surface"]:
+		crew.set_overboard(true)
+		crew.access_motion = phase
+		crew.access_progress = 0.25
+		crew.access_start = access.plank_end if phase == &"jump" else access.ladder_water
+		access._place_access(crew)
+		var authoritative := crew.position
+		var entry := {"position": authoritative, "access_progress": 0.25}
+		access.sync_guest_access(crew, entry, ship.global_transform)
+		check(crew.position.distance_to(authoritative) < 0.01, "Guest phase starts at host position: %s" % phase)
+		var before_progress: float = crew.access_progress
+		access.advance_guest_access(crew, 1.0 / 60.0)
+		check(crew.access_progress > before_progress, "Guest animation advances between packets: %s" % phase)
+		var advanced: float = crew.access_progress
+		access.sync_guest_access(crew, entry, ship.global_transform)
+		check(crew.access_progress == advanced, "Snapshot does not rewind visual progress: %s" % phase)
+		access.advance_guest_access(crew, 5.0)
+		check(crew.access_progress == 1.0 and crew.access_motion == phase and crew.is_overboard, "Outage cannot speculatively finish phase/board: %s" % phase)
+	crew.set_overboard(false)
 	var helm := ship.get_node("Helm") as HelmStation
 	ship.player.position = helm.position
 	helm.try_take_control(ship.player)

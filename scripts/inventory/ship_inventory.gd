@@ -23,6 +23,7 @@ func capture() -> Array[Dictionary]:
 	return slots.duplicate(true)
 
 func restore(snapshot: Array[Dictionary]) -> void:
+	if slots == snapshot: return
 	slots = snapshot.duplicate(true)
 	_ensure_slots()
 	_notify()

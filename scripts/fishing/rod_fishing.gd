@@ -43,6 +43,12 @@ var sound: FishingAudio
 var hud: FishingHUD
 var _terrain: Array[IslandTerrain] = []
 var _ship: Ship
+var _geometry_time := -1000
+var _geometry_attempt := -1
+var _geometry_water := Vector2.ZERO
+var _geometry_landing := Vector2.ZERO
+var geometry_ms := 0.0
+var pending_cast_until := 0
 @onready var service: InventoryService = get_parent() as InventoryService
 
 func _ready() -> void:
@@ -212,6 +218,8 @@ func tick_local_fight(delta: float) -> void:
 	queue_redraw()
 
 func replay_steps(args: Dictionary) -> void:
+	for key: String in ["attempt", "first", "count", "bits"]:
+		if not args.get(key) is int: return
 	if state != State.REELING or int(args.get("attempt", -1)) != attempt_id: return
 	var count := int(args.get("count", 0))
 	if int(args.get("first", -1)) != replay_frame or count < 1 or count > 12: return
@@ -228,6 +236,14 @@ func replay_steps(args: Dictionary) -> void:
 		if fight.broken:
 			finish(false, "Line snapped! Keep the marker in the green.")
 			return
+
+func tick_presentation(delta: float) -> void:
+	# Guests animate every frame, independently of the snapshot rate. Never
+	# advance authoritative bite timers or award a catch from presentation.
+	if state == State.IDLE: return
+	if not local_reeling: clock += delta
+	splash_age += delta
+	queue_redraw()
 
 func _process(delta: float) -> void:
 	if state == State.IDLE:
@@ -344,10 +360,22 @@ func bobber_position() -> Vector2:
 		var t := clampf(clock / cast_seconds, 0.0, 1.0)
 		var launch := _ship.to_global(_ship_origin) if _cast_from_ship and is_instance_valid(_ship) else cast_origin
 		return launch.lerp(target, t) + Vector2(0, -sin(t * PI) * 65)
-	var water := _safe_water_target()
+	# Shore intersection searches used to run for every angler on every draw.
+	# Cache endpoints at 10 Hz, keeping them ship-relative between checks.
+	var now := Time.get_ticks_msec()
+	if now - _geometry_time >= 100 or _geometry_attempt != attempt_id:
+		var started := Time.get_ticks_usec()
+		var safe := _safe_water_target()
+		var landing := _stop_at_water_edge(safe, service.player.global_position)
+		_geometry_water = _ship.to_local(safe) if _cast_from_ship else safe
+		_geometry_landing = _ship.to_local(landing) if _cast_from_ship else landing
+		_geometry_time = now
+		_geometry_attempt = attempt_id
+		geometry_ms = (Time.get_ticks_usec() - started) / 1000.0
+	var water := _ship.to_global(_geometry_water) if _cast_from_ship else _geometry_water
 	var bobber := water
 	if state == State.REELING:
-		var landing := _stop_at_water_edge(water, service.player.global_position)
+		var landing := _ship.to_global(_geometry_landing) if _cast_from_ship else _geometry_landing
 		bobber = water.lerp(landing, fight.progress)
 	var motion := Vector2(0, sin(clock * (13.0 if state == State.BITE else 3.4)) * (4.0 if state == State.BITE else 2.0))
 	if state == State.REELING:
@@ -357,6 +385,7 @@ func bobber_position() -> Vector2:
 func _draw() -> void:
 	if state == State.IDLE or not is_instance_valid(service.player):
 		return
+	if not get_viewport_rect().grow(cast_range + 80).has_point(get_canvas_transform() * service.player.global_position): return
 	var origin := service.player.global_position + Vector2(8, -18)
 	var bobber := bobber_position()
 	var start := to_local(origin)

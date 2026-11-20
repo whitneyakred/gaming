@@ -13,7 +13,7 @@ async function listingCount(id, count) {
   assert.fail('Directory did not converge within its five-second cache TTL');
 }
 async function post(path, data) {
-  const response = await fetch(base + path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({protocol:'holy-ship-coop-15', password:'', token:token(), ...data})});
+  const response = await fetch(base + path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({protocol:'holy-ship-coop-16', password:'', token:token(), ...data})});
   assert.equal(response.status, 200, await response.clone().text());
   return response.json();
 }

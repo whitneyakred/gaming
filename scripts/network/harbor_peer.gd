@@ -19,6 +19,8 @@ var failure := ""
 var started := 0
 var packets_sent := 0
 var bytes_sent := 0
+var bytes_received := 0
+var skipped_packets := 0
 var latest_snapshot := PackedByteArray()
 
 func connect_url(url: String) -> Error:
@@ -38,6 +40,7 @@ func advance(emit_events: bool = false) -> void:
 	if socket.get_ready_state() == WebSocketPeer.STATE_OPEN:
 		while socket.get_available_packet_count() > 0:
 			var packet := socket.get_packet()
+			bytes_received += packet.size()
 			last_reply = now
 			if socket.was_string_packet():
 				var data: Variant = JSON.parse_string(packet.get_string_from_utf8())
@@ -47,6 +50,7 @@ func advance(emit_events: bool = false) -> void:
 				# a broadcast RPC into one upload per recipient. Keep only newest.
 				if packet[10] == 1:
 					if packet.decode_s32(0) == 1 and own_id != 1:
+						if not latest_snapshot.is_empty(): skipped_packets += 1
 						latest_snapshot = packet.slice(HEADER)
 					continue
 				incoming.append({"peer": packet.decode_s32(0), "channel": int(packet[8]), "mode": int(packet[9]), "bytes": packet.slice(HEADER)})
@@ -71,6 +75,10 @@ func advance(emit_events: bool = false) -> void:
 			else: peer_disconnected.emit(int(event.id))
 
 func control(data: Dictionary) -> void:
+	if not valid_control(data):
+		failure = "Invalid harbor message. Please rejoin."
+		_close()
+		return
 	match str(data.get("type", "")):
 		"welcome":
 			own_id = int(data.id)
@@ -85,6 +93,22 @@ func control(data: Dictionary) -> void:
 		"peer_left":
 			identities.erase(int(data.id))
 			events.append({"id": int(data.id), "joined": false})
+
+static func valid_id(value: Variant) -> bool:
+	return (value is int or value is float) and is_finite(float(value)) and float(value) == floor(float(value)) and value >= 1 and value <= 2147483647
+
+static func valid_control(data: Dictionary) -> bool:
+	if not data.get("type") is String: return false
+	match data.type:
+		"welcome":
+			if not valid_id(data.get("id")) or not data.get("identity") is String or not data.get("peers") is Array or data.peers.size() > 4: return false
+			for peer: Variant in data.peers:
+				if not peer is Dictionary or not valid_id(peer.get("id")) or not peer.get("identity") is String: return false
+		"peer_joined":
+			return valid_id(data.get("id")) and data.get("identity") is String
+		"peer_left":
+			return valid_id(data.get("id"))
+	return true
 
 func get_peer_user_id(id: int) -> String: return str(identities.get(id, ""))
 func _get_unique_id() -> int: return own_id
@@ -123,7 +147,9 @@ func _send_packet(bytes: PackedByteArray, recipient: int, packet_channel: int, p
 	if bytes.size() > MAX_PACKET: return ERR_OUT_OF_MEMORY
 	var queued := socket.get_current_outbound_buffered_amount()
 	# Never queue stale movement/snapshots behind a slow link.
-	if packet_mode != MultiplayerPeer.TRANSFER_MODE_RELIABLE and queued > 65536: return OK
+	if packet_mode != MultiplayerPeer.TRANSFER_MODE_RELIABLE and queued > 16384:
+		skipped_packets += 1
+		return OK
 	if queued > 524288:
 		failure = "Connection is too slow. Please rejoin."
 		_close()
