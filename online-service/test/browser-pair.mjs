@@ -30,23 +30,24 @@ async function game(name) {
   });
   await page.goto(base + "/play/");
   await page.waitForTimeout(16000);
-  await page.mouse.click(370, 550);
-  await page.mouse.click(640, 510);
+  // Current title layout: Character opens with the name field focused.
+  await page.mouse.click(230, 500);
   await page.keyboard.press("Control+A");
   await page.keyboard.type(name);
-  await page.mouse.click(640, 575);
-  await page.mouse.click(640, 550);
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Enter");
+  await page.mouse.click(230, 440);
   await page.waitForTimeout(1000);
   return { context, page };
 }
 try {
   const host = await game("Web Captain");
-  await host.page.mouse.click(450, 180);
+  await host.page.mouse.click(540, 153);
   await host.page.waitForTimeout(500);
   await host.page.mouse.click(500, 242);
   await host.page.keyboard.press("Control+A");
   await host.page.keyboard.type("Browser smoke");
-  await host.page.mouse.click(440, 394);
+  await host.page.mouse.click(440, 487);
   await host.page.waitForTimeout(3500);
   await host.page.screenshot({ path: "../.godot/browser-host-game.png" });
   const list = await (await fetch(base + "/api/crews")).json();
@@ -69,6 +70,10 @@ try {
   await guest.page.waitForTimeout(700);
   await guest.page.keyboard.up("d");
   await guest.page.waitForTimeout(500);
+  await guest.page.keyboard.press("F3");
+  await guest.page.waitForTimeout(2500);
+  await guest.page.keyboard.press("F4");
+  await guest.page.screenshot({path:"../.godot/browser-network-diagnostics.png"});
   await host.page.screenshot({ path: "../.godot/browser-two-players.png" });
   assert.equal(errors.length, 0, errors.join("\n"));
   console.log("PASS no browser runtime errors");
@@ -81,7 +86,7 @@ try {
     console.log('PASS page navigation releases guest within one second');
     await guest.page.goto(base + '/play/');
     await guest.page.waitForTimeout(16000);
-    await guest.page.mouse.click(640, 550);
+    await guest.page.mouse.click(230, 440);
     await guest.page.waitForTimeout(1000);
     await guest.page.mouse.click(600, 222);
     await guest.page.waitForTimeout(3500);

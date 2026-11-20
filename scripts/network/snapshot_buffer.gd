@@ -6,16 +6,29 @@ const LIMIT := 12
 var frames: Array[Dictionary] = []
 var cursor := 0.0
 var underruns := 0
+var playback_delay := DELAY
+var _arrival := 0.0
+var _host_time := 0.0
 func clear() -> void:
 	frames.clear()
 	cursor = 0.0
 	underruns = 0
-func push(state: Dictionary) -> void:
+	playback_delay = DELAY
+	_arrival = 0.0
+	_host_time = 0.0
+func push(state: Dictionary, arrival: float = -1.0) -> void:
 	var time := float(state.get("time", float(state.serial) * 0.1))
 	if not frames.is_empty() and int(state.serial) <= int(frames.back().state.serial): return
 	if not frames.is_empty() and (Vector2(state.position).distance_to(frames.back().state.position) > 500.0 or time - float(frames.back().time) > 0.5):
 		clear()
-	if frames.is_empty(): cursor = time - DELAY
+	if arrival < 0.0: arrival = Time.get_ticks_msec() / 1000.0
+	if _arrival > 0.0 and arrival > _arrival:
+		var excess := maxf(0.0, (arrival - _arrival) - (time - _host_time))
+		# Grow quickly for jitter, shrink slowly; never hide unlimited latency.
+		playback_delay = clampf(maxf(DELAY + excess, playback_delay - 0.002), DELAY, 0.3)
+	_arrival = arrival
+	_host_time = time
+	if frames.is_empty(): cursor = time - playback_delay
 	frames.append({"time": time, "state": state})
 	while frames.size() > LIMIT: frames.pop_front()
 func sample(delta: float) -> Dictionary:
@@ -23,7 +36,7 @@ func sample(delta: float) -> Dictionary:
 	var latest := float(frames.back().time)
 	# Gentle clock adjustment absorbs drift without jumping at every packet.
 	var lag := latest - cursor
-	cursor += delta * clampf(1.0 + (lag - DELAY) * 0.5, 0.9, 1.1)
+	cursor += delta * clampf(1.0 + (lag - playback_delay) * 0.5, 0.9, 1.1)
 	if cursor > latest:
 		cursor = latest
 		underruns += 1

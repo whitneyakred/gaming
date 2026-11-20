@@ -1,7 +1,7 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-15"
+const PROTOCOL := "holy-ship-coop-16"
 const SNAPSHOT_INTERVAL := 0.1
 const INPUT_REFRESH_INTERVAL := 0.5
 const DEFAULT_PORT := 24567
@@ -47,6 +47,23 @@ var _last_local_move := Vector2.ZERO
 var _last_local_held := false
 var _last_local_blocked := false
 var _pagehide_callback: JavaScriptObject
+var _input_batch: Array[Dictionary] = []
+var _crew_buffers: Dictionary = {}
+var _shared := SharedSnapshotState.new()
+var _shared_sent: Dictionary = {}
+var _waiting_snapshot: Dictionary = {}
+var diagnostics: Node
+var last_correction := 0.0
+var hard_corrections := 0
+var snapshot_bytes := 0
+var snapshot_apply_ms := 0.0
+var snapshot_build_ms := 0.0
+var snapshot_gap_ms := 0
+var snapshot_received_at := 0
+var invalid_packets := 0
+var host_frame_ms := 0.0
+var _frame_peak_ms := 0.0
+var _bag_cache: Dictionary = {}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -83,6 +100,8 @@ func _ready() -> void:
 		JavaScriptBridge.get_interface("window").addEventListener("pagehide", _pagehide_callback)
 	discovery = preload("res://scripts/network/crew_discovery.gd").new()
 	add_child(discovery)
+	diagnostics = preload("res://scripts/network/network_diagnostics.gd").new()
+	add_child(diagnostics)
 	_start_cli.call_deferred()
 
 func save_player_name(value: String) -> void:
@@ -353,6 +372,7 @@ func spawn_crew(id: int) -> void:
 		for station_name in ["Helm", "Sail", "Anchor", "Galley"]:
 			ship.get_node(station_name).local_player = player
 	inputs[id] = {"move": Vector2.ZERO, "held": false, "blocked": false, "stamp": Time.get_ticks_msec()}
+	_crew_buffers[id] = CrewInputBuffer.new()
 
 @rpc("authority", "call_remote", "reliable", 0)
 func feedback(message: String) -> void:
@@ -368,7 +388,11 @@ func feedback(message: String) -> void:
 func command(kind: String, args: Dictionary = {}) -> void:
 	if online and local_id != 1 and services.has(local_id) and kind == "fish":
 		var fishing: RodFishing = services[local_id].get_node("Fishing")
-		if fishing.state == RodFishing.State.BITE:
+		if fishing.state == RodFishing.State.IDLE and args.get("point") is Vector2:
+			# Cosmetic prediction only: casting never grants items. The host still
+			# validates the target and owns bite timing and the resulting attempt.
+			if fishing.cast(args.point): fishing.pending_cast_until = Time.get_ticks_msec() + 1500
+		elif fishing.state == RodFishing.State.BITE:
 			args["attempt"] = fishing.attempt_id
 			fishing.begin_local_hook()
 		elif fishing.local_reeling:
@@ -383,9 +407,14 @@ func command(kind: String, args: Dictionary = {}) -> void:
 
 @rpc("any_peer", "call_remote", "reliable", 0)
 func request_command(kind: String, args: Dictionary) -> void:
-	if not multiplayer.is_server() or var_to_bytes(args).size() > 2048:
+	if not multiplayer.is_server() or var_to_bytes(args).size() > 2048 or not valid_command(args):
 		return
 	var id := multiplayer.get_remote_sender_id()
+	# Replay has its own count, sequence and elapsed-time bounds. A delayed burst
+	# must not lose a middle batch to the generic UI command rate limiter.
+	if kind == "fish_steps" and players.has(id):
+		_handle_command(id, kind, args)
+		return
 	if not _allow_command(id):
 		return
 	_handle_command(id, kind, args)
@@ -493,16 +522,24 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 				service.request_drag(data, int(args.get("destination", -1)), bool(args.get("to_storage", false)))
 			applying = false
 
-@rpc("any_peer", "call_remote", "unreliable", 1)
-func input_frame(direction: Vector2, held: bool, blocked: bool, sequence: int) -> void:
-	if not multiplayer.is_server() or not direction.is_finite():
-		return
+@rpc("any_peer", "call_remote", "reliable", 1)
+func input_frames(batch: Array) -> void:
+	if not multiplayer.is_server(): return
 	var id := multiplayer.get_remote_sender_id()
-	if inputs.has(id) and sequence > int(inputs[id].get("sequence", -1)):
-		inputs[id]["sequence"] = sequence
-		# A held input continues to be simulated between network updates.
-		inputs[id]["ack"] = sequence - 1
-		inputs[id].merge({"move": direction.limit_length(), "held": held, "blocked": blocked, "stamp": Time.get_ticks_msec()}, true)
+	if not _crew_buffers.has(id): return
+	var buffer: CrewInputBuffer = _crew_buffers[id]
+	if not buffer.append(batch):
+		invalid_packets += 1
+		if diagnostics.enabled: print("NETWORK INPUT REJECTED: ", buffer.last_rejection)
+		return
+	inputs[id].stamp = Time.get_ticks_msec()
+
+func _move_input(player: CharacterBody2D, move: Vector2, delta: float) -> void:
+	if player.active_station == ship.get_node("Helm"):
+		ship.set_wheel_angle(ship.wheel_angle_degrees + move.x * 165.0 * delta)
+	elif player.active_station == ship.get_node("Sail"):
+		ship.set_sail_angle(ship.sail_angle_degrees + move.x * 34.0 * delta)
+	player.move_crew(move, delta)
 
 # The map suppresses walking, but does not release an occupied station.
 func _map_blocks_movement() -> bool:
@@ -543,22 +580,33 @@ func _physics_process(delta: float) -> void:
 		else:
 			_input_clock += delta
 			_predict_local(move, delta)
-			if input_needs_send(move, held, blocked):
+			# Stationary frames need no simulation. Keep just the newest neutral frame.
+			if move == Vector2.ZERO and _last_local_move == Vector2.ZERO and not _input_batch.is_empty() and _input_batch.back().move == Vector2.ZERO:
+				_input_batch.clear()
+			_input_batch.append({"sequence": Engine.get_physics_frames(), "move": move, "held": held, "blocked": blocked})
+			if input_needs_send(move, held, blocked) or _input_batch.size() >= 6:
 				_input_clock = 0
-				input_frame.rpc_id(1, move, held, blocked, Engine.get_physics_frames())
+				input_frames.rpc_id(1, _input_batch)
+				_input_batch.clear()
 			_last_local_move = move
 			_last_local_held = held
 			_last_local_blocked = blocked
 	if not multiplayer.is_server():
 		if services.has(local_id): services[local_id].get_node("Fishing").tick_local_fight(delta)
 		_interpolate(delta)
+		for id: int in services: services[id].get_node("Fishing").tick_presentation(delta)
 		return
 	for id: int in players:
 		var player: CharacterBody2D = players[id]
 		var service: InventoryService = services[id]
 		var data: Dictionary = inputs[id]
+		var playback: Array[Dictionary] = []
+		if id != local_id:
+			playback = (_crew_buffers[id] as CrewInputBuffer).take(delta)
+			if not playback.is_empty():
+				data.merge(playback.back(), true)
+				data["ack"] = playback.back().sequence
 		var blocked: bool = data.blocked or Time.get_ticks_msec() - int(data.stamp) > 1500
-		if data.has("ack"): data.ack += 1
 		var move: Vector2 = Vector2.ZERO if blocked else data.move
 		var fishing: RodFishing = service.get_node("Fishing")
 		if blocked:
@@ -571,11 +619,12 @@ func _physics_process(delta: float) -> void:
 		if service.hud.grill_open and not ship.get_node("Cooking").near(service):
 			service.hud.close()
 		player.inventory_open = service.hud.storage_open or service.hud.grill_open
-		if player.active_station == ship.get_node("Helm"):
-			ship.set_wheel_angle(ship.wheel_angle_degrees + move.x * 165 * delta)
-		elif player.active_station == ship.get_node("Sail"):
-			ship.set_sail_angle(ship.sail_angle_degrees + move.x * 34 * delta)
-		player.move_crew(move, delta)
+		if id == local_id:
+			_move_input(player, move, delta)
+		else:
+			player.velocity = Vector2.ZERO
+			for frame: Dictionary in playback:
+				_move_input(player, Vector2.ZERO if blocked or frame.blocked else frame.move, 1.0 / Engine.physics_ticks_per_second)
 		player.get_node("CrewName").rotation = -player.global_rotation
 		ship.get_node("SwimAccess").update_crew(player)
 		if fishing.state != RodFishing.State.IDLE:
@@ -612,23 +661,35 @@ func input_needs_send(move: Vector2, held: bool, blocked: bool) -> bool:
 func _send_snapshot() -> void:
 	if not world_ready or players.size() <= (0 if dedicated else 1):
 		return
+	var build_started := Time.get_ticks_usec()
 	var crew := {}
 	for id: int in players:
 		var player: CharacterBody2D = players[id]
 		var service: InventoryService = services[id]
 		var fishing: RodFishing = service.get_node("Fishing")
 		crew[id] = {"island_challenge": player.island_challenge, "eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("ack", inputs[id].get("sequence", -1)), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
-			"station": str(player.active_station.name) if player.using_station else "", "inventory": service.inventory.capture(),
+			"station": str(player.active_station.name) if player.using_station else "", "inventory": _capture_bag(service.inventory),
 			"access_motion": player.access_motion, "access_progress": player.access_progress,
 			"selected": service.hud.selected, "chest": service.hud.storage_open, "chest_id": service.active_chest_id, "grill_open": service.hud.grill_open, "revision": service.view_revision, "pickup_serial": service.pickup_serial, "drop_serial": service.drop_serial,
-			"fish": {"attempt": fishing.attempt_id, "seed": fishing.fight_seed, "state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
+			"fish": {"attached": fishing._cast_from_ship, "ship_target": fishing._ship_target, "ship_origin": fishing._ship_origin, "replay": fishing.replay_frame, "attempt": fishing.attempt_id, "seed": fishing.fight_seed, "state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
 				"progress": fishing.fight.progress, "tension": fishing.fight.tension, "green": fishing.fight.green_center,
 				"width": fishing.fight.green_width, "danger": fishing.fight.danger, "held": fishing.held, "catches": fishing.visual_catches}}
 	_snapshot_serial += 1
 	var data := {"serial": _snapshot_serial, "time": Time.get_ticks_msec() / 1000.0, "position": ship.global_position, "rotation": ship.global_rotation, "wind": ship.wind_velocity,
 		"sail": ship.sail_level, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees, "anchor": ship.anchor_deployed,
-		"paradise_quest": VoyageState.quest_data(), "island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "port_storage": VoyageState.get_ship_storage(18, 1).capture(), "drops": VoyageState.floor_items.get("ship", {})}
-	var packed := var_to_bytes(data).compress(FileAccess.COMPRESSION_GZIP)
+		"paradise_quest": VoyageState.quest_data(), "island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": _capture_bag(VoyageState.get_ship_storage()), "port_storage": _capture_bag(VoyageState.get_ship_storage(18, 1)), "drops": VoyageState.floor_items.get("ship", {})}
+	data["host_frame_ms"] = _frame_peak_ms
+	_frame_peak_ms = 0.0
+	_shared.extract(data)
+	var shared_packet := PackedByteArray()
+	for id: int in players:
+		if id == 1 or _shared_sent.get(id, 0) == _shared.revision: continue
+		if shared_packet.is_empty(): shared_packet = var_to_bytes(_shared.current).compress(FileAccess.COMPRESSION_GZIP)
+		shared_state.rpc_id(id, _shared.revision, shared_packet)
+		_shared_sent[id] = _shared.revision
+	var packed := var_to_bytes(_shared.motion(data)).compress(FileAccess.COMPRESSION_GZIP)
+	snapshot_bytes = packed.size()
+	snapshot_build_ms = (Time.get_ticks_usec() - build_started) / 1000.0
 	if multiplayer.multiplayer_peer is HarborPeer and _pending.is_empty() and packed.size() < 64000:
 		# One upload per crew; the relay fans it out. Pending peers must finish
 		# the scene handshake before receiving RPCs for the gameplay scene.
@@ -649,10 +710,92 @@ func _send_snapshot() -> void:
 
 @rpc("authority", "call_remote", "unreliable", 2)
 func world_snapshot(packed: PackedByteArray) -> void:
+	var started := Time.get_ticks_usec()
 	var bytes := packed.decompress_dynamic(1048576, FileAccess.COMPRESSION_GZIP)
 	var decoded: Variant = bytes_to_var(bytes)
 	if decoded is Dictionary:
-		apply_snapshot(decoded)
+		if not decoded.get("serial") is int or int(decoded.serial) <= _received_serial: return
+		var expanded := _shared.expand(decoded)
+		if expanded.is_empty():
+			_waiting_snapshot = decoded
+			return
+		apply_snapshot(expanded)
+		snapshot_bytes = packed.size()
+		snapshot_apply_ms = (Time.get_ticks_usec() - started) / 1000.0
+	else: invalid_packets += 1
+
+@rpc("authority", "call_remote", "reliable", 2)
+func shared_state(revision: int, packed: PackedByteArray) -> void:
+	if multiplayer.is_server() or packed.size() > 65536: return
+	var decoded: Variant = bytes_to_var(packed.decompress_dynamic(1048576, FileAccess.COMPRESSION_GZIP))
+	if not decoded is Dictionary or not _shared.accept(revision, decoded):
+		invalid_packets += 1
+		return
+	if not _waiting_snapshot.is_empty():
+		var expanded := _shared.expand(_waiting_snapshot)
+		if not expanded.is_empty():
+			_waiting_snapshot.clear()
+			apply_snapshot(expanded)
+
+@rpc("any_peer", "call_remote", "unreliable", 1)
+func diagnostic_ping(stamp: int) -> void:
+	var id := multiplayer.get_remote_sender_id()
+	if multiplayer.is_server() and players.has(id) and _allow_command(id): diagnostic_pong.rpc_id(id, stamp)
+
+@rpc("authority", "call_remote", "unreliable", 1)
+func diagnostic_pong(stamp: int) -> void:
+	if stamp == diagnostics.ping_sent:
+		diagnostics.rtt_ms = maxi(0, Time.get_ticks_msec() - stamp)
+
+static func _fields(data: Dictionary, types: Dictionary) -> bool:
+	for key: String in types:
+		if not data.has(key) or typeof(data[key]) != types[key]: return false
+		if data[key] is float and not is_finite(data[key]): return false
+		if data[key] is Vector2 and not data[key].is_finite(): return false
+	return true
+
+static func _optional_fields(data: Dictionary, types: Dictionary) -> bool:
+	for key: String in types:
+		if data.has(key) and not _fields(data, {key: types[key]}): return false
+	return true
+
+static func valid_command(args: Dictionary) -> bool:
+	return _optional_fields(args, {"index": TYPE_INT, "revision": TYPE_INT, "destination": TYPE_INT, "amount": TYPE_INT, "key": TYPE_INT, "attempt": TYPE_INT, "first": TYPE_INT, "count": TYPE_INT, "bits": TYPE_INT, "token": TYPE_INT, "point": TYPE_VECTOR2, "action": TYPE_STRING, "island": TYPE_STRING, "storage": TYPE_BOOL, "to_storage": TYPE_BOOL, "won": TYPE_BOOL, "prizes": TYPE_DICTIONARY})
+
+func _capture_bag(bag: ShipInventory) -> Array[Dictionary]:
+	var id := bag.get_instance_id()
+	if not _bag_cache.has(id) or _bag_cache[id].revision != bag.revision:
+		_bag_cache[id] = {"revision": bag.revision, "slots": bag.capture()}
+	return _bag_cache[id].slots
+
+static func valid_snapshot(data: Dictionary) -> bool:
+	if not _fields(data, {"serial": TYPE_INT, "time": TYPE_FLOAT, "position": TYPE_VECTOR2, "rotation": TYPE_FLOAT, "wind": TYPE_VECTOR2, "trim": TYPE_FLOAT, "wheel": TYPE_FLOAT, "sail": TYPE_INT, "anchor": TYPE_BOOL, "crew": TYPE_DICTIONARY, "grill": TYPE_DICTIONARY, "survival": TYPE_DICTIONARY}): return false
+	if data.crew.size() > MAX_CREW: return false
+	for key: String in SharedSnapshotState.KEYS:
+		if not data.has(key): return false
+	var shared := {}
+	for key: String in SharedSnapshotState.KEYS: shared[key] = data[key]
+	shared["bags"] = {}
+	if not SharedSnapshotState.valid(shared): return false
+	if not _optional_fields(data, {"host_frame_ms": TYPE_FLOAT}): return false
+	if not _fields(data.grill, {"fish": TYPE_ARRAY, "fuel": TYPE_DICTIONARY, "remaining": TYPE_FLOAT, "capacity": TYPE_FLOAT, "next_id": TYPE_INT, "starter": TYPE_BOOL}): return false
+	if data.grill.fish.size() > 64 or not SharedSnapshotState.valid_slots([data.grill.fuel]): return false
+	for fish: Variant in data.grill.fish:
+		if not fish is Dictionary or not _fields(fish, {"key": TYPE_INT, "point": TYPE_VECTOR2, "progress": TYPE_FLOAT}): return false
+	if not _fields(data.survival, {"sharks": TYPE_ARRAY, "danger": TYPE_FLOAT, "sink": TYPE_INT, "wreck": TYPE_VECTOR2, "wreck_rotation": TYPE_FLOAT}): return false
+	if data.survival.sharks.size() > 32: return false
+	for shark: Variant in data.survival.sharks:
+		if not shark is Dictionary or not _fields(shark, {"position": TYPE_VECTOR2, "angle": TYPE_FLOAT, "size": TYPE_FLOAT, "alpha": TYPE_FLOAT, "active": TYPE_BOOL}): return false
+	for id: Variant in data.crew:
+		if not id is int or not data.crew[id] is Dictionary: return false
+		var entry: Dictionary = data.crew[id]
+		if not _fields(entry, {"name": TYPE_STRING, "position": TYPE_VECTOR2, "outside": TYPE_BOOL, "land": TYPE_BOOL, "station": TYPE_STRING, "selected": TYPE_INT, "chest": TYPE_BOOL, "revision": TYPE_INT, "fish": TYPE_DICTIONARY}): return false
+		if entry.station not in ["", "Helm", "Sail", "Anchor", "Galley"] or not SharedSnapshotState.valid_slots(entry.get("inventory")): return false
+		if not _optional_fields(entry, {"ack": TYPE_INT, "health": TYPE_INT, "hunger": TYPE_INT, "eat": TYPE_INT, "hurt": TYPE_INT, "respawn": TYPE_INT, "danger": TYPE_FLOAT, "island_challenge": TYPE_BOOL, "access_motion": TYPE_STRING_NAME, "access_progress": TYPE_FLOAT, "chest_id": TYPE_INT, "grill_open": TYPE_BOOL, "pickup_serial": TYPE_INT, "drop_serial": TYPE_INT}): return false
+		if not _fields(entry.fish, {"attempt": TYPE_INT, "seed": TYPE_INT, "state": TYPE_INT, "target": TYPE_VECTOR2, "origin": TYPE_VECTOR2, "clock": TYPE_FLOAT, "progress": TYPE_FLOAT, "tension": TYPE_FLOAT, "green": TYPE_FLOAT, "width": TYPE_FLOAT, "danger": TYPE_FLOAT, "held": TYPE_BOOL, "catches": TYPE_INT}): return false
+		if entry.fish.state < 0 or entry.fish.state > RodFishing.State.REELING: return false
+		if not _optional_fields(entry.fish, {"attached": TYPE_BOOL, "ship_target": TYPE_VECTOR2, "ship_origin": TYPE_VECTOR2, "replay": TYPE_INT}): return false
+	return true
 
 @rpc("authority", "call_remote", "unreliable", 2)
 func snapshot_part(serial: int, index: int, count: int, bytes: PackedByteArray) -> void:
@@ -674,11 +817,18 @@ func large_snapshot(packed: PackedByteArray) -> void:
 	world_snapshot(packed)
 
 func apply_snapshot(data: Dictionary) -> void:
+	if not valid_snapshot(data):
+		invalid_packets += 1
+		return
 	if int(data.get("serial", -1)) <= _received_serial:
 		return
 	_received_serial = data.serial
 	if not world_ready or multiplayer.is_server():
 		return
+	var now := Time.get_ticks_msec()
+	if snapshot_received_at > 0: snapshot_gap_ms = now - snapshot_received_at
+	snapshot_received_at = now
+	host_frame_ms = float(data.get("host_frame_ms", 0.0))
 	if int(data.get("seed", ship.world_seed)) != ship.world_seed:
 		_motion_buffer.clear()
 	ship.rebuild_world(int(data.get("seed", ship.world_seed)))
@@ -708,8 +858,9 @@ func apply_snapshot(data: Dictionary) -> void:
 	port_slots.assign(data.get("port_storage", []))
 	VoyageState.get_ship_storage(18, 1).restore(port_slots)
 	var drops: Dictionary = VoyageState.floor_items.get("ship", {})
-	drops.clear()
-	drops.merge(data.drops, true)
+	if drops != data.drops:
+		drops.clear()
+		drops.merge(data.drops, true)
 	ship.wind_velocity = data.wind
 	ship.set_sail_level(data.sail)
 	ship.anchor_deployed = data.anchor
@@ -738,6 +889,7 @@ func apply_snapshot(data: Dictionary) -> void:
 		var slots: Array[Dictionary] = []
 		slots.assign(entry.inventory)
 		service.inventory.restore(slots)
+		var selection_changed: bool = service.hud.selected != entry.selected
 		service.hud.selected = entry.selected
 		service.select_chest(int(entry.get("chest_id", 0)))
 		service.hud.storage_open = entry.chest
@@ -750,10 +902,14 @@ func apply_snapshot(data: Dictionary) -> void:
 		var new_drops: int = entry.get("drop_serial", 0)
 		if id == local_id and new_drops > service.drop_serial: GameWindow.play_ui("drop")
 		service.drop_serial = new_drops
-		service.hud._refresh()
+		if selection_changed: service.hud._refresh()
 		var fishing: RodFishing = service.get_node("Fishing")
 		var previous: int = fishing.state
 		var fish: Dictionary = entry.fish
+		if id == local_id and fishing.pending_cast_until > Time.get_ticks_msec() and fish.attempt < fishing.attempt_id:
+			_reconcile_local(entry, transition)
+			continue
+		fishing.pending_cast_until = 0
 		if id != local_id and fishing.visual_catches != fish.catches and previous != RodFishing.State.IDLE:
 			player.play_fishing_animation()
 		var predicted := id == local_id and fishing.local_reeling and fishing.attempt_id == int(fish.attempt) and int(fish.state) != RodFishing.State.IDLE
@@ -763,7 +919,8 @@ func apply_snapshot(data: Dictionary) -> void:
 			fishing.local_reeling = false
 			fishing.local_done = false
 			fishing.state = fish.state
-			fishing.clock = fish.clock
+			# Visual clocks advance between snapshots; only phase/attempt changes reset.
+			if previous != fish.state or fishing.attempt_id != fish.attempt: fishing.clock = fish.clock
 			fishing.held = fish.held
 			fishing.fight.progress = fish.progress
 			fishing.fight.tension = fish.tension
@@ -773,7 +930,10 @@ func apply_snapshot(data: Dictionary) -> void:
 		fishing.visual_catches = fish.catches
 		fishing.attempt_id = fish.attempt
 		fishing.fight_seed = fish.seed
-		fishing._cast_from_ship = false
+		fishing._cast_from_ship = fish.get("attached", false)
+		fishing._ship_target = fish.get("ship_target", Vector2.ZERO)
+		fishing._ship_origin = fish.get("ship_origin", Vector2.ZERO)
+		fishing.replay_frame = fish.get("replay", 0)
 		fishing.target = fish.target
 		fishing.cast_origin = fish.origin
 		player.fishing_active = fishing.state != 0
@@ -843,6 +1003,7 @@ func _predict_local(move: Vector2, delta: float) -> void:
 func _reconcile_local(entry: Dictionary, transition: bool) -> void:
 	var player: CharacterBody2D = players[local_id]
 	if transition or _prediction.is_empty() or player.position.distance_to(entry.position) > 150:
+		if not _prediction.is_empty(): hard_corrections += 1
 		player.position = entry.position
 		_prediction.clear()
 		_prediction_error = Vector2.ZERO
@@ -857,6 +1018,7 @@ func _reconcile_local(entry: Dictionary, transition: bool) -> void:
 		acknowledged = _prediction.pop_front()
 	if acknowledged.is_empty(): return
 	_prediction_error = Vector2(entry.position) - Vector2(acknowledged.position)
+	last_correction = _prediction_error.length()
 	# Preserve controls applied since the acknowledged input, correcting only drift.
 	if entry.station == "Sail":
 		var error := wrapf(float(_last_snapshot.trim) - float(acknowledged.trim), -180.0, 180.0)
@@ -888,10 +1050,13 @@ func _remove_crew(id: int) -> void:
 	if player.using_station:
 		player.active_station.release_control()
 	services[id].queue_free()
+	_bag_cache.erase(services[id].inventory.get_instance_id())
 	player.queue_free()
 	players.erase(id)
 	services.erase(id)
 	inputs.erase(id)
+	_crew_buffers.erase(id)
+	_shared_sent.erase(id)
 
 func save_path() -> String:
 	return VoyageSaves.path(VoyageSaves.selected)
@@ -909,7 +1074,7 @@ func save_world() -> void:
 
 func load_world() -> void:
 	var data := VoyageSaves.world(VoyageSaves.selected)
-	if data.get("version") in [PROTOCOL, "holy-ship-coop-14", "holy-ship-coop-13", "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
+	if data.get("version") in [PROTOCOL, "holy-ship-coop-15", "holy-ship-coop-14", "holy-ship-coop-13", "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
 		_restored = data
 		accounts = data.get("accounts", {})
 
@@ -930,6 +1095,16 @@ func leave(message: String = "") -> void:
 	services.clear()
 	identities.clear()
 	inputs.clear()
+	_crew_buffers.clear()
+	_input_batch.clear()
+	_shared = SharedSnapshotState.new()
+	_shared_sent.clear()
+	_bag_cache.clear()
+	_waiting_snapshot.clear()
+	snapshot_received_at = 0
+	last_correction = 0.0
+	hard_corrections = 0
+	invalid_packets = 0
 	_pending.clear()
 	_rate.clear()
 	_last_snapshot.clear()

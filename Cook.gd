@@ -73,6 +73,7 @@ func capture() -> Dictionary:
 	return {"fish": fish.duplicate(true), "fuel": fuel.duplicate(), "remaining": burn_remaining, "capacity": burn_capacity, "next_id": next_id, "starter": starter_granted}
 
 func restore(data: Dictionary) -> void:
+	if fish == data.get("fish", []) and fuel == data.get("fuel", {}) and burn_remaining == data.get("remaining", 0.0) and burn_capacity == data.get("capacity", 1.0) and next_id == data.get("next_id", 1) and starter_granted == data.get("starter", false): return
 	fish.assign(data.get("fish", []))
 	fuel = data.get("fuel", {}).duplicate()
 	burn_remaining = data.get("remaining", 0.0)

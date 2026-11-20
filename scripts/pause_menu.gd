@@ -5,6 +5,7 @@ var _screen: Control
 var _resume_button: Button
 var _settings: SettingsPanel
 var _confirm: ConfirmationDialog
+var _network_button: Button
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -32,6 +33,10 @@ func _ready() -> void:
 	_resume_button.name = "ResumeButton"
 	rows.add_child(_resume_button)
 	rows.add_child(HarborTheme.button("Settings", func() -> void: _settings.open()))
+	_network_button = HarborTheme.button("Network diagnostics", func() -> void:
+		NetworkSession.diagnostics.enabled = not NetworkSession.diagnostics.enabled
+		resume())
+	rows.add_child(_network_button)
 	rows.add_child(HarborTheme.button("Return to title", _ask_return))
 	rows.add_child(HarborTheme.label("P / Esc  Resume", 14, HarborTheme.MUTED))
 	_settings = SettingsPanel.new()
@@ -64,6 +69,7 @@ func _input(event: InputEvent) -> void:
 		HarborTheme.trap_focus(_screen, event)
 
 func pause() -> void:
+	_network_button.visible = NetworkSession.online
 	var scene := get_tree().current_scene
 	if is_paused() or scene == null or scene.is_in_group("title_screen"):
 		return

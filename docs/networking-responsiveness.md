@@ -1,7 +1,146 @@
 # Local responsiveness and prompt disconnects
 
+## Current implementation — November 20, 2026 / protocol 16
+
+The `better-networking` branch retains the existing WebSocket relay, player-host
+authority, solo mode, Compatibility renderer, and non-threaded Web export. No
+dependencies or paid services were added. This work does not introduce WebRTC or
+a hosted simulation server.
+
+### Movement
+
+Guests still predict walking, sail trim, and helm input immediately. Moving input
+is now sent reliably in batches of at most six physics frames (normally 10 batches
+per second at 60 Hz), with immediate flushes on changes. Idle players coalesce
+neutral frames and refresh every 0.5 seconds. The host validates and queues the
+frames, then acknowledges only the exact last input it simulated. It no longer
+increments a guest acknowledgement just because the host had another tick.
+
+The input queue holds at most 120 frames. Catch-up uses real elapsed-time credit
+capped at 0.5 seconds and consumes at most six frames per host tick. Duplicate,
+out-of-order, oversized, malformed, and non-finite input is rejected atomically.
+The existing 1.5-second input watchdog remains. Prediction history is bounded at
+120 frames, with gradual correction and resets for genuine state transitions.
+
+Remote ship/crew playback starts at 150 ms and adapts up to 300 ms when arrival
+jitter increases. Its clock changes gradually; outages hold the last known pose.
+It does not predict boat collisions through land. This favors smooth playback
+over minimum remote-pose latency on uneven connections.
+
+### Fishing
+
+Guest casting now has immediate cosmetic feedback. An older pre-cast snapshot
+cannot erase it while the host decision is in flight; this protection expires
+after 1.5 seconds. The host still validates casts, controls bites, replays seeded
+reeling input, and alone grants catches. No inventory or catch is speculative.
+
+The 60 Hz local tension simulation is retained. Fishing replay uses its own
+sequence/count/elapsed-time validation rather than sharing the generic UI
+command rate bucket, so a delayed reliable burst cannot lose a middle batch to
+that limiter. Guest visual clocks advance between snapshots, and bobber origins
+and targets retain their ship-relative coordinates. This puts the line and boat
+on the same presentation timeline. Shoreline endpoint searches are cached at
+10 Hz, and off-screen anglers skip drawing work. Tiny bobber-motion water checks
+remain per draw to keep the visible motion near water.
+
+### Synchronization and bounded work
+
+World motion remains at 10 Hz. Inventories, storage, dropped items, quest state,
+discovery state, island locks, and the world seed travel in reliable shared-state
+revisions only when changed or when a peer joins. Each motion packet references
+the exact shared revision it needs; there is no dependency on the previous
+unreliable motion packet. Clients retain eight shared revisions and at most one
+motion packet waiting for its shared state.
+
+Inventory captures are cached by resource revision. Identical inventory and grill
+restores no longer copy state or emit update signals. Selection refreshes happen
+only when selection changes; unchanged floor drops are not cleared/rebuilt.
+The host still sends compressed motion once for relay fan-out. Guests still keep
+only the newest pending motion snapshot. The outgoing unreliable-data threshold
+is reduced from 64 KiB to 16 KiB; it prevents adding more obsolete data but cannot
+remove bytes already queued inside TCP. Reliable gameplay remains reliable.
+
+All four crew members still share the boat state. Per-recipient world interest
+management is deliberately deferred: current traffic is small and the crew can
+interact with the same objects. Decorative ocean fish remain deterministic/local.
+
+### Playtest diagnostics
+
+While online, press **Esc**, click **Network diagnostics**, or press **F3**.
+Press **F4** to write a text sample to the local Godot/browser console. Native
+test runs can pass `--network-diagnostics`. Nothing is uploaded as telemetry.
+When enabled, each guest sends one diagnostic ping every two seconds through
+the relay to the host and receives an echo: this is host RTT, not relay-only ping.
+
+The overlay shows FPS, recent local/host frame peaks, host RTT, snapshot gap/age,
+peak gap, playback delay, underrun frames, correction size/peak, hard correction
+count, prediction history, compressed snapshot size, build/apply time, rejected
+packets, relay throughput/backlog/skipped packets, and fishing simulation/replay
+progress and geometry cost. Host views also show each guest's input queue.
+
+- High frame time with stable RTT points toward CPU/rendering work.
+- Large gaps/age and growing underruns with steady FPS point toward delivery or
+  host stalls. The host frame measurement helps distinguish them.
+- Large corrections with normal gaps merit checking collision/state transitions.
+- Fishing's local frame can lead host replay because it is predicted; a growing,
+  persistent gap is the useful warning. The bar should still react locally.
+- Hard resets can be legitimate boarding, station, death, or teleport changes.
+- Underruns count physics frames, not lost packets. Skips include coalesced motion
+  snapshots, which are expected after a burst; neither is a packet-loss meter.
+
+### Validation and release
+
+Use `tests/network_responsiveness.gd` for malformed input, bounded exact replay,
+delayed reversals/stalls, real deck collisions and reconciliation, shared-state
+ordering, skipped snapshots, unchanged inventory notifications, local fishing,
+and ship-relative casts. Existing smoothing, classroom policy, grill, pause,
+solo fishing, and three-player smoke suites remain applicable.
+
+`tools/run-network-playtest.mjs` runs isolated host/Alpha/Beta processes and keeps
+logs under `.godot/network-validation/`. It rejects a zero-check guest run.
+`tools/network-delay-proxy.mjs` adds deterministic delay/jitter and periodic
+stalls to a local relay's ordered TCP stream. This models delivery interruption;
+it does **not** claim to simulate raw UDP packet loss. The shared-state test
+separately verifies that skipped motion snapshots cannot lose inventory changes.
+See [multiplayer testing](multiplayer-testing.md) for runnable commands.
+
+Protocol 16 is intentionally incompatible with older live peers. Deploy the
+matching harbor Worker and Web export together and have all players reload.
+Protocol-15 and earlier supported voyage saves remain loadable. These branch
+changes and local exports do not publish anything to the live site.
+
+Observed local validation on November 20:
+
+- 81 targeted responsiveness checks passed, including real deck collision and
+  reversal reconciliation within 0.5 pixels under delayed input playback.
+- Final delayed-relay run: 65 checks passed (host 31, Alpha 20, Beta 14), with no
+  rejected valid packets. Guest host-RTT samples were 221–222 ms; the long-lived
+  guest observed a 400 ms peak snapshot gap from the injected stream stall.
+- Host traffic averaged 11.62 packets/s and about 9.1 KiB/s; active Alpha averaged
+  7.73 packets/s and about 1.0 KiB/s, including reconnect traffic. These are one
+  scripted run's measurements, not a classroom capacity or free-tier guarantee.
+- 84 solo fishing checks, 21 grill checks, 8 classroom policy checks, smoothing,
+  pause, island co-op (20 checks), separate chest, and dedicated access/save tests
+  passed. Older fixture assumptions and audio shutdown timing were corrected.
+- All 19 relay/backend tests and the TypeScript check passed. The delay proxy's
+  byte-order/EOF integrity test passed before the final delayed gameplay run.
+- A fresh Web export completed without errors. Two isolated Chromium players
+  hosted/joined, moved, displayed diagnostics, and received host departure with
+  no browser runtime errors. This uses software rendering and is not a GPU FPS
+  benchmark. Screenshots and local logs are under `.godot/`.
+
+Still necessary: a real Windows/Mac/Safari/hotspot playtest and observation of the
+diagnostics while multiple people fish and steer. Synthetic tests do not prove
+subjective WAN smoothness. WebSocket ordered-delivery stalls and host browser
+background throttling remain architectural limits. Revisit WebRTC after collecting
+these measurements; a higher snapshot rate or new hosting provider is not assumed
+to be the answer.
+
+## Earlier implementation notes (protocols 6–15)
+
 Companion to [the multiplayer system guide](multiplayer-system.md). This describes
-the current implementation, not a proposed design. Updated November 18, 2026.
+the earlier implementation. Updated November 18, 2026; the protocol-16 section
+above supersedes conflicting timing, input, and synchronization details below.
 
 ## Local movement and station controls
 
