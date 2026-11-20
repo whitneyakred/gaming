@@ -117,7 +117,7 @@ func host_tests() -> void:
 		if NetworkSession.players.size() == 3:
 			break
 		await wait(0.1)
-	check(NetworkSession.players.size() == 3, "Three peers joined")
+	check(NetworkSession.players.size() == 3, "Three peers joined (status: %s)" % NetworkSession.status)
 	if NetworkSession.players.size() != 3:
 		phase("done")
 		return
@@ -331,6 +331,10 @@ func client_tests() -> void:
 				check(NetworkSession.ship.survival.sharks.any(func(shark): return shark.active), "Guests see host sharks")
 				if role == "Alpha": check(service.player.health == 14, "Guest receives third-heart damage")
 			"move":
+				if role == "Beta":
+					for selection in 80: service.hud.select_slot(selection % 4)
+					service.hud.select_slot(2)
+					check(service.hud.selected == 2, "Scroll burst selects locally before network round trip")
 				if role == "Alpha":
 					# Wait for the host's fixture teleport and its correction to settle.
 					# With injected stalls this can arrive after the phase-file signal.
@@ -346,6 +350,10 @@ func client_tests() -> void:
 						await wait(0.05)
 					Input.action_release("move_right")
 			"chest":
+				if role == "Beta":
+					check(service.hud.selected == 2, "Local selection survives intervening host snapshots")
+					check(NetworkSession._last_snapshot.crew[NetworkSession.local_id].selected == 2, "Coalesced scroll selection reaches the host")
+					service.hud.select_slot(0)
 				check(NetworkSession.players.size() == 3, "Late join sees entire crew")
 				NetworkSession.command("interact")
 			"race":

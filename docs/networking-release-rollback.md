@@ -1,10 +1,20 @@
 # Networking playtest release and rollback
 
 Prepared November 20, 2026 from `better-networking`, protocol 16.
-The `systems-revamp` Git branch remains at
-`a585b0809f29408b0600d50de0ff31a2fe03d542` with the prior networking implementation.
-Networking changes are committed separately on `better-networking`; switching
-branches does not carry uncommitted networking changes into `systems-revamp`.
+The follow-up UI/traversal release merges `better-networking` into
+`systems-revamp` at the user's request. The old `systems-revamp` source commit
+`a585b0809f29408b0600d50de0ff31a2fe03d542` is preserved by the Git tag
+`pre-networking-systems-revamp-20261120`. Use that tag for an old-source rebuild;
+`systems-revamp` now advances with the networking changes.
+
+The immediately preceding protocol-16 playtest can also be restored using:
+
+- Pages deployment `5f35cb9f-31d5-41f8-9e45-ab95804ca00b` (source `3e250dd`).
+- Worker version `cee2fc59-8e28-4ee5-ad67-c2bf6812c4ff`.
+
+The UI/traversal changes remain protocol-16 compatible. Refresh all clients to
+receive the local presentation fixes. Pages production metadata returns to
+`systems-revamp` for the merged release.
 
 ## Captured production rollback targets
 
@@ -18,9 +28,9 @@ Before this release, production was:
 
 The Git branch and previously deployed commit are separate rollback references.
 Both website and relay must be restored together because protocols 15 and 16
-cannot join each other's live sessions. The Pages project production branch is
-being switched to `better-networking` for this release; this is Cloudflare
-deployment metadata, not a modification to the `systems-revamp` Git branch.
+cannot join each other's live sessions. The Pages project production branch was
+initially switched to `better-networking` for the first playtest and returns to
+`systems-revamp` with the merged follow-up.
 
 ## Restore the captured production build
 
@@ -39,7 +49,7 @@ deployment metadata, not a modification to the `systems-revamp` Git branch.
    back to `systems-revamp`; otherwise a deploy with that branch name is a preview.
 
 No rollback was performed while preparing these instructions. Cloudflare keeps
-historical versions subject to its retention limits; the unchanged Git branch
+historical versions subject to its retention limits; the preserved Git tag
 provides a source-based rebuild path if a hosted rollback target expires.
 
 Do not clear browser site data merely to refresh the game: that removes locally

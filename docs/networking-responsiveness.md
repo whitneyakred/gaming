@@ -27,6 +27,32 @@ jitter increases. Its clock changes gradually; outages hold the last known pose.
 It does not predict boat collisions through land. This favors smooth playback
 over minimum remote-pose latency on uneven connections.
 
+Guest jump, dunk, surface, ladder alignment, climb, and step-on animations now
+advance locally every physics tick within the host-confirmed phase. Snapshot
+updates cannot rewind that phase's visual progress. Ship-attached paths recover
+their origin using the host transform and follow the rendered moving ship.
+Phase completion, collisions, and boarding remain authoritative: during an
+outage the guest holds the endpoint, rather than speculatively boarding. The
+initial transition still waits for the host. Walking reconciliation history is
+cleared during scripted traversal so it does not fight the animation path.
+
+### Local UI
+
+Hotbar selection belongs to the local player after their first selection;
+older snapshots cannot switch the highlight or held item back. Initial restored
+selection and remote players' held items still come from the host. Scroll bursts
+are coalesced to at most one selection send per 100 ms during ordinary input.
+A following gameplay command flushes the latest selection first on the same
+reliable channel. A mismatched host snapshot schedules a retry, so rate-limited
+selection commands do not leave the two peers permanently out of sync.
+
+Closing a chest or grill is immediate, with stale-open snapshots suppressed
+until host confirmation (bounded to two seconds). A new interaction clears that
+protection. Map/pause menus, cursor movement, tooltips, and hotbar highlights are
+local presentation; shared item transfers, chest access, grill contents, rewards,
+and station ownership still require host validation. This avoids speculative
+inventory edits or duplicate items. Panel opening can still wait for authority.
+
 ### Fishing
 
 Guest casting now has immediate cosmetic feedback. An older pre-cast snapshot
@@ -84,9 +110,17 @@ progress and geometry cost. Host views also show each guest's input queue.
 - Large corrections with normal gaps merit checking collision/state transitions.
 - Fishing's local frame can lead host replay because it is predicted; a growing,
   persistent gap is the useful warning. The bar should still react locally.
-- Hard resets can be legitimate boarding, station, death, or teleport changes.
+- State resets count changes such as boarding, stations, and respawns separately
+  from drift resets (position errors exceeding 150 pixels without a state change).
 - Underruns count physics frames, not lost packets. Skips include coalesced motion
   snapshots, which are expected after a burst; neither is a packet-loss meter.
+
+The November 20 cellular-host screenshots showed 77–85 FPS, 90–102 ms host RTT,
+about 11 KiB/s download, zero outgoing backlog, and a 600 ms peak snapshot gap.
+They establish a past delivery/simulation interruption, not its location. The
+unchanged underrun counter across captures does not establish ongoing stalls.
+Peak values retain earlier events; compare successive samples and record both
+host and guest diagnostics. Inactive fishing counters can retain the last fight.
 
 ### Validation and release
 
@@ -95,6 +129,19 @@ delayed reversals/stalls, real deck collisions and reconciliation, shared-state
 ordering, skipped snapshots, unchanged inventory notifications, local fishing,
 and ship-relative casts. Existing smoothing, classroom policy, grill, pause,
 solo fishing, and three-player smoke suites remain applicable.
+
+`tests/network_smoothing.gd` additionally checks stale hotbar snapshots, selection
+retry/confirmation, close suppression, restored selection, and all six guest
+traversal phases under missing snapshots. `tests/swim_transition_test.gd` checks
+the authoritative animation sequence; `tests/swimming_integration.gd` checks
+continuous shoreline travel and boarding without obsolete island scene changes.
+
+Follow-up release validation: 81 responsiveness checks, 47 authoritative swim
+transition checks, smoothing/UI and swimming integration suites passed. The
+three-player relay run passed 68 checks with 80–120 ms delay in each direction
+and a 300 ms stall every five seconds, including an 80-selection scroll burst.
+TypeScript validation, 19 relay/service checks, and the release web export passed.
+These are automated regression results, not a guarantee against cellular stalls.
 
 `tools/run-network-playtest.mjs` runs isolated host/Alpha/Beta processes and keeps
 logs under `.godot/network-validation/`. It rejects a zero-check guest run.

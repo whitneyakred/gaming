@@ -55,6 +55,8 @@ var _waiting_snapshot: Dictionary = {}
 var diagnostics: Node
 var last_correction := 0.0
 var hard_corrections := 0
+var transition_resets := 0
+var distance_resets := 0
 var snapshot_bytes := 0
 var snapshot_apply_ms := 0.0
 var snapshot_build_ms := 0.0
@@ -64,6 +66,10 @@ var invalid_packets := 0
 var host_frame_ms := 0.0
 var _frame_peak_ms := 0.0
 var _bag_cache: Dictionary = {}
+var _local_selection := -1
+var _selection_dirty := false
+var _selection_sent_at := 0
+var _local_close_until := 0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -386,6 +392,19 @@ func feedback(message: String) -> void:
 			fishing.sound.play("snap")
 
 func command(kind: String, args: Dictionary = {}) -> void:
+	if online and world_ready and local_id != 1 and services.has(local_id):
+		if kind == "select":
+			_local_selection = clampi(int(args.get("index", 0)), 0, 3)
+			services[local_id].hud.selected = _local_selection
+			_selection_dirty = true
+			return # Coalesce scroll-wheel bursts; the highlight already changed locally.
+		_flush_local_selection(true) # Equip before a subsequent cast/use on reliable channel 0.
+		var hud = services[local_id].hud
+		if kind == "close" or (kind == "interact" and (hud.storage_open or hud.grill_open)):
+			hud.close()
+			_local_close_until = Time.get_ticks_msec() + 2000
+		elif kind == "interact":
+			_local_close_until = 0
 	if online and local_id != 1 and services.has(local_id) and kind == "fish":
 		var fishing: RodFishing = services[local_id].get_node("Fishing")
 		if fishing.state == RodFishing.State.IDLE and args.get("point") is Vector2:
@@ -404,6 +423,33 @@ func command(kind: String, args: Dictionary = {}) -> void:
 		_handle_command(local_id, kind, args)
 	else:
 		request_command.rpc_id(1, kind, args)
+
+func _flush_local_selection(force: bool = false) -> void:
+	if not _selection_dirty or _local_selection < 0: return
+	var now := Time.get_ticks_msec()
+	if not force and now - _selection_sent_at < 100: return
+	request_command.rpc_id(1, "select", {"index": _local_selection})
+	_selection_sent_at = now
+	_selection_dirty = false
+
+func _apply_hud_state(id: int, entry: Dictionary) -> void:
+	var service: InventoryService = services[id]
+	var selection := int(entry.selected)
+	if id == local_id and _local_selection >= 0:
+		# Selection is the owner's intent, not an inventory mutation. Retry if a
+		# burst was rate limited, without ever flashing back to an old highlight.
+		_selection_dirty = selection != _local_selection
+		selection = _local_selection
+	var changed: bool = service.hud.selected != selection
+	service.hud.selected = selection
+	service.select_chest(int(entry.get("chest_id", 0)))
+	var closed: bool = not entry.chest and not entry.get("grill_open", false)
+	if id == local_id and closed: _local_close_until = 0
+	var closing := id == local_id and Time.get_ticks_msec() < _local_close_until
+	service.hud.storage_open = entry.chest and not closing
+	service.hud.grill_open = entry.get("grill_open", false) and not closing
+	service.player.inventory_open = service.hud.storage_open or service.hud.grill_open
+	if changed: service.hud._refresh()
 
 @rpc("any_peer", "call_remote", "reliable", 0)
 func request_command(kind: String, args: Dictionary) -> void:
@@ -578,6 +624,7 @@ func _physics_process(delta: float) -> void:
 		if multiplayer.is_server():
 			inputs[local_id].merge({"move": move, "held": held, "blocked": blocked, "stamp": Time.get_ticks_msec()}, true)
 		else:
+			_flush_local_selection()
 			_input_clock += delta
 			_predict_local(move, delta)
 			# Stationary frames need no simulation. Keep just the newest neutral frame.
@@ -879,9 +926,13 @@ func apply_snapshot(data: Dictionary) -> void:
 		player.respawn_serial = entry.get("respawn", 0)
 		player.danger_time = entry.get("danger", 0.0)
 		var transition: bool = respawned or player.is_overboard != entry.outside or (str(player.active_station.name) if player.using_station else "") != entry.station
+		var previous_access: StringName = player.access_motion
+		var previous_progress: float = player.access_progress
 		player.set_overboard(entry.outside)
 		player.access_motion = StringName(entry.get("access_motion", ""))
 		player.access_progress = clampf(float(entry.get("access_progress", 0.0)), 0.0, 1.0)
+		if id == local_id and not respawned and player.access_motion != &"" and player.access_motion == previous_access:
+			player.access_progress = maxf(player.access_progress, previous_progress)
 		player.update_land(entry.land)
 		player.active_station = ship.get_node_or_null(NodePath(entry.station)) if entry.station != "" else null
 		if player.using_station:
@@ -889,12 +940,7 @@ func apply_snapshot(data: Dictionary) -> void:
 		var slots: Array[Dictionary] = []
 		slots.assign(entry.inventory)
 		service.inventory.restore(slots)
-		var selection_changed: bool = service.hud.selected != entry.selected
-		service.hud.selected = entry.selected
-		service.select_chest(int(entry.get("chest_id", 0)))
-		service.hud.storage_open = entry.chest
-		service.hud.grill_open = entry.get("grill_open", false)
-		player.inventory_open = entry.chest or service.hud.grill_open
+		_apply_hud_state(id, entry)
 		service.view_revision = entry.revision
 		var new_pickups: int = entry.get("pickup_serial", 0)
 		if id == local_id and new_pickups > service.pickup_serial: GameWindow.play_ui("pickup")
@@ -902,7 +948,6 @@ func apply_snapshot(data: Dictionary) -> void:
 		var new_drops: int = entry.get("drop_serial", 0)
 		if id == local_id and new_drops > service.drop_serial: GameWindow.play_ui("drop")
 		service.drop_serial = new_drops
-		if selection_changed: service.hud._refresh()
 		var fishing: RodFishing = service.get_node("Fishing")
 		var previous: int = fishing.state
 		var fish: Dictionary = entry.fish
@@ -975,6 +1020,9 @@ func _interpolate(delta: float) -> void:
 
 func _predict_local(move: Vector2, delta: float) -> void:
 	var player: CharacterBody2D = players[local_id]
+	if player.access_motion != &"":
+		ship.get_node("SwimAccess").advance_guest_access(player, delta)
+		return
 	var correction := _prediction_error * (1.0 - exp(-12.0 * delta))
 	player.position += correction
 	_prediction_error -= correction
@@ -1002,8 +1050,18 @@ func _predict_local(move: Vector2, delta: float) -> void:
 
 func _reconcile_local(entry: Dictionary, transition: bool) -> void:
 	var player: CharacterBody2D = players[local_id]
+	if player.access_motion != &"":
+		_prediction.clear()
+		_prediction_error = Vector2.ZERO
+		_trim_error = 0.0
+		_wheel_error = 0.0
+		ship.get_node("SwimAccess").sync_guest_access(player, entry, Transform2D(float(_last_snapshot.rotation), Vector2(_last_snapshot.position)))
+		return
 	if transition or _prediction.is_empty() or player.position.distance_to(entry.position) > 150:
-		if not _prediction.is_empty(): hard_corrections += 1
+		if not _prediction.is_empty():
+			hard_corrections += 1
+			if transition: transition_resets += 1
+			else: distance_resets += 1
 		player.position = entry.position
 		_prediction.clear()
 		_prediction_error = Vector2.ZERO
@@ -1100,10 +1158,16 @@ func leave(message: String = "") -> void:
 	_shared = SharedSnapshotState.new()
 	_shared_sent.clear()
 	_bag_cache.clear()
+	_local_selection = -1
+	_selection_dirty = false
+	_selection_sent_at = 0
+	_local_close_until = 0
 	_waiting_snapshot.clear()
 	snapshot_received_at = 0
 	last_correction = 0.0
 	hard_corrections = 0
+	transition_resets = 0
+	distance_resets = 0
 	invalid_packets = 0
 	_pending.clear()
 	_rate.clear()

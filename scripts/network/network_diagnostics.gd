@@ -80,11 +80,11 @@ func report() -> String:
 	text += "FPS %d | frame peak %.1f ms | host frame peak %.1f ms\n" % [Engine.get_frames_per_second(), maxf(frame_peak, last_frame_peak), session.host_frame_ms if session.local_id != 1 else maxf(frame_peak, last_frame_peak)]
 	text += "Host RTT %s | snapshot gap %d / peak %d ms | age %d ms\n" % [str(rtt_ms) + " ms" if rtt_ms >= 0 else "—", session.snapshot_gap_ms, peak_snapshot_gap, age]
 	text += "Playback delay %.0f ms | underrun frames %d\n" % [session._motion_buffer.playback_delay * 1000, session._motion_buffer.underruns]
-	text += "Correction %.2f / peak %.2f px | hard resets %d | predictions %d\n" % [session.last_correction, peak_correction, session.hard_corrections, session._prediction.size()]
+	text += "Correction %.2f / peak %.2f px | state resets %d / drift resets %d | predictions %d\n" % [session.last_correction, peak_correction, session.transition_resets, session.distance_resets, session._prediction.size()]
 	text += "Snapshot %d B | build %.2f ms | apply %.2f ms | rejected %d\n" % [session.snapshot_bytes, session.snapshot_build_ms, session.snapshot_apply_ms, session.invalid_packets]
 	var peer := multiplayer.multiplayer_peer as HarborPeer
 	if peer:
-		text += "Up %.1f / down %.1f KiB/s | queued %d B | skipped snapshots %d\n" % [upload, download, peer.socket.get_current_outbound_buffered_amount(), peer.skipped_packets]
+		text += "Up %.1f / down %.1f KiB/s | queued %d B | coalesced/skipped %d\n" % [upload, download, peer.socket.get_current_outbound_buffered_amount(), peer.skipped_packets]
 	if session.services.has(session.local_id):
 		var fishing: RodFishing = session.services[session.local_id].get_node("Fishing")
 		text += "Fishing local %s | frame %d / host %d | geometry %.2f ms\n" % [fishing.local_reeling, fishing.local_frame, fishing.replay_frame, fishing.geometry_ms]

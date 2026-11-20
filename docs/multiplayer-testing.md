@@ -116,3 +116,23 @@ browser tests are not a substitute for Safari/macOS hardware verification.
 Rollback: pre-multiplayer points to commit 38ca32e. The EOS implementation is
 also preserved in Git history. Use a separate worktree rather than resetting
 ongoing work.
+
+## Local UI and traversal regression checklist (November 20)
+
+On separate connections, enable **Esc → Network diagnostics** on host and guest.
+Refresh both clients after deployment; keep a phone host's game tab foreground
+and screen awake. Repeat with the desktop hosting to compare host performance.
+
+1. On the guest, rapidly press 1–4 and scroll the hotbar while walking. The local
+   highlight/held item must never flash back to an earlier slot.
+2. Select the fishing rod and immediately cast. The host must process selection
+   before the cast; selection alone must not alter inventory quantities.
+3. Open a chest/grill, close it with Escape or interact, and continue moving.
+   An older snapshot must not reopen it. Reopen deliberately and verify normal
+   shared contents and item-transfer validation.
+4. Jump off the plank and climb aboard while the host sails/turns. Guest motion
+   should animate between packets. During an outage it may hold at a phase end,
+   but must not grant deck movement before host confirmation.
+5. Capture diagnostics before and during a hitch on both peers. Compare snapshot
+   age/gaps, underrun growth, drift resets, frame times, and backlog. Coalesced
+   snapshots are not a packet-loss count; state resets can be normal transitions.
