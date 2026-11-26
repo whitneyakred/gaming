@@ -22,6 +22,13 @@ var bytes_sent := 0
 var bytes_received := 0
 var skipped_packets := 0
 var latest_snapshot := PackedByteArray()
+var rtc := HarborRTC.new()
+var send_serial := 0
+var received_serials: Dictionary = {}
+
+func _init() -> void:
+	rtc.signal_out.connect(_send_signal)
+	rtc.packet_in.connect(_receive_direct)
 
 func connect_url(url: String) -> Error:
 	socket.inbound_buffer_size = 1048576
@@ -46,14 +53,7 @@ func advance(emit_events: bool = false) -> void:
 				var data: Variant = JSON.parse_string(packet.get_string_from_utf8())
 				if data is Dictionary: control(data)
 			elif packet.size() >= HEADER and packet.size() <= MAX_PACKET + HEADER:
-				# A dedicated host-only envelope avoids SceneMultiplayer splitting
-				# a broadcast RPC into one upload per recipient. Keep only newest.
-				if packet[10] == 1:
-					if packet.decode_s32(0) == 1 and own_id != 1:
-						if not latest_snapshot.is_empty(): skipped_packets += 1
-						latest_snapshot = packet.slice(HEADER)
-					continue
-				incoming.append({"peer": packet.decode_s32(0), "channel": int(packet[8]), "mode": int(packet[9]), "bytes": packet.slice(HEADER)})
+				_receive_packet(packet)
 				if incoming.size() > 512:
 					failure = "Connection fell too far behind. Please rejoin."
 					_close()
@@ -64,9 +64,11 @@ func advance(emit_events: bool = false) -> void:
 	elif socket.get_ready_state() == WebSocketPeer.STATE_CLOSED:
 		if failure.is_empty(): failure = socket.get_close_reason()
 		state = MultiplayerPeer.CONNECTION_DISCONNECTED
+		rtc.close()
 	if state != MultiplayerPeer.CONNECTION_DISCONNECTED and now - last_reply > 20000:
 		failure = "Connection timed out. Please try joining again."
 		_close()
+	if state == MultiplayerPeer.CONNECTION_CONNECTED: rtc.poll()
 	if emit_events:
 		var pending := events.duplicate()
 		events.clear()
@@ -82,17 +84,23 @@ func control(data: Dictionary) -> void:
 	match str(data.get("type", "")):
 		"welcome":
 			own_id = int(data.id)
+			rtc.own_id = own_id
 			identities[own_id] = str(data.identity)
 			for other: Dictionary in data.peers:
 				identities[int(other.id)] = str(other.identity)
 				events.append({"id": int(other.id), "joined": true})
 			state = MultiplayerPeer.CONNECTION_CONNECTED
+			for id: int in identities:
+				rtc.join(id)
 		"peer_joined":
 			identities[int(data.id)] = str(data.identity)
+			rtc.join(int(data.id))
 			events.append({"id": int(data.id), "joined": true})
 		"peer_left":
 			var departed := int(data.id)
 			identities.erase(departed)
+			rtc.leave(departed)
+			received_serials.erase(departed)
 			# A burst can contain RPCs followed by departure in the same poll.
 			# SceneMultiplayer receives disconnect events before draining packets;
 			# never leave it RPCs from a peer it has just removed.
@@ -149,18 +157,52 @@ func take_world_snapshot() -> PackedByteArray:
 	latest_snapshot = PackedByteArray()
 	return result
 
-func _send_packet(bytes: PackedByteArray, recipient: int, packet_channel: int, packet_mode: MultiplayerPeer.TransferMode, kind: int = 0) -> Error:
-	if state != MultiplayerPeer.CONNECTION_CONNECTED: return ERR_UNCONFIGURED
-	if bytes.size() > MAX_PACKET: return ERR_OUT_OF_MEMORY
-	var queued := socket.get_current_outbound_buffered_amount()
-	# Never queue stale movement/snapshots behind a slow link.
-	if packet_mode != MultiplayerPeer.TRANSFER_MODE_RELIABLE and queued > 16384:
-		skipped_packets += 1
-		return OK
-	if queued > 524288:
-		failure = "Connection is too slow. Please rejoin."
+func _send_signal(id: int, data: Dictionary) -> void:
+	if state != MultiplayerPeer.CONNECTION_CONNECTED or not identities.has(id): return
+	var packet := _envelope(JSON.stringify(data).to_utf8_buffer(), id, 0, MultiplayerPeer.TRANSFER_MODE_RELIABLE, 0)
+	packet[11] = 1
+	_relay(packet)
+
+func _receive_direct(id: int, packet: PackedByteArray) -> void:
+	# Identity comes from this authenticated link, never the peer's packet.
+	if not identities.has(id) or packet.size() < HEADER + 4 or packet.decode_s32(0) != id or packet[11] != 2 or packet[9] == MultiplayerPeer.TRANSFER_MODE_RELIABLE: return
+	bytes_received += packet.size()
+	_receive_packet(packet)
+
+func _receive_packet(packet: PackedByteArray) -> void:
+	if packet.size() < HEADER or packet.size() > MAX_PACKET + HEADER: return
+	var sender := packet.decode_s32(0)
+	var recipient := packet.decode_s32(4)
+	if not identities.has(sender) or sender == own_id or (own_id != 1 and sender != 1): return
+	if recipient != 0 and recipient != own_id and (recipient > 0 or recipient == -own_id): return
+	if packet[8] > 2 or packet[9] > 2 or packet[10] > 1: return
+	if packet[11] == 1:
+		if packet.size() <= 14000 and packet[10] == 0 and packet[9] == MultiplayerPeer.TRANSFER_MODE_RELIABLE:
+			rtc.receive_signal(sender, JSON.parse_string(packet.slice(HEADER).get_string_from_utf8()))
+		return
+	var offset := HEADER
+	if packet[11] == 2:
+		if packet.size() < HEADER + 4 or packet[9] == MultiplayerPeer.TRANSFER_MODE_RELIABLE: return
+		var serial := packet.decode_u32(HEADER)
+		var stream := int(packet[8]) * 2 + int(packet[10])
+		var sequences: Dictionary = received_serials.get(sender, {})
+		if serial <= int(sequences.get(stream, 0)): return
+		sequences[stream] = serial
+		received_serials[sender] = sequences
+		offset += 4
+	elif packet[11] != 0: return
+	if packet[10] == 1:
+		if sender == 1 and own_id != 1:
+			if not latest_snapshot.is_empty(): skipped_packets += 1
+			latest_snapshot = packet.slice(offset)
+		return
+	if incoming.size() >= 512:
+		failure = "Connection fell too far behind. Please rejoin."
 		_close()
-		return ERR_CONNECTION_ERROR
+		return
+	incoming.append({"peer": sender, "channel": int(packet[8]), "mode": int(packet[9]), "bytes": packet.slice(offset)})
+
+func _envelope(bytes: PackedByteArray, recipient: int, packet_channel: int, packet_mode: MultiplayerPeer.TransferMode, kind: int) -> PackedByteArray:
 	var packet := PackedByteArray()
 	packet.resize(HEADER)
 	packet.encode_s32(0, own_id)
@@ -168,7 +210,50 @@ func _send_packet(bytes: PackedByteArray, recipient: int, packet_channel: int, p
 	packet[8] = packet_channel
 	packet[9] = packet_mode
 	packet[10] = kind
+	if packet_mode != MultiplayerPeer.TRANSFER_MODE_RELIABLE:
+		send_serial += 1
+		packet[11] = 2
+		packet.resize(HEADER + 4)
+		packet.encode_u32(HEADER, send_serial)
 	packet.append_array(bytes)
+	return packet
+
+func _send_packet(bytes: PackedByteArray, recipient: int, packet_channel: int, packet_mode: MultiplayerPeer.TransferMode, kind: int = 0) -> Error:
+	if state != MultiplayerPeer.CONNECTION_CONNECTED: return ERR_UNCONFIGURED
+	if bytes.size() > MAX_PACKET - 4: return ERR_OUT_OF_MEMORY
+	var packet := _envelope(bytes, recipient, packet_channel, packet_mode, kind)
+	if packet_mode != MultiplayerPeer.TRANSFER_MODE_RELIABLE:
+		# Preserve a single relay broadcast when nobody has a usable direct path.
+		var recipients: Array[int] = []
+		for id: int in identities:
+			if id != own_id and (recipient == 0 or recipient == id or (recipient < 0 and id != -recipient)): recipients.append(id)
+		var remaining: Array[int] = []
+		var direct := false
+		for id: int in recipients:
+			if rtc.send(id, packet):
+				direct = true
+				bytes_sent += packet.size()
+				packets_sent += 1
+			else: remaining.append(id)
+		if direct:
+			for id: int in remaining:
+				var copy := packet.duplicate()
+				copy.encode_s32(4, id)
+				var result := _relay(copy)
+				if result != OK: return result
+			return OK
+	return _relay(packet)
+
+func _relay(packet: PackedByteArray) -> Error:
+	var queued := socket.get_current_outbound_buffered_amount()
+	# Never queue stale movement/snapshots behind a slow link.
+	if packet[9] != MultiplayerPeer.TRANSFER_MODE_RELIABLE and queued > 16384:
+		skipped_packets += 1
+		return OK
+	if queued > 524288:
+		failure = "Connection is too slow. Please rejoin."
+		_close()
+		return ERR_CONNECTION_ERROR
 	var result := socket.put_packet(packet)
 	if result == OK:
 		packets_sent += 1
@@ -178,6 +263,8 @@ func _disconnect_peer(id: int, _force: bool) -> void:
 	if own_id == 1: socket.send_text(JSON.stringify({"type": "kick", "id": id}))
 	elif id == 1: _close()
 func _close() -> void:
+	rtc.close()
+	received_serials.clear()
 	state = MultiplayerPeer.CONNECTION_DISCONNECTED
 	incoming.clear()
 	latest_snapshot = PackedByteArray()

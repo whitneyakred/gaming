@@ -7,6 +7,10 @@ system; use [release setup](online-services-setup.md) for setup and
 For implementation and testing details of the latest client prediction and
 browser departure changes, see [Networking responsiveness](networking-responsiveness.md).
 
+The protocol-17 branch adds an optional browser WebRTC fast path using free
+Cloudflare STUN, with the relay retained for reliable traffic and fallback. See
+[WebRTC networking](webrtc-networking.md) for scope, cost limits and validation.
+
 ## 1. What runs where
 
 Holy Ship is a Godot 4.7.2 game using GDScript and the Compatibility renderer.

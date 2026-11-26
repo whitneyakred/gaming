@@ -5,7 +5,7 @@ const base=process.env.HARBOR_TEST_URL??'http://127.0.0.1:8787';
 const token=()=>randomBytes(24).toString('hex');
 async function attempt(identity) {
   return fetch(base+'/api/crews/'+randomUUID()+'/join', {method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({protocol:'holy-ship-coop-16',token:identity,password:''})});
+    body:JSON.stringify({protocol:'holy-ship-coop-17',token:identity,password:''})});
 }
 test('Shared school IP allows a classroom burst, but one sailor cannot monopolize admission',async()=>{
   const students=Array.from({length:60},token);

@@ -48,7 +48,7 @@ func record_sample() -> void:
 		var buffer: CrewInputBuffer = session._crew_buffers[id]
 		queues[str(id)] = {"queued": buffer.frames.size(), "ack": buffer.acknowledged, "rejected": buffer.rejected}
 	var peer := multiplayer.multiplayer_peer as HarborPeer
-	history.append({"utc": Time.get_unix_time_from_system(), "tick_ms": Time.get_ticks_msec(), "role": "host" if session.local_id == 1 else "guest", "fps": Engine.get_frames_per_second(), "frame_peak_ms": last_frame_peak, "host_frame_ms": session.host_frame_ms, "rtt_ms": rtt_ms, "snapshot_gap_ms": session.snapshot_gap_ms, "snapshot_age_ms": Time.get_ticks_msec() - session.snapshot_received_at if session.snapshot_received_at else 0, "buffer_ms": session._motion_buffer.playback_delay * 1000, "underruns": session._motion_buffer.underruns, "correction_px": session.last_correction, "state_resets": session.transition_resets, "drift_resets": session.distance_resets, "replayed": session.replayed_frames, "replay_ms": session.replay_ms, "access_rejections": session.access_rejections, "up_kib_s": upload, "down_kib_s": download, "queued_bytes": peer.socket.get_current_outbound_buffered_amount() if peer else 0, "coalesced": peer.skipped_packets if peer else 0, "crew_inputs": queues})
+	history.append({"utc": Time.get_unix_time_from_system(), "tick_ms": Time.get_ticks_msec(), "role": "host" if session.local_id == 1 else "guest", "fps": Engine.get_frames_per_second(), "frame_peak_ms": last_frame_peak, "host_frame_ms": session.host_frame_ms, "rtt_ms": rtt_ms, "snapshot_gap_ms": session.snapshot_gap_ms, "snapshot_age_ms": Time.get_ticks_msec() - session.snapshot_received_at if session.snapshot_received_at else 0, "buffer_ms": session._motion_buffer.playback_delay * 1000, "underruns": session._motion_buffer.underruns, "correction_px": session.last_correction, "state_resets": session.transition_resets, "drift_resets": session.distance_resets, "replayed": session.replayed_frames, "replay_ms": session.replay_ms, "access_rejections": session.access_rejections, "up_kib_s": upload, "down_kib_s": download, "queued_bytes": peer.socket.get_current_outbound_buffered_amount() if peer else 0, "coalesced": peer.skipped_packets if peer else 0, "transport": peer.rtc.diagnostics() if peer else {}, "crew_inputs": queues})
 	while history.size() > HISTORY_LIMIT: history.pop_front()
 
 func _ready() -> void:
@@ -131,6 +131,7 @@ func report() -> String:
 	var peer := multiplayer.multiplayer_peer as HarborPeer
 	if peer:
 		text += "Up %.1f / down %.1f KiB/s | queued %d B | coalesced/skipped %d\n" % [upload, download, peer.socket.get_current_outbound_buffered_amount(), peer.skipped_packets]
+		text += "Motion transport: %s | direct %.1f / %.1f KiB | fallbacks %d\n" % [str(peer.rtc.reasons) if peer.rtc.enabled else "relay (WebRTC unavailable/disabled)", peer.rtc.direct_sent / 1024.0, peer.rtc.direct_received / 1024.0, peer.rtc.fallbacks]
 	if session.services.has(session.local_id):
 		var fishing: RodFishing = session.services[session.local_id].get_node("Fishing")
 		text += "Fishing local %s | frame %d / host %d | geometry %.2f ms\n" % [fishing.local_reeling, fishing.local_frame, fishing.replay_frame, fishing.geometry_ms]

@@ -490,3 +490,9 @@ Validation: three local ENet peers passed 49 existing multiplayer smoke checks
 (host 28, guests 13 and 8). The traffic-policy suite passed 8 checks, menu
 flow passed 61, and shore-recovery and playtest-UI suites passed. These are
 local/synthetic checks, not a 50-player production load or real WAN benchmark.
+## WebRTC branch update (November 26, 2026)
+
+Protocol 17 adds an optional browser WebRTC fast path for unreliable traffic,
+using free Cloudflare STUN and the existing relay as fallback. Reliable input
+batches and actions remain on WebSocket. See [WebRTC networking](webrtc-networking.md)
+for architecture, free-service boundaries, diagnostics, disable switch and tests.
