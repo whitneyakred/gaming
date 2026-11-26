@@ -103,6 +103,66 @@ func run() -> void:
 		access.advance_guest_access(crew, 5.0)
 		check(crew.access_progress == 1.0 and crew.access_motion == phase and crew.is_overboard, "Outage cannot speculatively finish phase/board: %s" % phase)
 	crew.set_overboard(false)
+	# Correct a deliberate prediction error and replay remaining inputs. The body
+	# moves immediately; the displayed player stays where it was, then eases in.
+	crew.position = Vector2(-25, 90)
+	crew.inventory_open = false
+	crew.access_motion = &""
+	crew.set_physics_process(false)
+	ship.get_node("SwimAccess").set_physics_process(false)
+	var fixed_start: Vector2 = crew.position
+	crew.move_crew(Vector2.DOWN, 1.0 / 120.0)
+	check(absf(crew.position.distance_to(fixed_start) - crew.walk_speed / 120.0) < 0.01, "Collision movement uses explicit replay delta outside physics callback")
+	crew.position = fixed_start
+	NetworkSession._last_snapshot = {"trim": 0.0, "wheel": 0.0}
+	NetworkSession._prediction = [{"sequence": 1, "position": crew.position, "move": Vector2.ZERO, "trim": 0.0, "wheel": 0.0}, {"sequence": 2, "position": crew.position, "move": Vector2.DOWN, "trim": 0.0, "wheel": 0.0}]
+	var visual_before: Vector2 = crew.visual_position()
+	NetworkSession._reconcile_local({"position": Vector2(-25, 95), "ack": 1, "station": ""}, false)
+	check(NetworkSession.replayed_frames == 1 and crew.position.y > 95, "Host correction re-simulates only unacknowledged movement")
+	check(crew.visual_position().distance_to(visual_before) < 0.01, "Body correction preserves displayed position")
+	var body_after: Vector2 = crew.position
+	crew._process(0.1)
+	check(crew.position == body_after and crew.presentation_offset.length() < 5.0, "Visual smoothing never nudges collision body")
+	check(crew.presentation.global_position.distance_to(crew.visual_position()) < 0.01, "Rendered sailor follows visual correction offset")
+	NetworkSession._reconcile_local({"position": Vector2(-25, 90), "ack": 2, "station": ""}, true)
+	check(crew.presentation_offset == Vector2.ZERO, "State transitions clear visual offset")
+	# A guest starts the phase before an acknowledgement, but cannot board early.
+	NetworkSession.online = true
+	crew.position = access.plank_end
+	NetworkSession._predict_local(Vector2.ZERO, 1.0 / 60)
+	check(crew.access_motion == &"jump" and not NetworkSession._pending_access.is_empty(), "Jump starts immediately at local plank trigger")
+	check(NetworkSession._hold_predicted_access({"ack": -1, "access_motion": &"", "health": 15, "station": ""}), "Pre-input snapshot cannot cancel speculative traversal")
+	check(not NetworkSession._hold_predicted_access({"ack": Engine.get_physics_frames(), "access_motion": &"", "health": 15, "station": ""}), "Host rejection ends speculative traversal")
+	check(NetworkSession.access_rejections > 0, "Rejected traversal is diagnosed")
+	crew.access_motion = &""
+	crew.global_position = ship.to_global(access.ladder_water)
+	NetworkSession._access_retry_at = 0
+	NetworkSession._predict_local(Vector2.ZERO, 1.0 / 60)
+	check(crew.access_motion == &"align", "Ladder alignment starts locally before host reply")
+	check(not NetworkSession._hold_predicted_access({"access_motion": &"climb"}) and NetworkSession._pending_access.is_empty(), "Host phase confirms speculative ladder access")
+	access.advance_guest_access(crew, 5.0)
+	check(crew.is_overboard and crew.access_motion == &"align", "Speculative ladder never grants deck access")
+	NetworkSession.online = false
+	crew.set_overboard(false)
+	NetworkSession._prediction.clear()
+	for sequence in 70:
+		NetworkSession._prediction.append({"sequence": sequence, "position": crew.position, "move": Vector2.DOWN, "trim": 0.0, "wheel": 0.0})
+	NetworkSession._reconcile_local({"position": crew.position, "ack": 0, "station": ""}, false)
+	check(NetworkSession.replayed_frames == 0 and NetworkSession._prediction.is_empty(), "Long outage cannot create unbounded replay work")
+	for hz in [10, 15, 20]:
+		var tuned := SnapshotBuffer.new()
+		for serial in range(1, hz * 5):
+			var packet := state(serial)
+			packet.time = float(serial) / hz
+			tuned.push(packet, packet.time + 0.08)
+		check(absf(tuned.playback_delay - maxf(0.1, 1.5 / hz)) < 0.005, "Stable playback delay tracks %d Hz" % hz)
+	for step in 101:
+		var point := SnapshotBuffer.smooth_position(Vector2.ZERO, Vector2(10, -10), Vector2(900, -900), Vector2(-900, 900), 0.1, step / 100.0)
+		check(point.x >= 0 and point.x <= 10 and point.y >= -10 and point.y <= 0, "Velocity interpolation never overshoots confirmed endpoints")
+	for sample in 300: NetworkSession.diagnostics.record_sample()
+	check(NetworkSession.diagnostics.history.size() == 240, "Diagnostic history is bounded to two minutes")
+	check(not JSON.stringify(NetworkSession.diagnostics.history).contains("token"), "History contains no identity/authentication tokens")
+	crew.set_physics_process(true)
 	var helm := ship.get_node("Helm") as HelmStation
 	ship.player.position = helm.position
 	helm.try_take_control(ship.player)

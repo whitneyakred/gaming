@@ -6,6 +6,7 @@ var _resume_button: Button
 var _settings: SettingsPanel
 var _confirm: ConfirmationDialog
 var _network_button: Button
+var _history_button: Button
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -37,6 +38,8 @@ func _ready() -> void:
 		NetworkSession.diagnostics.enabled = not NetworkSession.diagnostics.enabled
 		resume())
 	rows.add_child(_network_button)
+	_history_button = HarborTheme.button("Export network history", func() -> void: NetworkSession.diagnostics.export_history())
+	rows.add_child(_history_button)
 	rows.add_child(HarborTheme.button("Return to title", _ask_return))
 	rows.add_child(HarborTheme.label("P / Esc  Resume", 14, HarborTheme.MUTED))
 	_settings = SettingsPanel.new()
@@ -70,6 +73,7 @@ func _input(event: InputEvent) -> void:
 
 func pause() -> void:
 	_network_button.visible = NetworkSession.online
+	_history_button.visible = NetworkSession.online or not NetworkSession.diagnostics.history.is_empty()
 	var scene := get_tree().current_scene
 	if is_paused() or scene == null or scene.is_in_group("title_screen"):
 		return

@@ -2,7 +2,6 @@ extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
 const PROTOCOL := "holy-ship-coop-16"
-const SNAPSHOT_INTERVAL := 0.1
 const INPUT_REFRESH_INTERVAL := 0.5
 const DEFAULT_PORT := 24567
 const MAX_CREW := 4
@@ -70,10 +69,20 @@ var _local_selection := -1
 var _selection_dirty := false
 var _selection_sent_at := 0
 var _local_close_until := 0
+const MAX_REPLAY_FRAMES := 60
+var replayed_frames := 0
+var replay_ms := 0.0
+var _pending_access: Dictionary = {}
+var _access_retry_at := 0
+var access_rejections := 0
+@export_range(10, 20) var snapshot_hz: int = 15
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	process_physics_priority = 50
+	# Gameplay is a host/guest star, never client-to-client RPC. Avoid ENet's
+	# extra peer-relay notifications (including disconnect sends to closing peers).
+	if multiplayer is SceneMultiplayer: multiplayer.server_relay = false
 	multiplayer.connected_to_server.connect(_connected)
 	multiplayer.connection_failed.connect(func() -> void: leave("Could not connect to the voyage. Refresh the crew list and try again."))
 	multiplayer.server_disconnected.connect(func() -> void: leave("The host disconnected. Your crew session has ended."))
@@ -84,6 +93,9 @@ func _ready() -> void:
 	var config := ConfigFile.new()
 	var path := "user://crew_identity.cfg"
 	var arguments := OS.get_cmdline_user_args()
+	var frequency_index := arguments.find("--snapshot-hz")
+	if "--settings-test" in arguments and frequency_index >= 0 and frequency_index + 1 < arguments.size():
+		snapshot_hz = clampi(int(arguments[frequency_index + 1]), 10, 20)
 	var profile_index := arguments.find("--crew-profile")
 	if profile_index >= 0 and profile_index + 1 < arguments.size():
 		path = "user://crew_identity_%s.cfg" % arguments[profile_index + 1].sha256_text().left(16)
@@ -691,8 +703,9 @@ func _physics_process(delta: float) -> void:
 		service.server_pickups()
 	_send_clock += delta
 	_save_clock += delta
-	if _send_clock >= SNAPSHOT_INTERVAL:
-		_send_clock = minf(_send_clock - SNAPSHOT_INTERVAL, SNAPSHOT_INTERVAL)
+	var snapshot_interval := 1.0 / clampi(snapshot_hz, 10, 20)
+	if _send_clock >= snapshot_interval:
+		_send_clock = minf(_send_clock - snapshot_interval, snapshot_interval)
 		_send_snapshot()
 	if _save_clock >= 20:
 		_save_clock = 0
@@ -737,6 +750,7 @@ func _send_snapshot() -> void:
 	var packed := var_to_bytes(_shared.motion(data)).compress(FileAccess.COMPRESSION_GZIP)
 	snapshot_bytes = packed.size()
 	snapshot_build_ms = (Time.get_ticks_usec() - build_started) / 1000.0
+	diagnostics.record_event("snapshot_sent", {"serial": _snapshot_serial, "host_time": data.time, "build_ms": snapshot_build_ms, "bytes": snapshot_bytes})
 	if multiplayer.multiplayer_peer is HarborPeer and _pending.is_empty() and packed.size() < 64000:
 		# One upload per crew; the relay fans it out. Pending peers must finish
 		# the scene handshake before receiving RPCs for the gameplay scene.
@@ -875,6 +889,7 @@ func apply_snapshot(data: Dictionary) -> void:
 	var now := Time.get_ticks_msec()
 	if snapshot_received_at > 0: snapshot_gap_ms = now - snapshot_received_at
 	snapshot_received_at = now
+	diagnostics.record_event("snapshot_received", {"serial": data.serial, "host_time": data.time, "gap_ms": snapshot_gap_ms, "ack": data.crew.get(local_id, {}).get("ack", -1)})
 	host_frame_ms = float(data.get("host_frame_ms", 0.0))
 	if int(data.get("seed", ship.world_seed)) != ship.world_seed:
 		_motion_buffer.clear()
@@ -925,12 +940,15 @@ func apply_snapshot(data: Dictionary) -> void:
 		player.hurt_serial = entry.get("hurt", 0)
 		player.respawn_serial = entry.get("respawn", 0)
 		player.danger_time = entry.get("danger", 0.0)
-		var transition: bool = respawned or player.is_overboard != entry.outside or (str(player.active_station.name) if player.using_station else "") != entry.station
+		var transition: bool = respawned or player.is_overboard != entry.outside or player.on_land != entry.land or (str(player.active_station.name) if player.using_station else "") != entry.station
 		var previous_access: StringName = player.access_motion
 		var previous_progress: float = player.access_progress
-		player.set_overboard(entry.outside)
-		player.access_motion = StringName(entry.get("access_motion", ""))
-		player.access_progress = clampf(float(entry.get("access_progress", 0.0)), 0.0, 1.0)
+		var hold_access := id == local_id and not respawned and _hold_predicted_access(entry)
+		if respawned and id == local_id: _pending_access.clear()
+		if not hold_access:
+			player.set_overboard(entry.outside)
+			player.access_motion = StringName(entry.get("access_motion", ""))
+			player.access_progress = clampf(float(entry.get("access_progress", 0.0)), 0.0, 1.0)
 		if id == local_id and not respawned and player.access_motion != &"" and player.access_motion == previous_access:
 			player.access_progress = maxf(player.access_progress, previous_progress)
 		player.update_land(entry.land)
@@ -1023,11 +1041,6 @@ func _predict_local(move: Vector2, delta: float) -> void:
 	if player.access_motion != &"":
 		ship.get_node("SwimAccess").advance_guest_access(player, delta)
 		return
-	var correction := _prediction_error * (1.0 - exp(-12.0 * delta))
-	player.position += correction
-	_prediction_error -= correction
-	for frame: Dictionary in _prediction:
-		frame.position += correction
 	if player.active_station != ship.get_node("Sail"): _trim_error = 0.0
 	if player.active_station != ship.get_node("Helm"): _wheel_error = 0.0
 	var control_weight := 1.0 - exp(-8.0 * delta)
@@ -1045,11 +1058,31 @@ func _predict_local(move: Vector2, delta: float) -> void:
 		ship.set_sail_angle(ship.sail_angle_degrees + move.x * 34.0 * delta)
 	elif player.active_station == ship.get_node("Helm"):
 		ship.set_wheel_angle(ship.wheel_angle_degrees + move.x * 165.0 * delta)
-	_prediction.append({"sequence": Engine.get_physics_frames(), "position": player.position, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees})
+	_prediction.append({"sequence": Engine.get_physics_frames(), "move": move, "position": player.position, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees})
 	if _prediction.size() > 120: _prediction.pop_front()
+	if online and Time.get_ticks_msec() >= _access_retry_at:
+		var access: SwimAccess = ship.get_node("SwimAccess")
+		var phase := access.candidate_phase(player)
+		if phase != &"":
+			_pending_access = {"phase": phase, "sequence": Engine.get_physics_frames(), "until": Time.get_ticks_msec() + 1500}
+			access._begin_access(player, phase)
+
+func _hold_predicted_access(entry: Dictionary) -> bool:
+	if _pending_access.is_empty(): return false
+	if entry.get("access_motion", &"") != &"":
+		_pending_access.clear()
+		return false
+	if int(entry.get("health", 15)) > 0 and not entry.get("island_challenge", false) and entry.get("station", "") == "" and int(entry.get("ack", -1)) < int(_pending_access.sequence) and Time.get_ticks_msec() < int(_pending_access.until):
+		return true
+	_pending_access.clear()
+	_access_retry_at = Time.get_ticks_msec() + 500
+	access_rejections += 1
+	return false
 
 func _reconcile_local(entry: Dictionary, transition: bool) -> void:
 	var player: CharacterBody2D = players[local_id]
+	replayed_frames = 0
+	if not _pending_access.is_empty(): return
 	if player.access_motion != &"":
 		_prediction.clear()
 		_prediction_error = Vector2.ZERO
@@ -1063,6 +1096,7 @@ func _reconcile_local(entry: Dictionary, transition: bool) -> void:
 			if transition: transition_resets += 1
 			else: distance_resets += 1
 		player.position = entry.position
+		player.presentation_offset = Vector2.ZERO
 		_prediction.clear()
 		_prediction_error = Vector2.ZERO
 		_trim_error = 0.0
@@ -1075,8 +1109,26 @@ func _reconcile_local(entry: Dictionary, transition: bool) -> void:
 	while not _prediction.is_empty() and int(_prediction[0].sequence) <= ack:
 		acknowledged = _prediction.pop_front()
 	if acknowledged.is_empty(): return
-	_prediction_error = Vector2(entry.position) - Vector2(acknowledged.position)
-	last_correction = _prediction_error.length()
+	var started := Time.get_ticks_usec()
+	var previous_visual: Vector2 = player.visual_position()
+	var previous_position := player.position
+	player.position = entry.position
+	replayed_frames = 0
+	# Re-run only movement, never pickups, damage, sounds, or traversal events.
+	# Large outages are bounded; do not spend an unbounded frame catching up.
+	if _prediction.size() <= MAX_REPLAY_FRAMES:
+		for frame: Dictionary in _prediction:
+			player.move_crew(frame.get("move", Vector2.ZERO), 1.0 / Engine.physics_ticks_per_second)
+			frame.position = player.position
+			replayed_frames += 1
+	else:
+		_prediction.clear()
+		distance_resets += 1
+		hard_corrections += 1
+	player.smooth_correction(previous_visual)
+	last_correction = previous_position.distance_to(player.position)
+	_prediction_error = Vector2.ZERO
+	replay_ms = (Time.get_ticks_usec() - started) / 1000.0
 	# Preserve controls applied since the acknowledged input, correcting only drift.
 	if entry.station == "Sail":
 		var error := wrapf(float(_last_snapshot.trim) - float(acknowledged.trim), -180.0, 180.0)
@@ -1162,6 +1214,11 @@ func leave(message: String = "") -> void:
 	_selection_dirty = false
 	_selection_sent_at = 0
 	_local_close_until = 0
+	_pending_access.clear()
+	_access_retry_at = 0
+	access_rejections = 0
+	replayed_frames = 0
+	replay_ms = 0.0
 	_waiting_snapshot.clear()
 	snapshot_received_at = 0
 	last_correction = 0.0

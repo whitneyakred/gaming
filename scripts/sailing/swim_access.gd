@@ -26,19 +26,23 @@ func update_crew(crew: CharacterBody2D) -> void:
 		return
 	if crew.island_challenge: return
 	if crew.health <= 0: return
-	if not crew.is_overboard:
-		if not crew.using_station and not crew.inventory_open and crew.position.distance_to(plank_end) < 14:
-			_begin_access(crew, &"jump")
+	var candidate := candidate_phase(crew)
+	if candidate != &"":
+		_begin_access(crew, candidate)
 		return
-	if crew.global_position.distance_to(ship.to_global(ladder_water)) < 20:
-		_begin_access(crew, &"align")
-		return
+	if not crew.is_overboard: return
 	var land := false
 	for island in ship.get_islands():
 		if Geometry2D.is_point_in_polygon(crew.global_position, island.get_coast()):
 			land = true
 			break
 	crew.update_land(land)
+
+func candidate_phase(crew: CharacterBody2D) -> StringName:
+	if crew.health <= 0 or crew.island_challenge or crew.access_motion != &"" or crew.using_station or crew.inventory_open: return &""
+	if not crew.is_overboard:
+		return &"jump" if crew.position.distance_to(plank_end) < 14 else &""
+	return &"align" if crew.global_position.distance_to(ship.to_global(ladder_water)) < 20 else &""
 
 func restore_swimmer() -> void:
 	returning_by_swimming = false

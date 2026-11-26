@@ -24,11 +24,12 @@ func _physics_process(delta: float) -> void:
 func refresh(delta: float) -> void:
 	var appearance: CharacterAppearance = crew.character_appearance
 	if appearance == null: return
-	var displacement := crew.position - last_position
+	var presented: Vector2 = crew.position + (crew.presentation_offset if crew.is_overboard else crew.get_parent().global_transform.basis_xform_inv(crew.presentation_offset))
+	var displacement := presented - last_position
 	if not crew.is_overboard and crew.get_parent() is Node2D:
 		displacement = crew.get_parent().global_transform.basis_xform(displacement)
 	var transition: bool = last_outside != crew.is_overboard or last_respawn != crew.respawn_serial
-	last_position = crew.position
+	last_position = presented
 	last_outside = crew.is_overboard
 	last_respawn = crew.respawn_serial
 	self_modulate = Color.WHITE

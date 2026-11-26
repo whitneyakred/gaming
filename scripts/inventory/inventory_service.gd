@@ -45,7 +45,7 @@ func _ready() -> void:
 	hud.bind_service(self)
 	var held_item := HeldItem.new()
 	held_item.service = self
-	player.add_child(held_item)
+	player.presentation.add_child(held_item)
 	var eating = load("res://scripts/inventory/eating.gd").new()
 	eating.name = "Eating"
 	eating.service = self

@@ -27,7 +27,7 @@ func advance(delta: float) -> void:
 	if delta <= 0: return
 	for sample in samples: sample.age += delta
 	while not samples.is_empty() and samples[0].age >= lifetime: samples.pop_front()
-	var at := crew.global_position
+	var at: Vector2 = crew.visual_position()
 	var displacement := at - last_position
 	var distance := displacement.length()
 	var swimming: bool = crew.is_overboard and not crew.on_land and crew.health > 0 and not crew.island_challenge and crew.access_motion == &""

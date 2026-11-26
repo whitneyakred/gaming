@@ -136,3 +136,32 @@ and screen awake. Repeat with the desktop hosting to compare host performance.
 5. Capture diagnostics before and during a hitch on both peers. Compare snapshot
    age/gaps, underrun growth, drift resets, frame times, and backlog. Coalesced
    snapshots are not a packet-loss count; state resets can be normal transitions.
+
+## Replay and smoothing validation (November 26)
+
+The new branch is `codex/network-smoothing-replay`; the website is not changed
+by local test runs. Use the existing delayed-relay command with
+`--snapshot-hz 10`, `--snapshot-hz 15`, or `--snapshot-hz 20` to compare host rates.
+15 Hz is the proposed default. All three players must finish with nonzero check
+counts and no engine/script errors. Do not interpret headless FPS as mobile FPS.
+
+- Run `tests/network_smoothing.gd`, `tests/network_responsiveness.gd`,
+  `tests/swim_transition_test.gd`, `tests/swimming_integration.gd`, and
+  `tests/character_animation.gd` with Godot `--headless --path . --script`.
+  They cover forced corrections, explicit replay time steps, bounded replay,
+  visual offsets, speculative jump/ladder confirmation/rejection, snapshot
+  cadence adaptation, interpolation bounds, and departure/RPC ordering.
+- In a real guest browser, reverse against deck obstacles while the boat turns.
+  Look for collision correctness and camera stability, not only animation FPS.
+- Start a jump/climb, introduce a temporary interruption, then recover. The
+  preview should start immediately, hold safely if needed, and reconcile without
+  duplicate splashes, item grants, or premature boarding. Also test death and
+  reconnect during traversal.
+- After a hitch, use **Esc → Export network history** or **F6** on both peers.
+  Save both JSON files. Export before reconnecting, which starts a new history.
+  The browser downloads the file; native builds print the `user://` output path.
+- For local browser automation, set `HISTORY_CHECK=1` and
+  `HARBOR_TEST_URL=http://127.0.0.1:8792`, then run
+  `node test/browser-pair.mjs` from `online-service`. Start the local export
+  preview server and relay first. This verifies two browser identities, runtime
+  errors, departure, and the actual JSON download, without deploying.
