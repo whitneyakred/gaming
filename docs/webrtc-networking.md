@@ -1,7 +1,8 @@
 # Optional WebRTC fast path
 
-Implemented on `codex/webrtc-fallback`, protocol `holy-ship-coop-17`. This branch is
-not deployed automatically. Deploy matching game and Worker builds together;
+Implemented on `codex/webrtc-fallback`, protocol `holy-ship-coop-17`. Source
+`bc93e77` was deployed for playtesting on November 26, 2026; see
+[release and rollback](networking-release-rollback.md). Deploy matching game and Worker builds together;
 protocol 16 clients cannot join protocol 17 rooms. Existing protocol 16 saves
 remain loadable.
 

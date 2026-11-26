@@ -170,4 +170,5 @@ counts and no engine/script errors. Do not interpret headless FPS as mobile FPS.
 For protocol 17, also run the transport/browser checks and physical-device
 checklist in [WebRTC networking](webrtc-networking.md). Test both direct and
 fallback paths; successful local browser emulation is not a substitute for a
-phone-on-cellular playtest. Production stays unchanged until explicitly deployed.
+phone-on-cellular playtest. The WebRTC build was deployed on November 26; see
+[release and rollback](networking-release-rollback.md).
