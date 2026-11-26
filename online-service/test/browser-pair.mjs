@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import {readFile} from "node:fs/promises";
 const base = process.env.HARBOR_TEST_URL ?? "http://127.0.0.1:8787";
 const browser = await chromium.launch({
   executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -73,6 +74,19 @@ try {
   await guest.page.keyboard.press("F3");
   await guest.page.waitForTimeout(2500);
   await guest.page.keyboard.press("F4");
+  if (process.env.HISTORY_CHECK === '1') {
+    const downloading = guest.page.waitForEvent('download');
+    await guest.page.keyboard.press('F6');
+    const download = await downloading;
+    const history = JSON.parse(await readFile(await download.path(), 'utf8'));
+    assert.equal(history.schema, 1);
+    assert.ok(history.samples.length > 0 && history.samples.length <= 240);
+    assert.ok(history.events.some(event => event.kind === 'snapshot_received'));
+    assert.ok(history.samples.every(sample => sample.role === 'guest'));
+    assert.ok(!JSON.stringify(history).includes('ticket'));
+    await download.saveAs('../.godot/browser-network-history.json');
+    console.log('PASS browser diagnostic history download');
+  }
   await guest.page.screenshot({path:"../.godot/browser-network-diagnostics.png"});
   await host.page.screenshot({ path: "../.godot/browser-two-players.png" });
   assert.equal(errors.length, 0, errors.join("\n"));

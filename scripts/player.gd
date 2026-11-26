@@ -25,6 +25,9 @@ var hurt_serial: int = 0
 var respawn_serial: int = 0
 var _deck_mask: int
 var _deck_layer: int
+var presentation: Node2D
+var presentation_offset := Vector2.ZERO # World-space; never changes collision state.
+@export var correction_response := 18.0
 @export var character_appearance: CharacterAppearance = preload("res://assets/player/characters/viking/appearance.tres")
 var using_station: bool:
 	get:
@@ -53,6 +56,11 @@ func leave_station(station: Node) -> void:
 
 
 func _ready() -> void:
+	presentation = Node2D.new()
+	presentation.name = "Presentation"
+	add_child(presentation)
+	idle_sprite.reparent(presentation, false)
+	fishing_animation.reparent(presentation, false)
 	var swim_wake := SwimWake.new()
 	swim_wake.name = "SwimWake"
 	add_child(swim_wake)
@@ -79,10 +87,22 @@ func _physics_process(_delta: float) -> void:
 
 func _process(_delta: float) -> void:
 	global_rotation = 0.0
+	presentation_offset *= exp(-correction_response * _delta)
+	if presentation_offset.length_squared() < 0.0001: presentation_offset = Vector2.ZERO
+	if presentation != null:
+		presentation.position = global_transform.basis_xform_inv(presentation_offset)
+	var label := get_node_or_null("CrewName") as Control
+	if label != null: label.position = Vector2(-50, -42) + global_transform.basis_xform_inv(presentation_offset)
 	visible = health > 0
 	# Deck props sit at zero. Water is below the hull, plank and ladder;
 	# shoreline walkers and crew on deck stay above the scenery.
 	z_index = -1 if is_overboard and not on_land and access_motion in [&"", &"dunk", &"surface", &"align"] else 1
+
+func smooth_correction(previous_visual: Vector2) -> void:
+	presentation_offset = (previous_visual - global_position).limit_length(80.0)
+
+func visual_position() -> Vector2:
+	return global_position + presentation_offset
 
 func move_crew(direction: Vector2, _delta: float) -> void:
 	if health <= 0 or using_station or inventory_open or island_challenge or access_motion != &"":
@@ -103,8 +123,16 @@ func move_crew(direction: Vector2, _delta: float) -> void:
 		global_position = next
 		return
 	velocity = direction * walk_speed
-	# Godot moves the body and handles collisions with the deck boundary.
-	move_and_slide()
+	# Explicit delta is essential during replay: move_and_slide chooses its time
+	# step from the current engine callback, which can be render rather than physics
+	# when an ENet snapshot arrives. Host, guest, and replay use this same sweep.
+	var motion := velocity * _delta
+	for slide in max_slides:
+		var collision := move_and_collide(motion, false, safe_margin)
+		if collision == null: break
+		motion = collision.get_remainder().slide(collision.get_normal())
+		velocity = velocity.slide(collision.get_normal())
+		if motion.length_squared() < 0.000001: break
 
 func set_overboard(value: bool) -> void:
 	# Respawn/teleport callers must not leave a stale traversal controlling movement.

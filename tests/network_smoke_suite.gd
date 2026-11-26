@@ -57,7 +57,7 @@ func run() -> void:
 			bytes += sample.bytes
 		var elapsed := maxf(1.0, (Time.get_ticks_msec() - started_msec) / 1000.0)
 		var packet_rate := packets / elapsed
-		check(packet_rate < (18.0 if role == "host" else 28.0), "Actual Godot relay traffic stays bounded, including reconnects and batched movement/fishing")
+		check(packet_rate < (NetworkSession.snapshot_hz + 8.0 if role == "host" else 28.0), "Actual Godot relay traffic stays bounded, including reconnects and batched movement/fishing")
 		print("RELAY TRAFFIC ", role, ": ", packets, " packets, ", bytes, " bytes, ", snappedf(packet_rate, 0.01), " packets/s")
 	check(NetworkSession.invalid_packets == 0, "Normal gameplay never rejects valid protocol packets")
 	if "--network-diagnostics" in args and NetworkSession.online:

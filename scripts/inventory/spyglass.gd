@@ -106,7 +106,7 @@ func _update_view(delta: float) -> void:
 	var desired_pan := pan_for_mouse(get_viewport().get_mouse_position(), get_viewport_rect().size)
 	_pan = _pan.lerp(desired_pan, 1.0 - exp(-10.0 * delta))
 	_scope_camera.zoom = _previous_camera.zoom.lerp(_previous_camera.zoom * zoom_multiplier, eased)
-	_scope_camera.global_position = (_previous_camera.global_position + _previous_camera.offset).lerp(service.player.global_position + _pan, eased)
+	_scope_camera.global_position = (_previous_camera.global_position + _previous_camera.offset).lerp(service.player.visual_position() + _pan, eased)
 	_scope_camera.force_update_scroll()
 	if not active and _blend <= 0.0:
 		_restore_camera()

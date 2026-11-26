@@ -91,7 +91,14 @@ func control(data: Dictionary) -> void:
 			identities[int(data.id)] = str(data.identity)
 			events.append({"id": int(data.id), "joined": true})
 		"peer_left":
-			identities.erase(int(data.id))
+			var departed := int(data.id)
+			identities.erase(departed)
+			# A burst can contain RPCs followed by departure in the same poll.
+			# SceneMultiplayer receives disconnect events before draining packets;
+			# never leave it RPCs from a peer it has just removed.
+			for index in range(incoming.size() - 1, -1, -1):
+				if int(incoming[index].peer) == departed: incoming.remove_at(index)
+			if departed == 1: latest_snapshot = PackedByteArray()
 			events.append({"id": int(data.id), "joined": false})
 
 static func valid_id(value: Variant) -> bool:

@@ -386,12 +386,12 @@ func _draw() -> void:
 	if state == State.IDLE or not is_instance_valid(service.player):
 		return
 	if not get_viewport_rect().grow(cast_range + 80).has_point(get_canvas_transform() * service.player.global_position): return
-	var origin := service.player.global_position + Vector2(8, -18)
+	var origin: Vector2 = service.player.visual_position() + Vector2(8, -18)
 	var bobber := bobber_position()
 	var start := to_local(origin)
 	var end := to_local(bobber)
 	var direction := (end - start).normalized()
-	draw_line(to_local(service.player.global_position), start + direction * 14, Color("cfad73"), 3)
+	draw_line(to_local(service.player.visual_position()), start + direction * 14, Color("cfad73"), 3)
 	start += direction * 14
 	var line := PackedVector2Array()
 	var sag := 4.0 if state == State.REELING and held else 18.0

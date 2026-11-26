@@ -90,6 +90,11 @@ func run() -> void:
 	check(not NetworkSession.valid_command({"attempt": {}}) and not NetworkSession.valid_command({"point": Vector2(NAN, 0)}), "Malformed command fields rejected before conversion")
 	check(not HarborPeer.valid_control({"type": "welcome", "id": 1, "identity": "test", "peers": [null]}), "Malformed peer list rejected without property access")
 	check(HarborPeer.valid_control({"type": "welcome", "id": 2.0, "identity": "test", "peers": [{"id": 1.0, "identity": "host"}]}), "JSON numeric peer identifiers remain supported")
+	var departing := HarborPeer.new()
+	departing.identities = {2: "one", 3: "two"}
+	departing.incoming = [{"peer": 2, "bytes": PackedByteArray([1])}, {"peer": 3, "bytes": PackedByteArray([2])}]
+	departing.control({"type": "peer_left", "id": 2})
+	check(departing.incoming.size() == 1 and departing.incoming[0].peer == 3, "Departure purges only departed peer RPCs before disconnect delivery")
 	var playback := SnapshotBuffer.new()
 	for i in range(1, 8):
 		playback.push({"serial": i, "time": i * 0.1, "position": Vector2(i, 0)}, i * 0.1 + (0.12 if i >= 4 else 0.0))

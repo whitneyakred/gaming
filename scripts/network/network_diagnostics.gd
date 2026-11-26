@@ -14,6 +14,42 @@ var download := 0.0
 var last_frame_peak := 0.0
 var peak_snapshot_gap := 0
 var peak_correction := 0.0
+const HISTORY_LIMIT := 240 # Two minutes at two samples per second.
+var history: Array[Dictionary] = []
+var events: Array[Dictionary] = []
+const EVENT_LIMIT := 600
+var _recording := false
+
+func record_event(kind: String, details: Dictionary) -> void:
+	if not _recording:
+		history.clear()
+		events.clear()
+		_recording = true
+	events.append({"tick_ms": Time.get_ticks_msec(), "kind": kind, "details": details})
+	while events.size() > EVENT_LIMIT: events.pop_front()
+
+func export_history() -> void:
+	var payload := JSON.stringify({"schema": 1, "protocol": NetworkSession.PROTOCOL, "samples": history, "events": events}, "\t")
+	var filename := "holy-ship-network-%d.json" % Time.get_unix_time_from_system()
+	if OS.has_feature("web"):
+		JavaScriptBridge.download_buffer(payload.to_utf8_buffer(), filename, "application/json")
+	else:
+		var file := FileAccess.open("user://" + filename, FileAccess.WRITE)
+		if file == null:
+			push_warning("Could not save network diagnostics.")
+			return
+		file.store_string(payload)
+		print("Network history saved: ", ProjectSettings.globalize_path("user://" + filename))
+
+func record_sample() -> void:
+	var session := NetworkSession
+	var queues := {}
+	for id: int in session._crew_buffers:
+		var buffer: CrewInputBuffer = session._crew_buffers[id]
+		queues[str(id)] = {"queued": buffer.frames.size(), "ack": buffer.acknowledged, "rejected": buffer.rejected}
+	var peer := multiplayer.multiplayer_peer as HarborPeer
+	history.append({"utc": Time.get_unix_time_from_system(), "tick_ms": Time.get_ticks_msec(), "role": "host" if session.local_id == 1 else "guest", "fps": Engine.get_frames_per_second(), "frame_peak_ms": last_frame_peak, "host_frame_ms": session.host_frame_ms, "rtt_ms": rtt_ms, "snapshot_gap_ms": session.snapshot_gap_ms, "snapshot_age_ms": Time.get_ticks_msec() - session.snapshot_received_at if session.snapshot_received_at else 0, "buffer_ms": session._motion_buffer.playback_delay * 1000, "underruns": session._motion_buffer.underruns, "correction_px": session.last_correction, "state_resets": session.transition_resets, "drift_resets": session.distance_resets, "replayed": session.replayed_frames, "replay_ms": session.replay_ms, "access_rejections": session.access_rejections, "up_kib_s": upload, "down_kib_s": download, "queued_bytes": peer.socket.get_current_outbound_buffered_amount() if peer else 0, "coalesced": peer.skipped_packets if peer else 0, "crew_inputs": queues})
+	while history.size() > HISTORY_LIMIT: history.pop_front()
 
 func _ready() -> void:
 	layer = 100
@@ -37,6 +73,9 @@ func _input(event: InputEvent) -> void:
 		elif event.keycode == KEY_F4 and NetworkSession.online:
 			print("NETWORK DIAGNOSTICS\n", report())
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_F6 and not history.is_empty():
+			export_history()
+			get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
 	label.visible = enabled and NetworkSession.online
@@ -44,6 +83,7 @@ func _process(delta: float) -> void:
 	frame_peak = maxf(frame_peak, delta * 1000.0)
 	clock += delta
 	if not NetworkSession.online or not NetworkSession.world_ready:
+		_recording = false
 		rtt_ms = -1
 		ping_sent = 0
 		previous_sent = 0
@@ -54,6 +94,10 @@ func _process(delta: float) -> void:
 		peak_snapshot_gap = 0
 		peak_correction = 0.0
 		return
+	if not _recording:
+		history.clear()
+		events.clear()
+		_recording = true
 	peak_snapshot_gap = maxi(peak_snapshot_gap, NetworkSession.snapshot_gap_ms)
 	peak_correction = maxf(peak_correction, NetworkSession.last_correction)
 	ping_clock += delta
@@ -70,6 +114,7 @@ func _process(delta: float) -> void:
 		previous_sent = peer.bytes_sent
 		previous_received = peer.bytes_received
 	label.text = report()
+	record_sample()
 	clock = 0.0
 	frame_peak = 0.0
 
@@ -82,6 +127,7 @@ func report() -> String:
 	text += "Playback delay %.0f ms | underrun frames %d\n" % [session._motion_buffer.playback_delay * 1000, session._motion_buffer.underruns]
 	text += "Correction %.2f / peak %.2f px | state resets %d / drift resets %d | predictions %d\n" % [session.last_correction, peak_correction, session.transition_resets, session.distance_resets, session._prediction.size()]
 	text += "Snapshot %d B | build %.2f ms | apply %.2f ms | rejected %d\n" % [session.snapshot_bytes, session.snapshot_build_ms, session.snapshot_apply_ms, session.invalid_packets]
+	text += "Replay %d frames / %.2f ms | traversal denied %d\n" % [session.replayed_frames, session.replay_ms, session.access_rejections]
 	var peer := multiplayer.multiplayer_peer as HarborPeer
 	if peer:
 		text += "Up %.1f / down %.1f KiB/s | queued %d B | coalesced/skipped %d\n" % [upload, download, peer.socket.get_current_outbound_buffered_amount(), peer.skipped_packets]
@@ -92,4 +138,4 @@ func report() -> String:
 		if id == session.local_id: continue
 		var buffer: CrewInputBuffer = session._crew_buffers[id]
 		if session.local_id == 1: text += "Crew %d: queued inputs %d | ack %d | rejected %d\n" % [id, buffer.frames.size(), buffer.acknowledged, buffer.rejected]
-	return text + "F3 hide/show • F4 write sample to local log"
+	return text + "F3 hide/show • F4 log sample • F6 export history"

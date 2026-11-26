@@ -1,5 +1,81 @@
 # Local responsiveness and prompt disconnects
 
+## Movement replay and presentation update — November 26, 2026 / protocol 16
+
+Implemented on `codex/network-smoothing-replay`. This is selective client movement
+replay, not deterministic whole-world rollback. No new dependency, transport, or
+hosted service is required. The host still owns collisions, items, damage,
+traversal completion, and shared gameplay decisions.
+
+- Local movement history now retains input directions. On acknowledgement, the
+  guest restores the authoritative position and replays only later inputs using
+  the shared movement/collision function with an explicit fixed time step, even
+  when a snapshot arrives outside a physics callback. Deck sweeps/sliding use
+  that same function in solo, host, guest, and replay. Replay never runs pickup, reward,
+  damage, sound, or traversal-transition logic. Each reconciliation is capped at
+  60 input frames; longer pending history falls back to a bounded position reset.
+- Position correction no longer pushes the collision body over subsequent
+  ticks. A presentation node carries a bounded, exponentially decaying offset
+  for the sailor and held item. Name labels, swimmer camera, spyglass focus, and
+  wakes follow the visual position. State changes clear the visual offset.
+- Plank/ladder triggers share the host's eligibility function. A guest can begin
+  jump/alignment immediately, but cannot complete a phase or board without the
+  host. Older pre-input snapshots cannot erase the preview. A processed-input
+  rejection, death, challenge/station change, or expired 1.5-second preview is
+  resolved against the next authoritative snapshot, with a 500 ms retry cooldown.
+  With no snapshots at all, the animation holds at its endpoint; it does not
+  invent an outcome. Rejection counts appear in diagnostics.
+- The host defaults to 15 Hz snapshots, configurable from 10–20 via the autoload's
+  `snapshot_hz` property. Automated tests can pass `--settings-test --snapshot-hz
+  10` (or 15/20). Existing 10 Hz hosts remain compatible. The guest estimates
+  cadence from host timestamps and serial differences, targeting a 100 ms buffer
+  at stable 15/20 Hz or 150 ms at 10 Hz, growing up to 300 ms with jitter.
+- Ship position uses monotone velocity-aware cubic interpolation between known
+  endpoints. Tangents are constrained to avoid overshoot. Rotations still use
+  shortest-path interpolation. Extrapolation stays disabled: an outage holds
+  the latest confirmed pose instead of guessing through shore. Teleports reset
+  the buffer rather than constructing a curve across the jump.
+- Diagnostics keep 240 half-second samples (about two minutes) plus 600 recent
+  snapshot-send/receive events. Samples include replay cost/count, traversal
+  rejection, input queue/acknowledgement, FPS, frame peaks, RTT when enabled,
+  buffer age/gaps, corrections, and throughput. Events retain snapshot serials
+  and host timestamps to correlate exports from both peers. Rejoining starts a
+  new recording; disconnect retains the final recording until then.
+
+Press **F6** or **Esc → Export network history** to save JSON. Browsers download
+the file; native builds save it in `user://` and print the absolute path to the
+log. Recording is bounded and local; no identities, tickets, IP addresses, saves,
+or inventory contents are included. Nothing uploads automatically. Keep the
+overlay enabled when measuring RTT. Export from both host and guest just after
+a hitch; device UTC clocks may differ, so use snapshot serial/host-time pairs
+alongside the local timestamps.
+
+Replay uses the currently known collision world; it does not rewind moving ship
+geometry or all other players. Corrections can still be necessary around changing
+obstacles and state transitions. Increasing snapshot frequency increases traffic
+and host serialization work; it cannot remove a long network interruption.
+The older implementation notes below describe the November 20 release.
+
+Validation on November 26: smoothing/replay/UI property tests, 82 responsiveness
+checks, 47 traversal checks, 33 character-animation checks, 84 fishing checks,
+72 survival checks, swimming integration, and pause checks passed. Three-player
+ENet passed 65 checks. Three-player impaired relay runs passed 68 checks at each
+of 10, 15, and 20 Hz (80–120 ms delay in each direction, 300 ms recurring stalls).
+Observed total host packet rates were approximately 11.6, 16.2, and 20.8 packets/s
+respectively. These are regression measurements, not a controlled mobile-device
+performance benchmark or a guarantee against real cellular interruptions.
+The isolated release Web export and two-browser host/join/disconnect smoke also
+passed, including an actual F6 diagnostic JSON download. The browser runner uses
+SwiftShader software rendering; its FPS must not be used as a hardware benchmark.
+
+The comparison also exposed disconnect ordering issues. HarborPeer now removes
+queued RPCs from a departing peer before delivering its disconnect event to
+SceneMultiplayer. Native ENet disables unused peer-to-peer server relay features
+before connecting: all gameplay already follows the host/guest star topology,
+and remote crew presence comes from world snapshots. This avoids unnecessary
+peer notifications during simultaneous departures. See Godot's
+[server_relay documentation](https://docs.godotengine.org/en/stable/classes/class_scenemultiplayer.html#class-scenemultiplayer-property-server-relay).
+
 ## Current implementation — November 20, 2026 / protocol 16
 
 The `better-networking` branch retains the existing WebSocket relay, player-host

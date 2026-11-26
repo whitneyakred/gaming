@@ -1,5 +1,20 @@
 # Networking playtest release and rollback
 
+## November 26 movement replay release
+
+`codex/network-smoothing-replay` is merged into `systems-revamp` for the phone/PC
+playtest. Protocol remains 16. The immediately previous production build is:
+
+- Source commit `cb53c5b88a2b037b71a0d4b04df328cadc7c5cd4`, preserved by tag
+  `pre-replay-systems-revamp-20261126`.
+- Pages deployment `e8c6845f-dd40-4ed4-9601-04f80c266aee`.
+- Worker version `7efd9a0f-1150-49ca-9588-0de181d177d0`.
+
+To restore that build, roll Pages back to that deployment using the dashboard
+steps below, then run `wrangler rollback 7efd9a0f-1150-49ca-9588-0de181d177d0`
+from `online-service`. Refresh every client. Older rollback targets below remain
+historical alternatives; they are not the immediately preceding release.
+
 Prepared November 20, 2026 from `better-networking`, protocol 16.
 The follow-up UI/traversal release merges `better-networking` into
 `systems-revamp` at the user's request. The old `systems-revamp` source commit

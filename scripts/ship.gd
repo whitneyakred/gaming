@@ -165,7 +165,7 @@ func _process(delta: float) -> void:
 	if _state == State.ROWING:
 		target = _view_offset_showing(rowboat.global_position, offset)
 	elif player.is_overboard:
-		target = player.global_position - global_position
+		target = player.visual_position() - global_position
 	_view.view_offset = offset.lerp(target, 1.0 - exp(-VIEW_FOLLOW_SPEED * delta))
 
 # The smallest change to `current` that brings `point` inside the screen,

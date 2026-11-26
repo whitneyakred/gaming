@@ -178,6 +178,11 @@ func run() -> void:
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png("res://.godot/survival-map.png")
 	GameWindow.shutdown_audio()
+	for voice in get_tree().root.find_children("*", "AudioStreamPlayer", true, false):
+		voice.stop()
+		voice.stream = null
+	await get_tree().process_frame
+	await get_tree().create_timer(0.15).timeout
 	print("SURVIVAL: ",checks," checks, ",failures," failures")
 	get_tree().quit(1 if failures else 0)
 
