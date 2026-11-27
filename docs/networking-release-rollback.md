@@ -1,5 +1,14 @@
 # Networking playtest release and rollback
 
+## November 27 small interaction hints (protocol 23)
+
+- Source: `f9ad281`, pushed to `systems-revamp` (hint positioning: `8285139`).
+- Pages deployment: https://0bdc38b6.holy-ship.pages.dev
+- Worker: `70cabbb8-80bd-4474-952f-4e2c46a6f10a`.
+- Small white 12 px `Space - interact` text follows the nearby object; the bottom panel is removed. No networking changes.
+- Godot parser, native visual inspection and HTML5 export passed; live HTML/JS/PCK hashes match the final export.
+- Rollback to the clearing release: Pages `8f0cd473-dc5a-4c74-bddb-fb1e519d91e2`, Worker `76b0a412-ecf2-4b5a-b916-93944cd087a3`.
+
 ## November 27 merged clearing-challenge release (protocol 23)
 
 - Merged source: `86b243fa29a12bc0890130bfe4d0585564d167b8`, pushed to the existing `systems-revamp` branch.
