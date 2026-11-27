@@ -180,6 +180,67 @@ func run() -> void:
 		ship.get_node("MapUI").show()
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png("res://.godot/survival-map.png")
+	# Death loot uses the actual death surface, never the nearby boat.
+	service.drops.clear()
+	world.respawn(1)
+	var death_bag: Array[Dictionary] = [{"id":&"coal","quantity":3},{"id":&"bronze_key","quantity":1}]
+	player.player_inventory.restore(death_bag)
+	VoyageState.paradise_quest["bronze_seals"] = 3
+	VoyageState.reconcile_keys()
+	var deck_position := player.position
+	world.damage(1,15)
+	check(service.drops.size()==2 and service.drops.values().all(func(e): return not e.world and e.position==deck_position),"Deck death drops every carried stack in ship coordinates")
+	check(player.player_inventory.get_quantity(&"coal")==0 and VoyageState.has_key("bronze"),"Ground key stays claimed while dead bag is empty")
+	world.damage(1,15)
+	check(service.drops.size()==2,"Repeated death damage cannot duplicate drops")
+	world.respawn(1)
+	check(service.drops.size()==2,"Respawn preserves death loot")
+	service.drops.clear()
+	var island := ship.get_islands()[0]
+	var coast := island.get_coast()
+	var shore := Vector2.ZERO
+	var water := Vector2.ZERO
+	var located := false
+	for i in coast.size():
+		var middle := (coast[i]+coast[(i+1)%coast.size()])*0.5
+		var normal := (coast[(i+1)%coast.size()]-coast[i]).normalized().orthogonal()
+		for side in [-1.0,1.0]:
+			var inside: Vector2 = middle+normal*12.0*side
+			var outside: Vector2 = middle-normal*60.0*side
+			if Geometry2D.is_point_in_polygon(inside,coast) and not Geometry2D.is_point_in_polygon(outside,coast):
+				shore=inside; water=outside; located=true; break
+		if located: break
+	check(located,"Test finds real coastline with water and safe interior")
+	player.set_overboard(true)
+	player.update_land(true)
+	player.global_position=shore
+	death_bag = [{"id":&"silver_key","quantity":1},{"id":&"rope","quantity":2}]
+	player.player_inventory.restore(death_bag)
+	world.damage(1,15)
+	check(service.drops.size()==2 and service.drops.values().all(func(e): return e.world and e.position==shore),"Shore death drops items exactly on land")
+	check(VoyageState.has_key("silver"),"Island-floor key cannot respawn a duplicate")
+	service.drops.clear()
+	world.respawn(1)
+	player.set_overboard(true)
+	player.update_land(false)
+	player.global_position=water
+	death_bag = [{"id":&"gold_key","quantity":1},{"id":&"coal","quantity":2}]
+	player.player_inventory.restore(death_bag)
+	world.damage(1,15)
+	check(service.drops.size()==2 and service.drops.values().all(func(e): return e.world and Geometry2D.is_point_in_polygon(e.position,coast)),"Near-shore drowning places all items inside island coastline")
+	service.drops.clear()
+	world.respawn(1)
+	player.set_overboard(true)
+	player.update_land(false)
+	player.global_position=ship.to_global(Vector2(250,0))
+	death_bag = [{"id":&"bronze_key","quantity":1},{"id":&"coal","quantity":3}]
+	player.player_inventory.restore(death_bag)
+	VoyageState.reconcile_keys()
+	world.damage(1,15)
+	check(service.drops.is_empty() and player.player_inventory.get_quantity(&"coal")==0,"Drowning near boat but far from land loses loot without deck drops")
+	check(not VoyageState.has_key("bronze") and VoyageState.paradise_quest.bronze_seals==3,"Lost sea key returns to solved pedestal")
+	world.respawn(1)
+	check(VoyageState.grant_key("bronze",player.player_inventory),"Returned key can be collected again")
 	GameWindow.shutdown_audio()
 	for voice in get_tree().root.find_children("*", "AudioStreamPlayer", true, false):
 		voice.stop()

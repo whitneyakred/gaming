@@ -4,6 +4,8 @@ extends Node2D
 @export var red_water_seconds: float = 15.0
 @export var shark_delay: float = 4.0
 @export var shark_delay_variation: float = 4.0
+## Water deaths within this many world pixels recover inventory on shore.
+@export_range(0.0, 400.0) var shore_drop_distance: float = 120.0
 var arrival_delays: Dictionary = {}
 var medical: Dictionary = {}
 @export_range(1.0, 2.0) var largest_shark_scale: float = 1.75
@@ -304,10 +306,56 @@ func damage(id: int, amount: int) -> void:
 	player.hurt_serial += 1
 	if player.health == 0:
 		stop_actions(id)
-		var empty: Array[Dictionary] = []
-		player.player_inventory.restore(empty)
+		drop_death_inventory(id)
 		player.velocity = Vector2.ZERO
 		player.swim_time = 0.0
+
+func death_drop_location(player: CharacterBody2D) -> Dictionary:
+	# Deck drops stay in ship-local coordinates, even while the ship moves.
+	if not player.is_overboard:
+		return {"position":player.position,"world":false}
+	var point := player.global_position
+	var nearest := shore_drop_distance
+	var result := {}
+	for island in ship.get_islands():
+		var coast := island.get_coast()
+		if Geometry2D.is_point_in_polygon(point,coast):
+			return {"position":point,"world":true}
+		for i in coast.size():
+			var a := coast[i]
+			var b := coast[(i+1)%coast.size()]
+			var edge := Geometry2D.get_closest_point_to_segment(point,a,b)
+			var distance := point.distance_to(edge)
+			if distance > nearest or a.is_equal_approx(b): continue
+			var normal := (b-a).normalized().orthogonal()
+			# Test both sides rather than assuming coastline winding or convexity.
+			for inset in [12.0,4.0,1.0]:
+				for side in [-1.0,1.0]:
+					var landing: Vector2 = edge+normal*inset*side
+					if Geometry2D.is_point_in_polygon(landing,coast):
+						nearest = distance
+						result = {"position":landing,"world":true}
+						break
+				if not result.is_empty() and nearest == distance: break
+	return result
+
+func drop_death_inventory(id: int) -> void:
+	if NetworkSession.online and not multiplayer.is_server(): return
+	var player: CharacterBody2D = crew()[id]
+	var service := service_for(id)
+	var location := death_drop_location(player)
+	var carried: Array[Dictionary] = player.player_inventory.capture()
+	player.player_inventory.clear()
+	medical.erase(id)
+	if service != null and not location.is_empty():
+		for entry in carried:
+			if entry.is_empty(): continue
+			var drop_id := NetworkSession.dropped_id if NetworkSession.online else service.next_drop_id
+			service._spawn_drop(entry,location.position)
+			service.drops[drop_id]["world"] = location.world
+	# Lost-at-sea keys become available at their original solved pedestal again.
+	# Ground keys, keys in other bags/chests and inserted keys remain accounted for.
+	VoyageState.reconcile_keys()
 
 func stop_actions(id: int) -> void:
 	var service := service_for(id)

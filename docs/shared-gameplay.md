@@ -130,3 +130,24 @@ save/restore, distinct rewards, held-medpack cancellation/consumption, malformed
 return records, remote splashes, and three-player relay gameplay. Browser testing
 covers direct WebRTC and forced fallback; physical-phone latency still needs a
 real playtest.
+
+## Death drops
+
+The host resolves death inventory once. Death on the ship drops each carried stack
+in ship-local coordinates so it moves with the deck. Death on an island drops it
+at the death position. Drowning within 120 world pixels of a coastline places
+stacks just inside that coastline; drowning farther away loses carried supplies.
+Being near the ship while swimming never sends loot onto its deck.
+
+Tune **Shore Drop Distance** on the ship's **Survival** node in the Inspector.
+Shore lookup runs only on death and validates the landing point against the real
+coast polygon, including concave coastlines. Drops use existing reliable shared
+state, pickup rules, saving and five-minute ground lifetime; no new transport or
+per-frame network work is introduced.
+
+Keys dropped on deck or shore remain recoverable and cannot simultaneously respawn
+at their pedestal. A key lost at sea (or later expired on the ground) returns to
+its original pedestal with solved seals preserved. Keys in other inventories,
+storage or the Paradise gate remain accounted for. Respawning does not create a
+second set of drops. Survival tests cover these death locations and key recovery;
+the three-player network test verifies guest death loot reaches both observers.
