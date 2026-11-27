@@ -500,3 +500,9 @@ Protocol 17 adds an optional browser WebRTC fast path for unreliable traffic,
 using free Cloudflare STUN and the existing relay as fallback. Reliable input
 batches and actions remain on WebSocket. See [WebRTC networking](webrtc-networking.md)
 for architecture, free-service boundaries, diagnostics, disable switch and tests.
+
+## Protocol 19 shared gameplay
+
+See [shared gameplay](shared-gameplay.md) for deterministic catchable fish,
+shared waypoints, cooking escrow and damage effects. It retains protocol 18
+movement/relay smoothing, WebRTC fast lane, free STUN and WebSocket fallback.

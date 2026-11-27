@@ -23,11 +23,36 @@ var selected_island_id := ""
 var has_destination := false
 var destination := Vector2.ZERO
 var map_open := false
+var crew_markers: Dictionary = {}
+var pending_marker_until := 0
+const MARKER_COLORS := [Color("ff6464"), Color("58bfff"), Color("78df8c"), Color("e7a2ff")]
+
+func marker_color(id: int) -> Color:
+	var ids := NetworkSession.players.keys() if NetworkSession.online else [1]
+	ids.sort()
+	return MARKER_COLORS[maxi(0, ids.find(id)) % MARKER_COLORS.size()]
+
+func local_marker_id() -> int:
+	return NetworkSession.local_id if NetworkSession.online else 1
+
+func accept_markers(data: Dictionary) -> void:
+	var next := data.duplicate()
+	var id := local_marker_id()
+	if pending_marker_until > Time.get_ticks_msec():
+		var acknowledged: bool = (data.get(id) == destination) if has_destination else not data.has(id)
+		if acknowledged: pending_marker_until = 0
+		elif has_destination: next[id] = destination
+		else: next.erase(id)
+	if next == crew_markers: return
+	crew_markers = next
+	changed.emit()
 
 func reset() -> void:
 	world_bounds = Rect2(-12000, -12000, 24000, 24000)
 	_has_world_bounds = false
 	markers.clear()
+	crew_markers.clear()
+	pending_marker_until = 0
 	discovered_islands.clear()
 	island_catalog.clear()
 	key_regions.clear()
@@ -102,13 +127,20 @@ func remove_marker_near(position: Vector2, tolerance: float) -> bool:
 
 
 func set_destination(position: Vector2) -> void:
+	if not position.is_finite() or not world_bounds.has_point(position): return
+	if NetworkSession.online and NetworkSession.local_id != 1: pending_marker_until = Time.get_ticks_msec() + 2000
 	destination = position
 	has_destination = true
+	crew_markers[local_marker_id()] = position
+	if NetworkSession.online: NetworkSession.command("marker", {"point": position})
 	changed.emit()
 
 
 func clear_destination() -> void:
+	if NetworkSession.online and NetworkSession.local_id != 1: pending_marker_until = Time.get_ticks_msec() + 2000
 	has_destination = false
+	crew_markers.erase(local_marker_id())
+	if NetworkSession.online: NetworkSession.command("marker", {"clear": true})
 	changed.emit()
 
 

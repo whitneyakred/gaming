@@ -13,7 +13,7 @@ func _ready() -> void:
  offset_top = 24
  offset_bottom = 176
 func _process(_delta: float) -> void:
- visible = fishing != null and fishing.state != 0 and not fishing.local_done
+ visible = fishing != null and fishing.state == 4 and not fishing.local_done
  queue_redraw()
 func _fish(at: Vector2, color: Color) -> void:
  draw_colored_polygon(PackedVector2Array([at+Vector2(-8,0),at+Vector2(-14,-6),at+Vector2(-14,6)]),color)

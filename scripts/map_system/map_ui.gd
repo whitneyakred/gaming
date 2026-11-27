@@ -1,8 +1,13 @@
 extends CanvasLayer
+var marker_layer: CanvasLayer
 
 
 func _ready() -> void:
 	close_map()
+	marker_layer = CanvasLayer.new()
+	marker_layer.layer = 7
+	marker_layer.add_child(load("res://scripts/map_system/marker_hud.gd").new())
+	get_parent().add_child.call_deferred(marker_layer)
 
 func _input(event: InputEvent) -> void:
 	if IslandChallenges.local_active(): return
@@ -40,3 +45,4 @@ func close_map() -> void:
 
 func _exit_tree() -> void:
 	MapState.map_open = false
+	if is_instance_valid(marker_layer): marker_layer.queue_free()

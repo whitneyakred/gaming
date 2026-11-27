@@ -1,17 +1,18 @@
 # Mouse fishing
 
 Select the fishing rod (slot 1 on a fresh voyage), then **left-click nearby
-water**. The line arcs to the actual click position and the bobber waits for a
-random bite. When it dips and the bite chime plays, **click again** to hook the
+water near visible fish**. The bobber attracts one unclaimed fish within 110
+world pixels; empty water cannot produce a catch. When it dips and the bite chime plays, **click again** to hook the
 fish. Holding left-click raises tension; releasing lowers it. Follow the moving
 green zone until the Catch meter fills. Too much or too little tension builds
 Line Strain and eventually snaps the line. **Right-click** cancels at any time.
 
-A bite must be hooked within 1.25 seconds. Waiting for a bite takes 1.8–4.5 seconds;
+A bite must be hooked within 1.25 seconds. A nearby fish approaches the bobber before biting (minimum wait 1.8–4.5 seconds);
 each fish gets a different green-zone width, movement pattern, and 8–11 seconds
 of required time in the green. Brief mistakes are recoverable: strain decreases
 in the green. A fight ends after 35 seconds if the fish hasn't been landed.
-Snapping loses the catch, not the rod. Current loot is 90% sea bass, 10% rope.
+Snapping loses the catch, not the rod. Every landed fish becomes a generic Fish item; rope is never fishing loot.
+The old casting/waiting banner is hidden; watch the bobber and listen for the bite.
 A full inventory drops the catch at the player's feet without losing it.
 
 The rod works aboard ship and on island shores. Cast range defaults to 40–360

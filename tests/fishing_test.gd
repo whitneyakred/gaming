@@ -53,6 +53,17 @@ func run() -> void:
 	var service: InventoryService = main.get_node("Ship/InventorySystem")
 	var fishing: RodFishing = service.get_node("Fishing")
 	fishing.set_process(false)
+	var field: OceanFish = main.get_node("Ship").ocean_fish
+	field.refresh(Vector2.ZERO)
+	var fish_point := Vector2.ZERO
+	for school: Dictionary in field.schools.values():
+		if school.water and FishSchool.visibility(school,field.shared_time()) > 0.8:
+			fish_point = FishSchool.pose(school,school.members[0],field.shared_time()).origin
+			break
+	check(fish_point != Vector2.ZERO,"Real visible school available in world")
+	main.get_node("Ship").global_position = fish_point - service.player.position - Vector2(230,0)
+	await get_tree().process_frame
+	await get_tree().process_frame
 	var source := service.player.global_position
 	var water := source + Vector2(230, 0)
 	check(not fishing.cast(source), "Cannot cast onto deck")
@@ -115,8 +126,8 @@ func run() -> void:
 	fishing.cast(water)
 	fishing.advance(1, false)
 	fishing.advance(5, false)
-	fishing.advance(3, false)
-	check(fishing.state == RodFishing.State.IDLE, "Missed bite resets attempt")
+	fishing.advance(30, false)
+	check(fishing.state == RodFishing.State.IDLE, "Empty water ends without invented catch")
 	fishing.cast(water)
 	service.hud.storage_open = true
 	fishing._process(0)
@@ -140,11 +151,16 @@ func run() -> void:
 	# Reeling may approach the gunwale, but never enter the deck, even while turning.
 	var ship := main.get_node("Ship") as Node2D
 	var ship_pose := ship.global_transform
+	field.taken.clear()
 	check(fishing.cast(water), "Moving-ship regression cast starts")
+	fishing.advance(0.5,false)
+	fishing.advance(5,false)
+	check(not fishing.catch_id.is_empty(),"Moving ship test hooks a real school member")
 	fishing.state = RodFishing.State.REELING
 	fishing.fight.begin(27)
 	var local_target := ship.to_local(fishing.target)
-	ship.global_position += Vector2(2400, 1700)
+	ship.global_position = Vector2(2400, 1700)
+	fishing._geometry_time = -1000
 	ship.global_rotation += 0.7
 	check(fishing.target.distance_to(ship.to_global(local_target)) < 0.01, "Cast follows ship translation and rotation")
 	for progress in [0.0, 0.5, 0.85, 0.99, 1.0]:
@@ -169,7 +185,10 @@ func run() -> void:
 	service.inventory.try_add(&"spyglass")
 	service.inventory.try_add(&"wood", 30)
 	service.inventory.try_add(&"coconut", 20)
+	field.taken.clear()
 	fishing.cast(water)
+	fishing.advance(0.5,false)
+	fishing.advance(5,false)
 	fishing.finish(true)
 	check(service.drops.size() == 1, "Full inventory drops catch safely at player's feet")
 	for kind in fishing.sound.sounds:

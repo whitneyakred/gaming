@@ -105,12 +105,12 @@ session; there is no automatic captain migration or always-running cloud world.
 5. Godot's hello/welcome exchange checks the game protocol and initializes the
    guest's world. Subsequent snapshots bring the client up to date.
 
-The current protocol is `holy-ship-coop-13`. The Worker configuration and
+The current protocol is `holy-ship-coop-19`. The Worker configuration and
 `NetworkSession.PROTOCOL` must agree. A protocol mismatch requires a refreshed
 browser game or matching desktop build; do not silently accept incompatible
 packet layouts.
 
-For grill controls, fuel rules and implementation details, see [the shared grill guide](shared-grill.md).
+For current galley controls see [the cooking guide](shared-grill.md); for catchable fish, waypoints and authority boundaries see [shared gameplay](shared-gameplay.md).
 
 ## 5. How gameplay stays synchronized
 
@@ -126,11 +126,13 @@ competitive anti-cheat system: a modified host still controls its simulation.
 | Inventory and chest transfers | Captain processes requests and distributes resulting inventory state |
 | Dropped items and pickups | Captain owns shared drops and pickup results |
 | Fishing line, bobber, fishing state and catches | Replicated by the gameplay session |
-| Shared grill, fuel and cooking progress | Captain simulates one grill; requests validate range, inventory revision and unique fish ID |
+| Galley preparation and rewards | Host owns ingredient escrow and exclusive attempt; local teammate minigame reports bounded result |
+| Catchable ocean fish | Deterministic shared routes; host reserves real members and publishes hooked fish/depletion |
+| Crew map destinations | One sender-owned marker per sailor; reliable change-only shared state |
 | Swimming and land movement | Part of the shared player/world state |
 | Camera, spyglass view and UI | Local to each player |
 
-World snapshots target 10 Hz. Changed guest controls send immediately, while
+World snapshots target 15 Hz (Inspector-configurable from 10 to 20 Hz). Changed guest controls send immediately, while
 unchanged controls refresh every 0.5 seconds. The host compresses each snapshot
 once and the relay fans it out to the crew. Guests buffer remote movement;
 local movement is predicted immediately and reconciled against acknowledged inputs. Opening pause does not pause

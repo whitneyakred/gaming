@@ -49,12 +49,43 @@ var _geometry_water := Vector2.ZERO
 var _geometry_landing := Vector2.ZERO
 var geometry_ms := 0.0
 var pending_cast_until := 0
+var catch_id := ""
+var catch_species := 0
+var catch_position := Vector2.ZERO
+var search_left := 0.0
+var catch_mesh: MultiMeshInstance2D
+
+func owner_id() -> int:
+	return service.network_id if NetworkSession.online else 1
+
+func update_catch_visual(delta: float) -> void:
+	catch_mesh.visible = not catch_id.is_empty() and state != State.IDLE
+	if not catch_mesh.visible: return
+	var at := catch_position if state == State.WAITING else bobber_position()
+	var previous := catch_mesh.global_position
+	catch_mesh.global_position = previous.lerp(at, 1.0-exp(-15.0*delta)) if previous.distance_to(at) < 120 else at
+	catch_mesh.global_rotation = (bobber_position()-catch_mesh.global_position).angle()+PI*0.5
+	catch_mesh.multimesh.set_instance_custom_data(0,Color((catch_species+0.5)/6.0,fposmod(clock*6.0,4.0)/4.0,1.0,0.0))
 @onready var service: InventoryService = get_parent() as InventoryService
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	z_index = 20
 	rng.randomize()
+	catch_mesh = MultiMeshInstance2D.new()
+	catch_mesh.texture = FishAtlas.TEXTURE
+	catch_mesh.material = FishAtlas.material()
+	catch_mesh.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var mesh := QuadMesh.new()
+	mesh.size = Vector2(48,48)
+	catch_mesh.multimesh = MultiMesh.new()
+	catch_mesh.multimesh.transform_format = MultiMesh.TRANSFORM_2D
+	catch_mesh.multimesh.use_custom_data = true
+	catch_mesh.multimesh.mesh = mesh
+	catch_mesh.multimesh.instance_count = 1
+	add_child(catch_mesh)
+	catch_mesh.top_level = true
+	catch_mesh.hide()
 	sound = FishingAudio.new()
 	add_child(sound)
 	var canvas := CanvasLayer.new()
@@ -240,6 +271,7 @@ func replay_steps(args: Dictionary) -> void:
 func tick_presentation(delta: float) -> void:
 	# Guests animate every frame, independently of the snapshot rate. Never
 	# advance authoritative bite timers or award a catch from presentation.
+	update_catch_visual(delta)
 	if state == State.IDLE: return
 	if not local_reeling: clock += delta
 	splash_age += delta
@@ -255,6 +287,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func advance(delta: float, pulling: bool) -> void:
+	update_catch_visual(delta)
 	queue_redraw()
 	clock += delta
 	splash_age += delta
@@ -266,8 +299,23 @@ func advance(delta: float, pulling: bool) -> void:
 				splash_age = 0.0
 				sound.play("splash")
 		State.WAITING:
+			search_left -= delta
+			if catch_id.is_empty() and search_left <= 0:
+				search_left = 0.25
+				if not is_instance_valid(_ship):
+					finish(false,"Fish from the open voyage waters.",false)
+					return
+				var found := _ship.ocean_fish.claim_near(bobber_position(),owner_id())
+				if not found.is_empty():
+					catch_id = found.id
+					catch_species = found.species
+					catch_position = found.position
+			if catch_id.is_empty():
+				if clock > 25.0: finish(false,"No fish nearby. Cast closer to a school.",false)
+				return
+			catch_position = catch_position.move_toward(bobber_position(),45.0*delta)
 			wait_left -= delta
-			if wait_left <= 0:
+			if wait_left <= 0 and catch_position.distance_to(bobber_position()) < 10.0:
 				state = State.BITE
 				bite_left = bite_window
 				splash_age = 0.0
@@ -287,13 +335,17 @@ func advance(delta: float, pulling: bool) -> void:
 func finish(success: bool, message: String = "", snapped: bool = true) -> void:
 	if state == State.IDLE:
 		return
+	var claimed := _ship.ocean_fish.release_fish(catch_id,owner_id(),success) if is_instance_valid(_ship) else false
+	success = success and claimed
+	catch_id = ""
+	catch_mesh.hide()
 	state = State.IDLE
 	held = false
 	service.player.set("fishing_active", false)
 	sound.set_reeling(false)
 	if success:
 		visual_catches += 1
-		var item_id: StringName = &"fish_cod" if rng.randf() < 0.9 else &"rope"
+		var item_id: StringName = &"fish_cod"
 		var item := ItemDatabase.get_item(item_id)
 		if not service.inventory.try_add(item_id):
 			service._spawn_drop({"id": item_id, "quantity": 1}, service.player.position)
@@ -413,5 +465,6 @@ func _draw() -> void:
 	draw_line(end - Vector2(0, 5), end - Vector2(0, 10), Color("f6e6c4"), 1)
 
 func _exit_tree() -> void:
+	if is_instance_valid(_ship) and is_instance_valid(_ship.ocean_fish): _ship.ocean_fish.release_fish(catch_id,owner_id(),false)
 	if is_instance_valid(service.player):
 		service.player.set("fishing_active", false)

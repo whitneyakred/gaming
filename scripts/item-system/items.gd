@@ -17,7 +17,7 @@ func _ready() -> void:
 	))
 	ItemDatabase.register_item(make_item(
 		&"fish_cod",
-		"Sea Bass",
+		"Fish",
 		"A common sea fish.",
 		10,
 		ItemData.Category.FOOD,
@@ -109,7 +109,7 @@ func _ready() -> void:
 	ItemDatabase.register_item(make_item(
 		&"dried_fish",
 		"Cooked Fish",
-		"Freshly grilled sea bass, ready to eat.",
+		"A freshly prepared fish meal, ready to eat.",
 		20,
 		ItemData.Category.FOOD
 	))

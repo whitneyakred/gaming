@@ -183,22 +183,25 @@ func host_tests() -> void:
 	a.inventory.try_add(&"fish_cod", 1)
 	a.inventory.try_add(&"wood", 1)
 	await wait(0.4)
+	phase("markers")
+	await wait(0.6)
+	check(NetworkSession.crew_markers.size() == 2, "Host receives both player-owned waypoints")
 	phase("grill_open")
 	await wait(0.6)
 	check(a.hud.grill_open and b.hud.grill_open, "Both clients open the same grill")
 	phase("grill_place")
 	await wait(0.8)
-	check(grill.fish.size() == 1, "Client drag places authoritative fish")
-	phase("grill_fuel")
+	check(grill.active_id == a.network_id, "Client reserves shared galley and spends one fish")
+	phase("grill_wait")
 	await wait(0.8)
-	check(grill.cooking(), "Client fuel starts shared cooking")
-	grill.advance(8)
+	check(grill.cooking(), "Client starts shared galley activity")
+	grill.started -= 8000
 	await wait(0.4)
 	phase("grill_inspect")
 	await wait(0.6)
 	phase("grill_collect")
 	await wait(0.8)
-	check(grill.fish.is_empty() and a.inventory.get_quantity(&"dried_fish") + b.inventory.get_quantity(&"dried_fish") == 1, "Two clients collecting one fish receive exactly one meal")
+	check(not grill.cooking() and a.inventory.get_quantity(&"dried_fish") + b.inventory.get_quantity(&"dried_fish") == 1, "Two clients collecting one fish receive exactly one meal")
 	a.inventory.try_remove(&"dried_fish", 1)
 	b.inventory.try_remove(&"dried_fish", 1)
 	a.hud.close()
@@ -237,6 +240,15 @@ func host_tests() -> void:
 	ship.global_rotation = 0.4
 	await wait(0.6)
 	check(fish.state != RodFishing.State.IDLE, "Moving shared boat keeps client cast alive")
+	# Place an actual deterministic school member at the cast for the fight fixture.
+	var field: OceanFish = ship.ocean_fish
+	var key := Vector2i((fish.bobber_position()/FishSchool.CELL_SIZE).floor())
+	var school := FishSchool.create(ship.world_seed,key)
+	school.center += fish.bobber_position()-FishSchool.pose(school,school.members[0],field.shared_time()).origin
+	school["water"] = true
+	school["period"] = 100000.0
+	school["phase"] = 30.0
+	field.fishing_schools[key] = school
 	var fish_before: int = a.inventory.get_quantity(&"fish_cod") + a.inventory.get_quantity(&"rope")
 	phase("fight")
 	for i in 250:
@@ -375,21 +387,23 @@ func client_tests() -> void:
 							check(not service.hud.cursor_data.is_empty() and service.hud.cursor_data.amount == 20, "Host acknowledgement keeps remaining stack on guest cursor")
 							service.hud.cancel_cursor()
 						NetworkSession.command("drag", {"index":0,"storage":true,"destination":3,"amount":10 if current=="split_half" else 9999,"revision":service.view_revision})
-			"grill_open": NetworkSession.command("interact")
-			"grill_place", "grill_fuel":
+			"markers": MapState.set_destination(Vector2(1000, 2000) if role == "Alpha" else Vector2(2000, 1000))
+			"grill_open":
+				check(MapState.crew_markers.size() == 2, "Both crew waypoints replicate to guest")
+				NetworkSession.command("interact")
+			"grill_place":
 				if role == "Alpha":
-					var item := &"fish_cod" if current == "grill_place" else &"wood"
+					var item := &"fish_cod"
 					for slot in service.local_slots.size():
 						if service.local_slots[slot].get("id") == item:
-							NetworkSession.command("grill", {"action": "fish" if current == "grill_place" else "fuel", "index": slot, "revision": service.view_revision, "point": Vector2(0.3, 0.4)})
+							NetworkSession.command("grill", {"action": "start", "index": slot, "revision": service.view_revision, "point": Vector2(0.3, 0.4)})
 							break
 			"grill_inspect":
 				var grill: ShipGrill = NetworkSession.ship.get_node("Cooking")
-				check(grill.fish.size() == 1 and grill.fish[0].progress >= grill.cook_seconds, "Shared grill progress reaches both clients")
-				if not grill.fish.is_empty():
-					shared_grill_key = grill.fish[0].key
+				check(grill.cooking(), "Shared galley ownership reaches both clients")
+				shared_grill_key = grill.token
 			"grill_collect":
-				NetworkSession.command("grill", {"action": "collect", "key": shared_grill_key})
+				NetworkSession.command("grill", {"action": "finish", "token": shared_grill_key, "stars": 2})
 			"drop":
 				if role == "Alpha":
 					NetworkSession.command("drag", {"index": 0, "storage": false, "destination": -1, "revision": service.view_revision})
