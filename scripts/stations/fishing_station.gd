@@ -8,7 +8,7 @@ enum State { IDLE, HOLDING, READY_TO_RELEASE }
 
 @export_range(1.5, 30.0, 0.1, "suffix:s") var minimum_hold_seconds: float = 1.5
 @export_range(1.5, 30.0, 0.1, "suffix:s") var maximum_hold_seconds: float = 4.0
-@export var loot_ids: Array[StringName] = [&"fish_cod", &"rope"]
+@export var loot_ids: Array[StringName] = [&"fish_cod"]
 
 @onready var hold_timer: Timer = $HoldTimer
 @onready var progress_bar: ProgressBar = $ProgressBar

@@ -1,5 +1,9 @@
 # Local responsiveness and prompt disconnects
 
+Protocol 18 adds host-side remote-player presentation smoothing, bounded relay
+snapshot flow, and always-on RTT/negotiation diagnostics. See
+[WebRTC follow-up](webrtc-networking.md#protocol-18-follow-up-host-presentation-and-relay-flow-control).
+
 ## Movement replay and presentation update — November 26, 2026 / protocol 16
 
 Implemented on `codex/network-smoothing-replay`. This is selective client movement
@@ -490,3 +494,15 @@ Validation: three local ENet peers passed 49 existing multiplayer smoke checks
 (host 28, guests 13 and 8). The traffic-policy suite passed 8 checks, menu
 flow passed 61, and shore-recovery and playtest-UI suites passed. These are
 local/synthetic checks, not a 50-player production load or real WAN benchmark.
+## WebRTC branch update (November 26, 2026)
+
+Protocol 17 adds an optional browser WebRTC fast path for unreliable traffic,
+using free Cloudflare STUN and the existing relay as fallback. Reliable input
+batches and actions remain on WebSocket. See [WebRTC networking](webrtc-networking.md)
+for architecture, free-service boundaries, diagnostics, disable switch and tests.
+
+## Protocol 19 shared gameplay
+
+See [shared gameplay](shared-gameplay.md) for deterministic catchable fish,
+shared waypoints, cooking escrow and damage effects. It retains protocol 18
+movement/relay smoothing, WebRTC fast lane, free STUN and WebSocket fallback.

@@ -1,6 +1,6 @@
 extends Control
 
-const MAP_MARGIN := Vector2(64, 130)
+const MAP_MARGIN := Vector2(160, 110)
 var ship_heading: float = 0.0
 func _process(_delta: float) -> void:
 	if not is_visible_in_tree(): return
@@ -29,7 +29,7 @@ func get_map_rect() -> Rect2:
 	var map_size := Vector2(
 		minf(available.x, available.y * aspect_ratio),
 		minf(available.y, available.x / aspect_ratio))
-	return Rect2((size - map_size) / 2.0, map_size)
+	return Rect2(Vector2((size.x - map_size.x - 100) / 2.0, (size.y - map_size.y) / 2.0), map_size)
 
 
 func world_to_map(world_position: Vector2) -> Vector2:
@@ -55,26 +55,9 @@ func _gui_input(event: InputEvent) -> void:
 		return
 
 	var world_position := map_to_world(event.position)
-	if event.button_index == MOUSE_BUTTON_LEFT:
-		var bounds: Rect2 = MapState.world_bounds
-		var marker_tolerance := 12.0 * bounds.size.x / get_map_rect().size.x
-		if MapState.remove_marker_near(world_position, marker_tolerance):
-			accept_event()
-			return
-
-		var island_id := _get_clicked_island(world_position)
-		if not island_id.is_empty():
-			MapState.select_island(island_id)
-			accept_event()
-			return
-
-		MapState.select_island("")
-		MapState.add_marker(world_position)
-	elif event.button_index == MOUSE_BUTTON_RIGHT:
+	if event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
 		MapState.set_destination(world_position)
-		MapState.select_island("")
-	else:
-		return
+	else: return
 
 	accept_event()
 
@@ -145,36 +128,18 @@ func _draw() -> void:
 			var point := world_to_map(island.position)
 			draw_circle(point, 6, QuestIsland.key_color(key), false, 2)
 
-	for marker in MapState.markers:
-		var marker_position := world_to_map(marker)
-		draw_circle(marker_position, 5.0, Color("#ffd166"))
-		draw_string(
-			font,
-			marker_position + Vector2(8, -6),
-			"%d m" % MapState.get_marker_distance_meters(marker),
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			13,
-			Color("#ffe6a6"))
 
 	if MapState.has_player_position:
 		var player_map_position := world_to_map(MapState.player_position)
 		draw_colored_polygon(heading_marker(player_map_position, 1.35), Color("#f5f1d5"))
 		draw_colored_polygon(heading_marker(player_map_position), Color("#e84c4c"))
 
-	if MapState.has_destination:
-		var destination_position := world_to_map(MapState.destination)
-		draw_circle(destination_position, 12.0, Color("#ff6464"), false, 3.0)
-		draw_line(
-			destination_position - Vector2(16, 0),
-			destination_position + Vector2(16, 0),
-			Color("#ff6464"),
-			2.0)
-		draw_line(
-			destination_position - Vector2(0, 16),
-			destination_position + Vector2(0, 16),
-			Color("#ff6464"),
-			2.0)
+	for id: int in MapState.crew_markers:
+		var point := world_to_map(MapState.crew_markers[id])
+		var color := MapState.marker_color(id)
+		draw_circle(point, 9.0, color, false, 2.5)
+		draw_line(point - Vector2(13,0), point + Vector2(13,0), color, 2)
+		draw_line(point - Vector2(0,13), point + Vector2(0,13), color, 2)
 
 	if MapState.has_paradise_position:
 		var paradise_map_position := world_to_map(MapState.paradise_position)
@@ -188,38 +153,13 @@ func _draw() -> void:
 			14,
 			Color("#ffdc78"))
 
-	if MapState.selected_island_id != "":
-		var selected_island: Dictionary = MapState.discovered_islands.get(
-			MapState.selected_island_id,
-			{})
-		if not selected_island.is_empty():
-			var island_position := Vector2(selected_island["position"])
-			draw_string(
-				font,
-				Vector2(rect.position.x + 12.0, rect.position.y + 24.0),
-				"%s  |  %d m from ship" % [
-					str(selected_island["name"]),
-					MapState.get_marker_distance_meters(island_position)
-				],
-				HORIZONTAL_ALIGNMENT_LEFT,
-				rect.size.x - 24.0,
-				16,
-				Color.WHITE)
-
-	draw_rect(rect, Color("#d5bc84"), false, 3.0)
-	draw_string(
-		font,
-		rect.position - Vector2(0, 15),
-		"Left click: select island / add or remove pin | Right click: destination",
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		16,
-		Color.WHITE)
-	draw_string(
-		font,
-		Vector2(rect.position.x, rect.end.y + 25.0),
-		"C: clear destination | Escape: close",
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		16,
-		Color.WHITE)
+	draw_rect(rect, Color("d5bc84"), false, 3.0)
+	draw_string(font, Vector2(rect.position.x, rect.position.y - 20), "Find all 3 keys to open the gate at Paradise.", HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 16, Color.WHITE)
+	for i in 3:
+		var metal: String = ["bronze", "silver", "gold"][i]
+		var at := Vector2(rect.end.x + 24, rect.position.y + 38 + i * 66)
+		draw_circle(at, 10, QuestIsland.key_color(metal), false, 2.5)
+		draw_line(at + Vector2(17,-3), at + Vector2(28,-3), Color.WHITE, 2)
+		draw_line(at + Vector2(17,3), at + Vector2(28,3), Color.WHITE, 2)
+		var item := ItemDatabase.get_item(StringName(metal + "_key"))
+		if item != null and item.icon != null: draw_texture_rect(item.icon, Rect2(at + Vector2(34,-18), Vector2(36,36)), false)

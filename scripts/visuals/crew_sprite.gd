@@ -8,6 +8,8 @@ var moving: bool = false
 var last_position: Vector2
 var last_outside: bool = false
 var last_respawn: int = 0
+var last_hurt := -1
+var hurt_flash := 0.0
 @onready var crew: CharacterBody2D = get_parent()
 
 func _ready() -> void:
@@ -32,7 +34,10 @@ func refresh(delta: float) -> void:
 	last_position = presented
 	last_outside = crew.is_overboard
 	last_respawn = crew.respawn_serial
-	self_modulate = Color.WHITE
+	if last_hurt >= 0 and crew.hurt_serial != last_hurt: hurt_flash = 0.35
+	last_hurt = crew.hurt_serial
+	hurt_flash = maxf(0.0, hurt_flash - delta)
+	self_modulate = Color(1.0, 0.3, 0.25) if hurt_flash > 0.0 else Color.WHITE
 	# Only rotate the climbing art: name labels, wake and walking stay upright.
 	rotation = crew.get_parent().global_rotation if crew.access_motion == &"climb" else 0.0
 	if _show_action(appearance):

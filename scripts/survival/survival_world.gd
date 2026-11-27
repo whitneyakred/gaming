@@ -2,7 +2,9 @@ class_name SurvivalWorld
 extends Node2D
 ## The host alone advances health, danger timers and the shared shark pack.
 @export var red_water_seconds: float = 15.0
-@export var shark_delay: float = 10.0
+@export var shark_delay: float = 4.0
+@export var shark_delay_variation: float = 4.0
+var arrival_delays: Dictionary = {}
 @export_range(1.0, 2.0) var largest_shark_scale: float = 1.75
 @export_range(1, 3) var sharks_per_swimmer: int = 2
 const MAX_SHARKS := 8
@@ -46,7 +48,7 @@ func ensure_sharks(count: int) -> void:
 	while sharks.size() < count:
 		var index := sharks.size()
 		var body_size := shark_rng.randf_range(1.0, largest_shark_scale)
-		sharks.append({"position": Vector2.ZERO, "target": 0, "angle": 0.0, "active": false, "mode": "arrive", "clock": 0.0, "orbit": 0.0, "aim": Vector2.ZERO, "bitten": false, "alpha": 0.0, "size": body_size, "pace": shark_rng.randf_range(0.9, 1.1), "patience": shark_rng.randf_range(3.4, 5.2), "side": 1.0 if index % 2 == 0 else -1.0})
+		sharks.append({"position": Vector2.ZERO, "target": 0, "angle": 0.0, "active": false, "mode": "arrive", "clock": 0.0, "orbit": 0.0, "aim": Vector2.ZERO, "bitten": false, "alpha": 0.0, "size": body_size, "pace": shark_rng.randf_range(0.9, 1.1), "patience": shark_rng.randf_range(0.8, 1.6), "side": 1.0 if index % 2 == 0 else -1.0})
 		visual_positions.append(Vector2.ZERO)
 		visual_angles.append(0.0)
 		visual_alpha.append(0.0)
@@ -79,7 +81,7 @@ func move_shark(index: int, goal: Vector2, speed: float, delta: float) -> void:
 		routes.erase(index)
 	var direction := waypoint - at
 	if direction.length() < 2: return
-	shark.angle = rotate_toward(float(shark.angle), direction.angle(), delta * 2.6 / sqrt(float(shark.get("size", 1.0))))
+	shark.angle = rotate_toward(float(shark.angle), direction.angle(), delta * 4.2 / sqrt(float(shark.get("size", 1.0))))
 	var alignment := maxf(0.15, Vector2.from_angle(shark.angle).dot(direction.normalized()))
 	var next := at + Vector2.from_angle(shark.angle) * minf(speed * delta * alignment, direction.length())
 	if navigation.segment(at, next, radius) or (not navigation.clear(at, radius) and next.distance_to(waypoint) < at.distance_to(waypoint)):
@@ -129,8 +131,12 @@ func advance_sharks(delta: float, people: Dictionary) -> void:
 	var eligible: Array[int] = []
 	for id in people:
 		var person = people[id]
-		if person.health > 0 and person.is_overboard and not person.on_land and not person.island_challenge and person.swim_time >= shark_delay:
-			eligible.append(id)
+		if person.health > 0 and person.is_overboard and not person.on_land and not person.island_challenge:
+			if not arrival_delays.has(id): arrival_delays[id] = shark_rng.randf_range(shark_delay, shark_delay + shark_delay_variation)
+			if person.swim_time >= float(arrival_delays[id]): eligible.append(id)
+		else: arrival_delays.erase(id)
+	for id in arrival_delays.keys():
+		if not people.has(id): arrival_delays.erase(id)
 	ensure_sharks(mini(MAX_SHARKS, maxi(2, eligible.size() * sharks_per_swimmer)))
 	navigation.obstacles.clear()
 	navigation.obstacles.append(ship.get_hull_polygon(ship.global_position, ship.global_rotation))
@@ -162,9 +168,11 @@ func advance_sharks(delta: float, people: Dictionary) -> void:
 					if navigation.clear(escape, 45): shark.aim = escape; break
 			shark.target = 0
 			shark.clock = float(shark.clock) + delta
-			move_shark(index, shark.aim, 190 * float(shark.get("pace", 1.0)), delta)
-			if float(shark.clock) > 2.0: shark.alpha = move_toward(float(shark.alpha), 0, delta * 0.4)
-			shark.active = float(shark.alpha) > 0 or float(shark.clock) < 2.0
+			var lingering := float(shark.clock) < 3.5
+			var goal: Vector2 = Vector2(shark.position) + Vector2.from_angle(float(shark.angle) + 0.7) * 90 if lingering else Vector2(shark.aim)
+			move_shark(index, goal, (75.0 if lingering else 190.0) * float(shark.get("pace", 1.0)), delta)
+			if not lingering: shark.alpha = move_toward(float(shark.alpha), 0, delta * 0.4)
+			shark.active = float(shark.alpha) > 0 or lingering
 			continue
 		claimed[target] = int(claimed.get(target, 0)) + 1
 		var player: CharacterBody2D = people[target]
@@ -174,7 +182,7 @@ func advance_sharks(delta: float, people: Dictionary) -> void:
 			shark.orbit = float(index)*PI
 			if not shark.active:
 				for attempt in 24:
-					var spawn: Vector2 = player.global_position + Vector2(1800,0).rotated(float(attempt+index*12)*TAU/24.0)
+					var spawn: Vector2 = player.global_position + Vector2(440,0).rotated(float(attempt+index*12)*TAU/24.0)
 					if navigation.clear(spawn, 45): shark.position = spawn; break
 				shark.angle = (player.global_position-Vector2(shark.position)).angle()
 				shark.alpha = 0.0
@@ -201,20 +209,21 @@ func advance_sharks(delta: float, people: Dictionary) -> void:
 				visible_target = 0.2
 				goal = shark.aim
 				speed = 75.0
-				if float(shark.clock)>0.65: shark.mode="lunge"; shark.clock=0.0
+				if float(shark.clock)>0.3: shark.mode="lunge"; shark.clock=0.0
 			"lunge":
+				if float(shark.clock) < 0.6: shark.aim = player.global_position + player.velocity * 0.25
 				goal = shark.aim
-				speed = 300.0
+				speed = 380.0
 				visible_target = 0.55
-				if not shark.bitten and Vector2(shark.position).distance_to(player.global_position)<32 * float(shark.get("size", 1.0)) and navigation.segment(shark.position, player.global_position, 0):
-					damage(target, maxi(1, roundi(pow(float(shark.get("size", 1.0)), 2)))); shark.bitten=true
+				if not shark.bitten and Vector2(shark.position).distance_to(player.global_position)<42 * float(shark.get("size", 1.0)) and navigation.segment(shark.position, player.global_position, 0):
+					damage(target, maxi(2, roundi(pow(float(shark.get("size", 1.0)), 2)))); shark.bitten=true
 				if float(shark.clock)>1.5 or Vector2(shark.position).distance_to(goal)<16:
 					shark.mode="retreat"; shark.clock=0.0
 					shark.aim = Vector2(shark.position)+Vector2.from_angle(shark.angle)*230
 			"retreat":
 				goal = shark.aim
 				speed = 170.0
-				if float(shark.clock)>2.0:
+				if float(shark.clock)>0.7:
 					shark.mode="circle"; shark.clock=0.0
 					shark.orbit=(Vector2(shark.position)-player.global_position).angle()
 		shark.alpha = move_toward(float(shark.alpha),visible_target,delta*1.2)

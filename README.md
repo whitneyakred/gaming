@@ -6,6 +6,7 @@ Team 13's top-down 2D Godot 4 sailing/survival game. The current early-access bu
 - [Checkpoint 3 evidence and team action list](docs/checkpoint-3.md)
 - [60-student classroom demo: networking budget, tests and preparation](docs/classroom-demo.md)
 - [Multiplayer system: architecture, hosting, saves, deployment and troubleshooting](docs/multiplayer-system.md)
+- [Shared fishing, galley cooking, crew waypoints and sharks](docs/shared-gameplay.md)
 - [Local smoothing, acknowledgements and prompt disconnects](docs/networking-responsiveness.md)
 - [Online service and release setup](docs/online-services-setup.md)
 - [Run and inspect the prototype](docs/minimal-mvp.md)

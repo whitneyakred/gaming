@@ -1,5 +1,12 @@
 # Holy Ship browser and desktop multiplayer tests
 
+Protocol 18: test host-visible remote crew while walking, swimming, using ladders
+and riding a moving boat. Run the browser suite's withheld-receipt scenario and
+export diagnostics with the overlay hidden to verify RTT collection. Repeat the
+phone-cellular/computer-Wi-Fi test; LAN success is a diagnostic comparison, not
+evidence that arbitrary internet paths are healthy. Details:
+[host smoothing and relay flow](webrtc-networking.md#protocol-18-follow-up-host-presentation-and-relay-flow-control).
+
 Architecture and release workflow: [Multiplayer system and operations guide](multiplayer-system.md).
 
 ## Protocol 16 local validation and diagnostics
@@ -165,3 +172,10 @@ counts and no engine/script errors. Do not interpret headless FPS as mobile FPS.
   `node test/browser-pair.mjs` from `online-service`. Start the local export
   preview server and relay first. This verifies two browser identities, runtime
   errors, departure, and the actual JSON download, without deploying.
+## WebRTC branch checks
+
+For protocol 17, also run the transport/browser checks and physical-device
+checklist in [WebRTC networking](webrtc-networking.md). Test both direct and
+fallback paths; successful local browser emulation is not a substitute for a
+phone-on-cellular playtest. The WebRTC build was deployed on November 26; see
+[release and rollback](networking-release-rollback.md).

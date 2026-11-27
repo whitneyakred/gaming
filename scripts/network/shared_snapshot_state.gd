@@ -1,14 +1,14 @@
 class_name SharedSnapshotState
 extends RefCounted
 ## Rarely changing state travels reliably; motion packets reference its revision.
-const KEYS := ["paradise_quest", "island_locks", "discovered", "seed", "storage", "port_storage", "drops"]
+const KEYS := ["paradise_quest", "island_locks", "discovered", "seed", "storage", "port_storage", "drops", "markers", "fish_taken"]
 var revision := 0
 var current: Dictionary = {}
 var versions: Dictionary = {}
 
 func extract(snapshot: Dictionary) -> bool:
 	var state := {}
-	for key: String in KEYS: state[key] = snapshot[key]
+	for key: String in KEYS: state[key] = snapshot.get(key,{})
 	# Lifetime/timeout clocks are host-only. Their per-tick changes must not turn
 	# an idle dropped item or occupied island into a reliable 10 Hz broadcast.
 	state.drops = snapshot.drops.duplicate()
@@ -54,7 +54,7 @@ func expand(snapshot: Dictionary) -> Dictionary:
 	if state.is_empty() or not snapshot.get("crew") is Dictionary: return {}
 	var result := snapshot.duplicate()
 	result.crew = snapshot.crew.duplicate()
-	for key: String in KEYS: result[key] = state[key]
+	for key: String in KEYS: result[key] = state.get(key,{})
 	for id: Variant in result.crew:
 		if not result.crew[id] is Dictionary or not state.bags.has(id): return {}
 		result.crew[id] = snapshot.crew[id].duplicate()
@@ -71,6 +71,13 @@ static func valid_slots(slots: Variant) -> bool:
 	return true
 
 static func valid(state: Dictionary) -> bool:
+	for key in ["markers", "fish_taken"]:
+		if not state.get(key,{}) is Dictionary: return false
+	if state.get("markers",{}).size() > 4 or state.get("fish_taken",{}).size() > 256: return false
+	for id in state.get("markers",{}):
+		if not id is int or not state.markers[id] is Vector2 or not state.markers[id].is_finite(): return false
+	for id in state.get("fish_taken",{}):
+		if not id is String or id.length() > 80 or not state.fish_taken[id] is float or not is_finite(state.fish_taken[id]): return false
 	for key: String in ["paradise_quest", "island_locks", "discovered", "drops", "bags"]:
 		if not state.get(key) is Dictionary: return false
 	if not state.get("seed") is int or not valid_slots(state.get("storage")) or not valid_slots(state.get("port_storage")): return false

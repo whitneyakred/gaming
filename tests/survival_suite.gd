@@ -40,10 +40,10 @@ func run() -> void:
 	check(not service.get_node("Fishing").can_fish(),"Swimming invalidates fishing")
 	player.fishing_active = false
 	player.global_position = Vector2(1500,0)
-	world.advance(9.9)
-	check(not world.sharks[0].active,"No sharks before ten seconds")
-	world.advance(0.2)
-	check(world.sharks.size()==2 and world.sharks[0].active,"Two shared sharks engage after ten seconds")
+	world.advance(3.9)
+	check(not world.sharks[0].active,"No sharks before four seconds")
+	world.advance(4.2)
+	check(world.sharks.size()==2 and world.sharks[0].active,"Two shared sharks engage by eight seconds")
 	player.update_land(true)
 	world.advance(0.1)
 	check(world.sharks[0].target == 0,"Sharks stop attacking on land")
@@ -159,7 +159,7 @@ func run() -> void:
 	world.advance_sharks(1.0/60.0,world.crew())
 	var arena := Rect2(player.global_position - Vector2.ONE * 2000, Vector2.ONE * 4000)
 	check(world.navigation.bounds.all(func(bound): return not bound.intersects(arena)),"Shark attack arena excludes every island and the hull")
-	check(Vector2(world.sharks[0].position).distance_to(player.global_position)>1500 and world.sharks[0].alpha<0.1,"Shark arrives from far away with fade-in")
+	check(Vector2(world.sharks[0].position).distance_to(player.global_position)>350 and world.sharks[0].alpha<0.1,"Shark arrives nearby with fade-in")
 	var modes := {}
 	var hurt_before: int=player.hurt_serial
 	for frame in 2400:

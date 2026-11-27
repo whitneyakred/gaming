@@ -86,7 +86,6 @@ func _process(delta: float) -> void:
 			voice.pitch_scale = 1.0
 			voice.play()
 		hurt_seen = player.hurt_serial
-		player.idle_sprite.modulate = Color(1, 0.35, 0.3) if flash > 0.4 else Color.WHITE
 	if sink_seen >= 0 and sink_seen != world.sink_serial:
 		flash = 1
 		voice.pitch_scale = 0.45

@@ -20,6 +20,57 @@ var _render_material: ShaderMaterial
 var visible_fish: int = 0
 var _step := 1.0/60.0
 var threats: Array[Vector3] = []
+var claims: Dictionary = {}
+var taken: Dictionary = {}
+var fishing_schools: Dictionary = {}
+
+func fish_id(cell: Vector2i, index: int) -> String:
+	return "%d:%d:%d" % [cell.x, cell.y, index]
+
+func unavailable(id: String) -> bool:
+	if claims.has(id) or float(taken.get(id, 0.0)) > shared_time(): return true
+	if is_instance_valid(_ship):
+		var services: Array = NetworkSession.services.values() if NetworkSession.online else [_ship.get_node("InventorySystem")]
+		for service in services:
+			if service.get_node("Fishing").catch_id == id: return true
+	return false
+
+func claim_near(point: Vector2, owner: int) -> Dictionary:
+	if NetworkSession.online and not multiplayer.is_server(): return {}
+	var now := shared_time()
+	for id in taken.keys():
+		if float(taken[id]) <= now: taken.erase(id)
+	var cell := Vector2i((point / FishSchool.CELL_SIZE).floor())
+	var best := {}
+	var distance := 110.0
+	for y in range(cell.y-1, cell.y+2):
+		for x in range(cell.x-1, cell.x+2):
+			var key := Vector2i(x,y)
+			if not fishing_schools.has(key):
+				if fishing_schools.size() >= 45: fishing_schools.erase(fishing_schools.keys()[0])
+				var created := FishSchool.create(world_seed,key)
+				created["water"] = _navigation.clear(created.center, FishSchool.CLEARANCE)
+				fishing_schools[key] = created
+			var school: Dictionary = fishing_schools[key]
+			if not school.water or FishSchool.visibility(school,now) < 0.5: continue
+			for i in school.members.size():
+				var id := fish_id(key,i)
+				if unavailable(id): continue
+				var pose := FishSchool.pose(school,school.members[i],now)
+				var gap := pose.origin.distance_to(point)
+				if gap < distance:
+					distance = gap
+					best = {"id":id,"position":pose.origin,"species":school.species}
+	if not best.is_empty(): claims[best.id] = owner
+	return best
+
+func release_fish(id: String, owner: int, caught: bool) -> bool:
+	if id.is_empty() or claims.get(id, -1) != owner: return false
+	claims.erase(id)
+	if caught:
+		if taken.size() >= 256: taken.erase(taken.keys()[0])
+		taken[id] = shared_time() + 90.0
+	return true
 
 func _ready() -> void:
 	if not menu_mode:
@@ -48,6 +99,9 @@ func _ready() -> void:
 func configure(seed_value: int, islands: Array) -> void:
 	world_seed = seed_value
 	schools.clear()
+	fishing_schools.clear()
+	claims.clear()
+	taken.clear()
 	_last_cell = Vector2i(2147483647, 2147483647)
 	_navigation.obstacles.clear()
 	for island in islands:
@@ -152,13 +206,16 @@ func animate_member(member: Dictionary, target: Transform2D) -> Transform2D:
 
 func render_fish(center: Vector2, extent: Vector2, time: float) -> void:
 	var count := 0
-	for school: Dictionary in schools.values():
+	for cell: Vector2i in schools:
+		var school: Dictionary = schools[cell]
 		if not school.water: continue
 		var alpha := FishSchool.visibility(school, time) * smoothstep(0.0, arrival_seconds, _local_time-float(school.arrival))
-		for member: Dictionary in school.members:
+		for index in school.members.size():
+			var member: Dictionary = school.members[index]
+			if not menu_mode and unavailable(fish_id(cell,index)): continue
 			var pose := FishSchool.pose(school, member, time)
-			if not menu_mode: pose.origin += FishSchool.advance_escape(member,pose,threats,_step)
-			pose = animate_member(member, pose)
+			if menu_mode: pose = animate_member(member, pose)
+			else: member["tail_frame"] = fposmod(time * FishSchool.animation_rate(member.speed, member.length) + member.phase, 4.0)
 			if alpha < 0.005: continue
 			var distance := (pose.origin-center).abs()
 			# Fade before the recycled-cell boundary even on unusually wide screens.
