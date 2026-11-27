@@ -14,7 +14,7 @@ objectives, art and timers remain in those scenes; the adapter owns voyage rewar
    in the **FileSystem** dock and click **Run Current Scene (F6)**.
 2. Sail to an island, swim ashore, and walk to the wooden totem near its center.
 3. Press **Space** (or E) within reach. The minigame appears in the clearing for that player.
-4. Follow its objective; the exit totem is the finish line when required.
+4. Follow its objective; finishing it automatically ends the challenge.
 5. Winning returns you to two supply drops beside the totem and starts its shared
    five-minute cooldown. Losing or clicking **Leave** allows immediate retry.
    **Esc** opens the usual pause menu; **Resume voyage** returns to the challenge.

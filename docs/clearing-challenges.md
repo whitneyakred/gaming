@@ -1,22 +1,24 @@
 # Clearing challenges and interaction polish
 
+Latest update: [prop collision and simplified UI](prop-collision-and-ui.md), protocol 24.
+
 Merged from `codex/procedural-islands` into `systems-revamp` on November 27, 2026 (`86b243f`). See [release and rollback](networking-release-rollback.md).
 
 ![Coconut challenge rendered in the island clearing](previews/clearing-challenge.png)
 
-- Totem puzzles now render in world space over the generated island's actual dirt clearing. The old painted island, ocean and cliff collisions are removed for embedded play. The camera frames the clearing; objective HUD and Leave button stay screen sized. The finish area is an exit totem.
+- Totem puzzles now render in world space over the generated island's actual dirt clearing. The old painted island, ocean and cliff collisions are removed for embedded play. The camera follows the challenge avatar at normal zoom; objective HUD and Leave button stay screen sized. Objectives finish automatically.
 - A single transparent, fixed-resolution viewport preserves the 19 puzzles' coordinates and isolated physics. It exists only during a challenge. Coconut Island uses a smaller viewport and matching foliage. Bee Hive Hill's formerly painted hiding trees are now visible props.
 - Puzzle simulation remains private to its participant. Other players see the occupied totem, not the puzzle actors. Host-owned reservations, cooldowns and supply drops remain shared. Completion still uses the existing cooperative trust model.
-- Nearby stations, storage, food preparation, totems and sanctuary interactions show small white `Space - interact` text above the object, without a panel. The text follows moving/rotating deck objects every frame; proximity checks stay at 10 Hz and send no network traffic. E remains an alternate binding. Prompts are suppressed while operating a station, during maps, menus and challenges.
+- Proximity interaction popups have been removed. Space and E remain the interaction bindings.
 - Axe and pickaxe swings work on deck, including their existing replicated animation serial. Deck swings cannot harvest shoreline resources. Ordinary trees and rocks yield 2–3 wood/stone, rolled by the host; palms still yield one wood and two coconuts.
 - Pickaxe atlas cropping excludes the neighboring axe sliver. New carved totem and square medpack artwork use cached alpha-trimmed atlas regions.
 - The real catalog has 17 items: fishing rod, axe, pickaxe, spyglass, wood, stone, coal, rope, string, leather, medpack, three keys, coconut, fish and cooked fish. Retired puzzle supplies are private objective tokens, not registered voyage loot. Retired entries are cleared when restoring inventories without private definitions.
 
 ## Playtest
 
-Start a new generated voyage, approach each kind of station and check Space prompts. Swing both tools on deck; verify another player sees the swing and no shoreline resource is harvested. Harvest several trees/rocks and check 2–3 yields.
+Start a new generated voyage, approach each kind of station and check Space interaction without popups. Swing both tools on deck; verify another player sees the swing and no shoreline resource is harvested. Harvest several trees/rocks and check 2–3 yields.
 
-At an island totem, press Space. Check movement and interaction within the clearing, objective completion, return to the exit totem, Leave, pause/resume and phone controls. A win should produce two distinct shared supply stacks and a five-minute cooldown. Failure should permit immediate retry. Check a guest entering/leaving while the host continues sailing.
+At an island totem, press Space. Check movement and interaction within the clearing, objective completion, automatic completion, Leave, pause/resume and phone controls. A win should produce two distinct shared supply stacks and a five-minute cooldown. Failure should permit immediate retry. Check a guest entering/leaving while the host continues sailing.
 
 ## Future day/night and weather design (not implemented)
 
