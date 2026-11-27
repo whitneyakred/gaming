@@ -1,6 +1,8 @@
 extends Control
 var world: SurvivalWorld
 var eat_seen := -1
+var heal_seen := -1
+var healing_voice: AudioStreamPlayer
 var eating_voice: AudioStreamPlayer
 var hurt_seen := -1
 var sink_seen := -1
@@ -42,6 +44,11 @@ func _ready() -> void:
 	eating_voice.bus = "Effects"
 	add_child(eating_voice)
 	eating_voice.stream = ActionAudio.make("eat_complete")
+	eating_voice.volume_db = 5.0
+	healing_voice = AudioStreamPlayer.new()
+	healing_voice.bus = "Effects"
+	healing_voice.stream = ActionAudio.make("heal")
+	add_child(healing_voice)
 	voice = AudioStreamPlayer.new()
 	voice.bus = "Effects"
 	add_child(voice)
@@ -81,6 +88,8 @@ func _process(delta: float) -> void:
 		respawn_button.size = Vector2(340, 64)
 		if eat_seen>=0 and eat_seen!=player.eat_serial: eating_voice.play()
 		eat_seen=player.eat_serial
+		if heal_seen >= 0 and heal_seen != player.heal_serial: healing_voice.play()
+		heal_seen = player.heal_serial
 		if hurt_seen >= 0 and hurt_seen != player.hurt_serial:
 			flash = 0.8
 			voice.pitch_scale = 1.0

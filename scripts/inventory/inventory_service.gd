@@ -175,6 +175,7 @@ func server_pickups() -> void:
 		return
 	for id: int in drops.keys():
 		var entry: Dictionary = drops[id]
+		if entry.has("spawn_time") and get_parent() is Ship and get_parent().ocean_fish.shared_time() - float(entry.spawn_time) < 0.8: continue
 		var drop_world: Vector2 = entry.position if entry.get("world", false) else get_parent().to_global(entry.position)
 		if player.global_position.distance_to(drop_world) > pickup_distance:
 			pickup_inside[id] = false

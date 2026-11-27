@@ -4,6 +4,7 @@ const LIFETIME := 0.75
 var age: float = 0.0
 
 func _ready() -> void:
+	add_to_group("water_splashes")
 	set_as_top_level(true)
 	global_rotation = 0.0
 	z_index = -1

@@ -1,7 +1,7 @@
 class_name SharedSnapshotState
 extends RefCounted
 ## Rarely changing state travels reliably; motion packets reference its revision.
-const KEYS := ["paradise_quest", "island_locks", "discovered", "seed", "storage", "port_storage", "drops", "markers", "fish_taken"]
+const KEYS := ["paradise_quest", "island_locks", "discovered", "seed", "storage", "port_storage", "drops", "markers", "fish_taken", "fish_returns"]
 var revision := 0
 var current: Dictionary = {}
 var versions: Dictionary = {}
@@ -71,8 +71,15 @@ static func valid_slots(slots: Variant) -> bool:
 	return true
 
 static func valid(state: Dictionary) -> bool:
-	for key in ["markers", "fish_taken"]:
+	for key in ["markers", "fish_taken", "fish_returns"]:
 		if not state.get(key,{}) is Dictionary: return false
+	if state.get("fish_returns",{}).size() > 32: return false
+	for id in state.get("fish_returns",{}):
+		var entry: Variant = state.fish_returns[id]
+		if not id is String or id.length() > 80 or not entry is Dictionary: return false
+		if not entry.get("position") is Vector2 or not entry.position.is_finite(): return false
+		for key in ["angle","time","duration"]:
+			if not entry.get(key) is float or not is_finite(entry[key]): return false
 	if state.get("markers",{}).size() > 4 or state.get("fish_taken",{}).size() > 256: return false
 	for id in state.get("markers",{}):
 		if not id is int or not state.markers[id] is Vector2 or not state.markers[id].is_finite(): return false
@@ -87,6 +94,7 @@ static func valid(state: Dictionary) -> bool:
 	for key: Variant in state.island_locks:
 		var lock: Variant = state.island_locks[key]
 		if not key is String or not lock is Dictionary or not lock.get("player") is int or not lock.get("token") is int: return false
+		if lock.has("until") and (not lock.until is float or not is_finite(lock.until)): return false
 	for key: Variant in state.discovered:
 		var island: Variant = state.discovered[key]
 		if not (key is String or key is StringName) or not island is Dictionary: return false
@@ -97,5 +105,7 @@ static func valid(state: Dictionary) -> bool:
 		var drop: Variant = state.drops[id]
 		if not id is int or not drop is Dictionary or not drop.get("position") is Vector2 or not drop.position.is_finite(): return false
 		if not valid_slots([drop]): return false
+		if drop.has("spawn_origin") and (not drop.spawn_origin is Vector2 or not drop.spawn_origin.is_finite()): return false
+		if drop.has("spawn_time") and (not drop.spawn_time is float or not is_finite(drop.spawn_time)): return false
 		if drop.has("world") and not drop.world is bool: return false
 	return true

@@ -3,6 +3,7 @@ extends Node2D
 ## Lightweight replaceable marker. Occupancy belongs to IslandChallenges.
 @export var interaction_distance: float = 64.0
 var occupied: bool = false
+var cooldown := 0
 var caption: Label
 
 func _ready() -> void:
@@ -16,13 +17,19 @@ func _ready() -> void:
 	add_child(caption)
 	set_occupied(false)
 
+func set_cooldown(seconds: float) -> void:
+	var remaining := ceili(seconds)
+	if remaining == cooldown: return
+	cooldown = remaining
+	set_occupied(occupied)
+
 func set_occupied(value: bool) -> void:
 	occupied = value
 	if caption:
 		var island := get_parent() as WorldIsland
 		var title := island.scene.get_file().get_basename().replace("_", " ").capitalize()
 		if title == "Island": title = "Coconut Island"
-		caption.text = title + ("\nOccupied — wait for your turn" if value else "\nE · Play challenge")
+		caption.text = title + ("\nResting %d:%02d" % [cooldown / 60,cooldown % 60] if cooldown > 0 else ("\nOccupied — wait for your turn" if value else "\nE · Play challenge"))
 	queue_redraw()
 
 func _draw() -> void:

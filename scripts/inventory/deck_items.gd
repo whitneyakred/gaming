@@ -46,6 +46,9 @@ func _draw() -> void:
 		var entry: Dictionary = service.drops[key]
 		var item: ItemData = ItemDatabase.get_item(entry.id)
 		var point: Vector2 = (to_local(entry.position) if entry.get("world", false) else entry.position) + Vector2((key % 3 - 1) * 7, (key % 2) * 5)
+		if entry.has("spawn_origin") and entry.has("spawn_time") and service.get_parent() is Ship:
+			var t := clampf((service.get_parent().ocean_fish.shared_time()-float(entry.spawn_time))/0.75,0.0,1.0)
+			point = to_local(entry.spawn_origin).lerp(point,t) + Vector2(0,-sin(t*PI)*32.0)
 		draw_set_transform(point, -global_rotation)
 		draw_circle(Vector2(0, 6), 12, Color(0, 0, 0, 0.3))
 		if item != null and item.icon != null:

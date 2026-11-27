@@ -22,6 +22,7 @@ var _step := 1.0/60.0
 var threats: Array[Vector3] = []
 var claims: Dictionary = {}
 var taken: Dictionary = {}
+var returns: Dictionary = {}
 var fishing_schools: Dictionary = {}
 
 func fish_id(cell: Vector2i, index: int) -> String:
@@ -38,6 +39,8 @@ func unavailable(id: String) -> bool:
 func claim_near(point: Vector2, owner: int) -> Dictionary:
 	if NetworkSession.online and not multiplayer.is_server(): return {}
 	var now := shared_time()
+	for id in returns.keys():
+		if now >= float(returns[id].time)+float(returns[id].duration): returns.erase(id)
 	for id in taken.keys():
 		if float(taken[id]) <= now: taken.erase(id)
 	var cell := Vector2i((point / FishSchool.CELL_SIZE).floor())
@@ -55,12 +58,12 @@ func claim_near(point: Vector2, owner: int) -> Dictionary:
 			if not school.water or FishSchool.visibility(school,now) < 0.5: continue
 			for i in school.members.size():
 				var id := fish_id(key,i)
-				if unavailable(id): continue
+				if unavailable(id) or returns.has(id): continue
 				var pose := FishSchool.pose(school,school.members[i],now)
 				var gap := pose.origin.distance_to(point)
 				if gap < distance:
 					distance = gap
-					best = {"id":id,"position":pose.origin,"species":school.species}
+					best = {"id":id,"position":pose.origin,"species":school.species,"length":school.members[i].length,"angle":pose.get_rotation(),"phase":school.members[i].phase,"speed":school.members[i].speed}
 	if not best.is_empty(): claims[best.id] = owner
 	return best
 
@@ -102,6 +105,7 @@ func configure(seed_value: int, islands: Array) -> void:
 	fishing_schools.clear()
 	claims.clear()
 	taken.clear()
+	returns.clear()
 	_last_cell = Vector2i(2147483647, 2147483647)
 	_navigation.obstacles.clear()
 	for island in islands:
@@ -214,6 +218,12 @@ func render_fish(center: Vector2, extent: Vector2, time: float) -> void:
 			var member: Dictionary = school.members[index]
 			if not menu_mode and unavailable(fish_id(cell,index)): continue
 			var pose := FishSchool.pose(school, member, time)
+			var returning: Dictionary = returns.get(fish_id(cell,index),{})
+			if not menu_mode and not returning.is_empty():
+				var distance: float = returning.position.distance_to(pose.origin)
+				var blend := clampf((time-float(returning.time))/maxf(0.6,float(returning.duration)),0.0,1.0)
+				if distance < 600.0 and blend < 1.0:
+					pose = Transform2D(lerp_angle(returning.angle,pose.get_rotation(),blend),Vector2(returning.position).lerp(pose.origin,blend))
 			if menu_mode: pose = animate_member(member, pose)
 			else: member["tail_frame"] = fposmod(time * FishSchool.animation_rate(member.speed, member.length) + member.phase, 4.0)
 			if alpha < 0.005: continue

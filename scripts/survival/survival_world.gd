@@ -5,6 +5,7 @@ extends Node2D
 @export var shark_delay: float = 4.0
 @export var shark_delay_variation: float = 4.0
 var arrival_delays: Dictionary = {}
+var medical: Dictionary = {}
 @export_range(1.0, 2.0) var largest_shark_scale: float = 1.75
 @export_range(1, 3) var sharks_per_swimmer: int = 2
 const MAX_SHARKS := 8
@@ -133,7 +134,8 @@ func advance_sharks(delta: float, people: Dictionary) -> void:
 		var person = people[id]
 		if person.health > 0 and person.is_overboard and not person.on_land and not person.island_challenge:
 			if not arrival_delays.has(id): arrival_delays[id] = shark_rng.randf_range(shark_delay, shark_delay + shark_delay_variation)
-			if person.swim_time >= float(arrival_delays[id]): eligible.append(id)
+			var lingering := sharks.any(func(shark: Dictionary): return shark.active and shark.get("last_target",0) == id)
+			if lingering or person.swim_time >= float(arrival_delays[id]): eligible.append(id)
 		else: arrival_delays.erase(id)
 	for id in arrival_delays.keys():
 		if not people.has(id): arrival_delays.erase(id)
@@ -182,11 +184,12 @@ func advance_sharks(delta: float, people: Dictionary) -> void:
 			shark.orbit = float(index)*PI
 			if not shark.active:
 				for attempt in 24:
-					var spawn: Vector2 = player.global_position + Vector2(440,0).rotated(float(attempt+index*12)*TAU/24.0)
+					var spawn: Vector2 = player.global_position + Vector2(1500,0).rotated(float(attempt+index*12)*TAU/24.0)
 					if navigation.clear(spawn, 45): shark.position = spawn; break
 				shark.angle = (player.global_position-Vector2(shark.position)).angle()
 				shark.alpha = 0.0
 		shark.target = target
+		shark["last_target"] = target
 		shark.active = true
 		shark.clock = float(shark.clock) + delta
 		var goal: Vector2 = player.global_position
@@ -269,6 +272,27 @@ func eat(id: int, slot: int) -> bool:
 	player.hunger=mini(15,player.hunger+(1 if item==&"fish_cod" else 3))
 	player.eat_cooldown=0.65
 	player.eat_serial+=1
+	return true
+
+func medpack(id: int, action: String, slot: int) -> bool:
+	if NetworkSession.online and not multiplayer.is_server(): return false
+	if action == "cancel": medical.erase(id); return true
+	var service := service_for(id)
+	if service == null or not service.can_handle_items() or service.hud.storage_open or service.hud.grill_open: medical.erase(id); return false
+	var player: CharacterBody2D = crew().get(id)
+	if player == null or player.health <= 0 or player.health >= 15 or player.fishing_active or slot != service.hud.selected: medical.erase(id); return false
+	if slot < 0 or slot >= service.inventory.slots.size() or service.inventory.slots[slot].get("id") != &"medpack": medical.erase(id); return false
+	if action == "start":
+		medical[id] = {"time":Time.get_ticks_msec(),"slot":slot,"revision":service.view_revision}
+		return true
+	var hold: Dictionary = medical.get(id,{})
+	medical.erase(id)
+	if action != "finish" or hold.is_empty() or hold.slot != slot or hold.revision != service.view_revision: return false
+	var elapsed := Time.get_ticks_msec()-int(hold.time)
+	if elapsed < 1800 or elapsed > 6000: return false
+	service.inventory.remove(slot,1)
+	player.health = 15
+	player.heal_serial += 1
 	return true
 
 func damage(id: int, amount: int) -> void:

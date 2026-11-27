@@ -48,6 +48,9 @@ func run() -> void:
 	world.advance(0.1)
 	check(world.sharks[0].target == 0,"Sharks stop attacking on land")
 	player.update_land(false)
+	player.swim_time = 0.0
+	world.advance_sharks(0.01,world.crew())
+	check(world.sharks[0].target == 1,"Lingering sharks immediately re-engage returning swimmer")
 	player.global_position = Vector2(11500,0)
 	world.advance(14.9)
 	check(player.is_overboard,"Red water allows escape before fifteen seconds")

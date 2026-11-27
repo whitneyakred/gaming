@@ -4,7 +4,9 @@
 > **E**. One player can run that island's original challenge at a time. See
 > [island totems](island-totems.md) for access, return, reward, and co-op behavior.
 > The docking/scene-transition description below documents the earlier prototype;
-> the individual game rules remain useful.
+> the individual game rules remain useful. Voyage totems now award two random
+> supply types with a five-minute success cooldown; the old loot-transfer and
+> pirate-timer descriptions below apply only to the standalone prototype.
 
 Nineteen islands sit on the sailing map. Sail into an island's yellow docking circle, walk to the stern, and press **E** to row over. Every island uses the shared `IslandGame` flow ([`island_game.gd`](../scripts/islands/island_game.gd)): a countdown with the pirate-ship track, a task, and the rowboat home. Finish the task, then walk back into the rowboat before time runs out. If time runs out, the island restarts.
 

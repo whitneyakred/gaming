@@ -51,6 +51,11 @@ var geometry_ms := 0.0
 var pending_cast_until := 0
 var catch_id := ""
 var catch_species := 0
+var catch_length := 30.0
+var catch_angle := 0.0
+var catch_phase := 0.0
+var catch_speed := 30.0
+var visual_catch_id := ""
 var catch_position := Vector2.ZERO
 var search_left := 0.0
 var catch_mesh: MultiMeshInstance2D
@@ -62,12 +67,18 @@ func update_catch_visual(delta: float) -> void:
 	catch_mesh.visible = not catch_id.is_empty() and state != State.IDLE
 	if not catch_mesh.visible: return
 	var bobber := bobber_position()
-	var direction: Vector2 = (bobber - catch_position).normalized() if state == State.WAITING else (service.player.visual_position() - bobber).normalized()
-	var at: Vector2 = catch_position if state == State.WAITING else bobber - direction * 18.0
+	var direction := Vector2.from_angle(catch_angle - PI*0.5)
+	if state == State.REELING: direction = (service.player.visual_position() - bobber).normalized()
+	var at: Vector2 = catch_position if state == State.WAITING else bobber - direction * catch_length * (0.6 if state == State.BITE else 0.375/0.65)
+	if visual_catch_id != catch_id:
+		visual_catch_id = catch_id
+		catch_mesh.global_position = catch_position
+		catch_mesh.global_rotation = catch_angle
+	catch_mesh.scale = Vector2.ONE * catch_length / 0.65
 	var previous := catch_mesh.global_position
 	catch_mesh.global_position = previous.lerp(at, 1.0-exp(-15.0*delta)) if previous.distance_to(at) < 120 else at
-	catch_mesh.global_rotation = direction.angle()+PI*0.5
-	catch_mesh.multimesh.set_instance_custom_data(0,Color((catch_species+0.5)/6.0,fposmod(clock*6.0,4.0)/4.0,1.0,0.0))
+	catch_mesh.global_rotation = lerp_angle(catch_mesh.global_rotation,direction.angle()+PI*0.5,1.0-exp(-8.0*delta))
+	catch_mesh.multimesh.set_instance_custom_data(0,Color((catch_species+0.5)/6.0,fposmod(_ship.ocean_fish.shared_time()*FishSchool.animation_rate(catch_speed,catch_length)+catch_phase,4.0)/4.0,1.0,0.0))
 @onready var service: InventoryService = get_parent() as InventoryService
 
 func _ready() -> void:
@@ -79,14 +90,14 @@ func _ready() -> void:
 	catch_mesh.material = FishAtlas.material()
 	catch_mesh.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var mesh := QuadMesh.new()
-	mesh.size = Vector2(48,48)
+	mesh.size = Vector2.ONE
 	catch_mesh.multimesh = MultiMesh.new()
 	catch_mesh.multimesh.transform_format = MultiMesh.TRANSFORM_2D
 	catch_mesh.multimesh.use_custom_data = true
 	catch_mesh.multimesh.mesh = mesh
 	catch_mesh.multimesh.instance_count = 1
 	catch_mesh.multimesh.set_instance_transform_2d(0, Transform2D.IDENTITY)
-	catch_mesh.material.set_shader_parameter("body_opacity", 0.85)
+	catch_mesh.material.set_shader_parameter("body_opacity", 0.57)
 	add_child(catch_mesh)
 	catch_mesh.top_level = true
 	catch_mesh.hide()
@@ -313,13 +324,22 @@ func advance(delta: float, pulling: bool) -> void:
 				if not found.is_empty():
 					catch_id = found.id
 					catch_species = found.species
+					catch_length = found.length
+					catch_angle = found.angle
+					catch_phase = found.phase
+					catch_speed = found.speed
 					catch_position = found.position
 			if catch_id.is_empty():
 				if clock > 25.0: finish(false,"No fish nearby. Cast closer to a school.",false)
 				return
-			catch_position = catch_position.move_toward(bobber_position(),45.0*delta)
+			var bobber := bobber_position()
+			var toward := bobber-catch_position
+			if toward.length() > catch_length*0.6 + 2.0:
+				catch_angle = rotate_toward(catch_angle,toward.angle()+PI*0.5,delta*2.8)
+				var heading := Vector2.from_angle(catch_angle-PI*0.5)
+				catch_position += heading * minf(45.0*delta,maxf(0,toward.length()-catch_length*0.6))
 			wait_left -= delta
-			if wait_left <= 0 and catch_position.distance_to(bobber_position()) < 10.0:
+			if wait_left <= 0 and catch_position.distance_to(bobber_position()) < catch_length*0.6 + 4.0:
 				state = State.BITE
 				bite_left = bite_window
 				splash_age = 0.0
@@ -339,6 +359,10 @@ func advance(delta: float, pulling: bool) -> void:
 func finish(success: bool, message: String = "", snapped: bool = true) -> void:
 	if state == State.IDLE:
 		return
+	if not success and not catch_id.is_empty() and is_instance_valid(_ship) and (not NetworkSession.online or multiplayer.is_server()):
+		var field := _ship.ocean_fish
+		if field.returns.size() >= 32: field.returns.erase(field.returns.keys()[0])
+		field.returns[catch_id] = {"position":catch_mesh.global_position,"angle":catch_mesh.global_rotation,"time":field.shared_time(),"duration":3.0}
 	var claimed := _ship.ocean_fish.release_fish(catch_id,owner_id(),success) if is_instance_valid(_ship) else false
 	success = success and claimed
 	catch_id = ""

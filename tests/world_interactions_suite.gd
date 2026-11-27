@@ -36,6 +36,20 @@ func run() -> void:
 	var before := service.inventory.get_quantity(&"fish_cod")
 	rod.finish(true)
 	check(service.inventory.get_quantity(&"fish_cod")==before,"Winning without actual fish cannot fabricate loot")
+	rod.state = RodFishing.State.WAITING
+	rod.catch_id = found.id
+	rod.catch_length = found.length
+	rod.catch_angle = found.angle
+	rod.catch_position = found.position
+	rod.target = found.position+Vector2(80,0)
+	field.claims[found.id] = 1
+	rod.update_catch_visual(1.0/60)
+	check(is_equal_approx(rod.catch_mesh.scale.x,float(found.length)/0.65),"Hooked fish preserves ambient size")
+	var original := rod.catch_position
+	rod.advance(1.0/60,false)
+	check(rod.catch_position.distance_to(original)<=0.76,"Fish approach has bounded swim speed")
+	rod.cancel()
+	check(field.returns.has(found.id),"Escaped fish publishes smooth route return")
 	var sprite: CrewSprite = service.player.idle_sprite
 	sprite.refresh(0.01)
 	service.player.hurt_serial += 1
@@ -43,6 +57,19 @@ func run() -> void:
 	check(sprite.self_modulate.g < 0.5,"Replicated damage serial starts red flash")
 	sprite.refresh(0.4)
 	check(sprite.self_modulate == Color.WHITE,"Damage flash expires locally")
+	service.player.health = 3
+	service.inventory.restore([{"id":&"medpack","quantity":1},{"id":&"medpack","quantity":1},{},{}])
+	service.hud.selected = 0
+	check(ItemDatabase.get_item(&"medpack").max_stack == 1,"Medpacks cannot stack")
+	check(ship.survival.medpack(1,"start",0),"Medpack starts with wounded player")
+	check(not ship.survival.medpack(1,"finish",0),"Instant healing rejected")
+	ship.survival.medpack(1,"start",0)
+	ship.survival.medpack(1,"cancel",0)
+	check(service.inventory.get_quantity(&"medpack")==2 and service.player.health==3,"Cancellation consumes nothing")
+	ship.survival.medpack(1,"start",0)
+	ship.survival.medical[1].time -= 2100
+	check(ship.survival.medpack(1,"finish",0) and service.player.health==15,"Completed hold heals to full")
+	check(service.inventory.get_quantity(&"medpack")==1 and not ship.survival.medpack(1,"finish",0),"Medpack consumed once")
 	check(ItemDatabase.get_item(&"fish_cod").display_name=="Fish","Inventory uses generic fish name")
 	MapState.set_destination(Vector2(500,600))
 	check(MapState.crew_markers.get(1)==Vector2(500,600),"Local waypoint responds immediately")

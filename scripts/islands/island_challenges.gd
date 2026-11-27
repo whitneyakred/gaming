@@ -4,20 +4,8 @@ extends Node
 ## Completion is client-reported (cooperative prototype), never a bag replacement.
 const TOTEM := preload("res://scenes/islands/minigame_totem.tscn")
 const MAX_RUN_SECONDS := 600.0
-# Maximum accepted prizes per attempt, scoped to the original scene.
-const PRIZES := {
-	"island": {"coconut": 20}, "treasure_island": {"gold_coin": 30},
-	"crab_cove": {"crab_meat": 12}, "coconut_squall": {"coconut": 100},
-	"tiki_totems": {"gold_coin": 30}, "timber_isle": {"wood": 6},
-	"skull_rock": {"gold_coin": 30}, "smugglers_den": {"gold_coin": 30},
-	"overgrown_isle": {"compass": 1},
-	"parrot_point": {"mango": 100, "banana": 100, "papaya": 100, "fresh_water": 2},
-	"powder_keg_point": {"gunpowder": 100}, "seagull_roost": {"dried_fish": 8},
-	"turtle_beach": {"gold_coin": 30}, "quicksand_flats": {"gold_coin": 30},
-	"firefly_hollow": {"glow_jar": 6}, "cannon_cove": {"cannonball": 8},
-	"mosquito_marsh": {"torch": 5}, "slippery_rocks": {"gold_coin": 30},
-	"bee_hive_hill": {"honey": 4},
-}
+const REWARDS := [&"coal", &"string", &"leather", &"medpack", &"rope"]
+const COOLDOWN := 300.0
 var locks: Dictionary = {}
 var _serial: int = 0
 var game: IslandGame
@@ -82,7 +70,7 @@ func try_start(id: int, island_id: String) -> bool:
 	if crew == null or island == null or crew.health <= 0 or crew.island_challenge or crew.using_station or crew.fishing_active or crew.inventory_open: return false
 	if nearest(crew) != island: return false
 	if locks.has(island_id):
-		service_for(id).feedback.emit("This island's challenge is occupied. Wait for your turn.")
+		service_for(id).feedback.emit("This totem is resting or in use.")
 		return false
 	_serial += 1
 	locks[island_id] = {"player": id, "token": _serial, "seconds": 0.0}
@@ -109,24 +97,40 @@ func finish(id: int, island_id: String, token: int, won: bool, prizes: Variant) 
 	# Release first: duplicate result packets cannot grant a second reward.
 	locks.erase(island_id)
 	if crew != null: crew.island_challenge = false
-	if won and crew != null and crew.health > 0 and island != null and prizes is Dictionary:
-		var limits: Dictionary = PRIZES.get(island.scene.get_file().get_basename(), {})
-		var bag: PlayerInventory = crew.player_inventory
-		var overflow := false
-		for item_id in limits:
-			if not prizes.get(item_id, 0) is int: continue
-			var amount := clampi(int(prizes.get(item_id, 0)), 0, int(limits[item_id]))
-			if amount == 0: continue
-			var added := bag.add_items(ItemDatabase.get_item(StringName(item_id)), amount)
-			if added < amount:
-				# Keep prizes that don't fit as ordinary pickups beside the totem.
-				service_for(id)._spawn_drop({"id": StringName(item_id), "quantity": amount - added}, crew.position)
-				overflow = true
-		service_for(id).feedback.emit("Challenge won! Extra prizes are beside the totem." if overflow else "Challenge won! Prizes added to your bag.")
+	if won and crew != null and crew.health > 0 and island != null:
+		var pool: Array = REWARDS.duplicate()
+		pool.shuffle()
+		var service := service_for(id)
+		var origin: Vector2 = island.get_node("MinigameTotem").global_position
+		for i in 2:
+			var item: StringName = pool[i]
+			var amount := 1 if item == &"medpack" else randi_range(1,3)
+			var drop_id := NetworkSession.dropped_id if NetworkSession.online else service.next_drop_id
+			service._spawn_drop({"id":item,"quantity":amount},origin+Vector2(-54 if i==0 else 54,0))
+			service.drops[drop_id]["world"] = true
+			service.drops[drop_id]["spawn_origin"] = origin
+			service.drops[drop_id]["spawn_time"] = ship.ocean_fish.shared_time()
+		locks[island_id] = {"player":0,"token":token,"seconds":0.0,"until":ship.ocean_fish.shared_time()+COOLDOWN}
+		service.feedback.emit("Totem complete!")
 	if NetworkSession.online and id != NetworkSession.local_id and id in multiplayer.get_peers():
 		NetworkSession.island_end.rpc_id(id, token)
 	else:
 		close_local.call_deferred(token)
+
+func capture_cooldowns() -> Dictionary:
+	var saved := {}
+	for id in locks:
+		if locks[id].get("player",-1) == 0:
+			saved[id] = Time.get_unix_time_from_system()+maxf(0,float(locks[id].until)-ship.ocean_fish.shared_time())
+	return saved
+
+func restore_cooldowns(saved: Variant) -> void:
+	if not saved is Dictionary: return
+	for id in saved:
+		if not id is String or not saved[id] is float or not is_finite(saved[id]): continue
+		var seconds := clampf(saved[id]-Time.get_unix_time_from_system(),0,COOLDOWN)
+		if seconds > 0 and ship.get_island(StringName(id)) != null:
+			locks[id] = {"player":0,"token":0,"seconds":0.0,"until":ship.ocean_fish.shared_time()+seconds}
 
 func release_player(id: int) -> void:
 	for island_id in locks.keys():
@@ -137,12 +141,18 @@ func _process(delta: float) -> void:
 	if not NetworkSession.online or multiplayer.is_server():
 		for island_id in locks.keys():
 			var reservation: Dictionary = locks[island_id]
+			if reservation.get("player",0) == 0:
+				if ship.ocean_fish.shared_time() >= float(reservation.get("until",0.0)): locks.erase(island_id)
+				continue
 			reservation.seconds += delta
 			var crew := crew_for(reservation.player)
 			if crew == null or crew.health <= 0 or reservation.seconds >= MAX_RUN_SECONDS:
 				finish(reservation.player, island_id, reservation.token, false, {})
 	for island in ship.get_islands():
 		var totem := island.get_node_or_null("MinigameTotem") as MinigameTotem
+		if totem != null:
+			var reservation: Dictionary = locks.get(str(island.name),{})
+			totem.set_cooldown(maxf(0,float(reservation.get("until",0.0))-ship.ocean_fish.shared_time()))
 		if totem != null and totem.occupied != locks.has(str(island.name)):
 			totem.set_occupied(locks.has(str(island.name)))
 	if is_instance_valid(game):
@@ -196,7 +206,8 @@ func begin_local(island_id: String, token: int) -> void:
 	_viewport.add_child(game)
 	var back := Button.new()
 	back.name = "LeaveChallenge"
-	back.text = "Leave challenge (no prizes)"
+	back.text = "Leave"
+	back.theme = HarborTheme.menu_theme()
 	back.pressed.connect(func() -> void: _finished_local(false))
 	_layer.add_child(back)
 	back.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -209,9 +220,6 @@ func _finished_local(won: bool) -> void:
 	if _waiting or not is_instance_valid(game): return
 	_waiting = true
 	var prizes := {}
-	if won:
-		for item_id in game.get_inventory().quantities:
-			prizes[str(item_id)] = game.get_inventory().get_quantity(item_id)
 	if NetworkSession.online:
 		NetworkSession.command("island_finish", {"island": _island_id, "token": _token, "won": won, "prizes": prizes})
 	else:

@@ -35,6 +35,7 @@ func run() -> void:
 	role = "host" if "--test-host" in args else ("Alpha" if "--test-alpha" in args else "Beta")
 	if role == "host":
 		phase("")
+		if "--settings-test" in args: VoyageSaves.clear_slot(0)
 		if "--relay-test" in args:
 			NetworkSession.local_name = "Captain"
 			await HarborService.host("Relay smoke", "test")
@@ -210,12 +211,12 @@ func host_tests() -> void:
 	await wait(0.5)
 	phase("drop")
 	await wait(1)
-	check(a.drops.size() == 1 and a.inventory.get_quantity(&"fishing_rod") == 0, "Client drop removes one canonical item")
+	check(a.drops.size() == 1 and a.inventory.get_quantity(&"fishing_rod") == 0, "Client drop removes one canonical item: drops=%s bag=%s rev=%s" % [a.drops,a.inventory.capture(),a.view_revision])
 	phase("inspect_drop")
 	await wait(0.6)
 	b.player.position = a.player.position
 	await wait(0.5)
-	check(a.drops.is_empty() and b.inventory.get_quantity(&"fishing_rod") == 2, "Other client picks up shared dropped rod")
+	check(a.drops.is_empty() and b.inventory.get_quantity(&"fishing_rod") == 2, "Other client picks up shared dropped rod: drops=%s bag=%s" % [a.drops,b.inventory.capture()])
 	# Station contention.
 	a.player.position = ship.get_node("Helm").position
 	b.player.position = a.player.position
@@ -311,6 +312,17 @@ func host_tests() -> void:
 	phase("eat")
 	await wait(0.7)
 	check(restored.player.hunger==12 and restored.inventory.get_quantity(&"fish_cod")==0,"Guest eating is host-authoritative")
+	restored.player.health = 3
+	restored.inventory.try_add(&"medpack")
+	await wait(0.3)
+	phase("medpack")
+	await wait(2.8)
+	check(restored.player.health==15 and restored.inventory.get_quantity(&"medpack")==0,"Guest medpack hold heals once on host")
+	ship.player.splash_serial += 1
+	ship.player.splash_position = ship.global_position+Vector2(250,0)
+	await wait(0.1)
+	phase("splash")
+	await wait(0.3)
 	survival.damage(restored.network_id, 15)
 	check(restored.player.health == 0, "Guest waits for respawn")
 	NetworkSession._handle_command(restored.network_id, "respawn", {})
@@ -388,6 +400,12 @@ func client_tests() -> void:
 							service.hud.cancel_cursor()
 						NetworkSession.command("drag", {"index":0,"storage":true,"destination":3,"amount":10 if current=="split_half" else 9999,"revision":service.view_revision})
 			"markers": MapState.set_destination(Vector2(1000, 2000) if role == "Alpha" else Vector2(2000, 1000))
+			"splash": check(not get_tree().get_nodes_in_group("water_splashes").is_empty(),"Guest sees another sailor splash")
+			"medpack":
+				if role == "Alpha":
+					NetworkSession.command("medpack",{"action":"start","index":0})
+					await wait(2.05)
+					NetworkSession.command("medpack",{"action":"finish","index":0})
 			"grill_open":
 				check(MapState.crew_markers.size() == 2, "Both crew waypoints replicate to guest")
 				NetworkSession.command("interact")

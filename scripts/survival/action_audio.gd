@@ -2,7 +2,7 @@ class_name ActionAudio
 extends RefCounted
 static func make(kind: String) -> AudioStreamWAV:
 	var sample_rate := 22050
-	var duration := 0.24 if kind == "eat" else 0.3
+	var duration := 0.55 if kind == "eat_complete" else (0.24 if kind in ["eat","bandage"] else 0.3)
 	var count := int(sample_rate * duration)
 	var bytes := PackedByteArray()
 	bytes.resize(count * 2)
@@ -23,10 +23,15 @@ static func make(kind: String) -> AudioStreamWAV:
 			value = filtered * chew * 0.65
 			if kind == "eat_complete":
 				var b := u
-				phase += TAU * lerpf(145.0,78.0,b) / sample_rate
-				value += (sin(phase)+0.3*sin(phase*2.0)+0.12*sin(phase*3.0)) * sin(PI*b) * 0.2
+				phase += TAU * (lerpf(165.0,65.0,b)+sin(b*TAU*3.0)*15.0) / sample_rate
+				value += (sin(phase)+0.3*sin(phase*2.0)+0.12*sin(phase*3.0)) * sin(PI*b) * 0.38
 			envelope = smoothstep(0.0,0.015,t) * (1.0-smoothstep(0.94,1.0,u))
-		bytes.encode_s16(i*2, int(value * envelope * 19000))
+		if kind == "bandage":
+			filtered = lerpf(filtered,rng.randf_range(-1,1),0.35)
+			value = filtered * 0.45
+		elif kind == "heal":
+			value = (sin(TAU*660*t)+sin(TAU*880*t)*0.5)*0.3
+		bytes.encode_s16(i*2, int(clampf(value * envelope,-1.0,1.0) * 19000))
 	var sound := AudioStreamWAV.new()
 	sound.format = AudioStreamWAV.FORMAT_16_BITS
 	sound.mix_rate = sample_rate

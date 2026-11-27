@@ -21,9 +21,33 @@ const ICON_TIP_OFFSET: float = 14.0
 
 var _message_token: int = 0
 var _toast_token: int = 0
+var energy: ProgressBar
 var _inventory: PlayerInventory
 
 func _ready() -> void:
+	var panel := Panel.new()
+	panel.position = Vector2(12,12)
+	panel.size = Vector2(408,112)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_theme_stylebox_override("panel",HarborTheme.box(Color("182d35eb"),Color("c9ab71"),2))
+	add_child(panel)
+	move_child(panel,0)
+	objective_label.position = Vector2(24,20)
+	objective_label.size = Vector2(384,34)
+	objective_label.clip_text = true
+	time_label.position = Vector2(24,61)
+	time_label.size = Vector2(384,30)
+	energy = ProgressBar.new()
+	energy.show_percentage = false
+	energy.position = Vector2(24,100)
+	energy.size = Vector2(360,14)
+	energy.add_theme_stylebox_override("background",HarborTheme.box(Color("182d35"),Color("c9ab71"),2))
+	energy.add_theme_stylebox_override("fill",HarborTheme.box(Color("d7b777"),Color("d7b777"),0))
+	add_child(energy)
+	pirate_track.hide()
+	threat_label.hide()
+	objective_label.add_theme_font_size_override("font_size",24)
+	time_label.add_theme_font_size_override("font_size",22)
 	# Reserve the bottom row for the shared icon hotbar and its controls.
 	prompt_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	prompt_label.offset_left = -350
@@ -46,18 +70,20 @@ func set_objective_color(color: Color) -> void:
 	objective_label.add_theme_color_override("font_color", color)
 
 func set_time_left(seconds: float) -> void:
-	time_label.text = "Time left: %ds" % int(ceil(seconds))
+	time_label.text = "Totem: %ds" % int(ceil(seconds))
 
 func set_threat_label(text: String) -> void:
-	threat_label.text = text
+	threat_label.text = ""
 
 func set_timer_visible(value: bool) -> void:
 	time_label.visible = value
-	threat_label.visible = value
-	pirate_track.visible = value
+	threat_label.hide()
+	pirate_track.hide()
+	if energy: energy.visible = value
 
 ## 0.0 = pirate ship at the start of the track, 1.0 = arrived.
 func set_progress(progress: float) -> void:
+	if energy: energy.value = (1.0-clampf(progress,0.0,1.0))*100.0
 	var distance: float = pirate_track.size.x - ICON_TIP_OFFSET
 	pirate_ship_icon.position.x = lerpf(0.0, distance, clampf(progress, 0.0, 1.0))
 
@@ -92,6 +118,7 @@ func set_inventory(inventory: PlayerInventory) -> void:
 
 ## A short note above the bag line, e.g. "+1 Coconut".
 func show_toast(text: String, seconds: float = 1.6) -> void:
+	if get_parent() is IslandGame and get_parent().embedded: return
 	_toast_token += 1
 	var token := _toast_token
 	toast_label.text = text
@@ -101,19 +128,5 @@ func show_toast(text: String, seconds: float = 1.6) -> void:
 		toast_label.visible = false
 
 func _refresh_bag() -> void:
-	if get_parent() is IslandGame and get_parent().embedded:
-		var entries: PackedStringArray = []
-		if _inventory:
-			for item_id in _inventory.quantities:
-				var item := ItemDatabase.get_item(item_id)
-				entries.append("%d %s" % [_inventory.get_quantity(item_id), item.display_name])
-		bag_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-		bag_label.offset_left = 16
-		bag_label.offset_right = -16
-		bag_label.offset_top = -48
-		bag_label.offset_bottom = -16
-		bag_label.text = "Challenge bag: " + (", ".join(entries) if not entries.is_empty() else "empty — win to keep your prizes")
-		bag_label.visible = true
-		return
 	# The reusable inventory HUD now renders the bag with icons.
 	bag_label.visible = false

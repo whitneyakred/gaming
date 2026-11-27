@@ -4,7 +4,7 @@ Integrated from `merge-everything-fest` into `systems-revamp` as `8794889` on No
 
 Every generated island has a totem near its center, placed inside its coastline.
 The 30 world islands reuse all 19 existing minigame scenes. Their original puzzles,
-objectives, art, timers, and reward mechanics remain in those scenes.
+objectives, art and timers remain in those scenes; the adapter owns voyage rewards.
 
 ## Play in Godot
 
@@ -13,8 +13,8 @@ objectives, art, timers, and reward mechanics remain in those scenes.
 2. Sail to an island, swim ashore, and walk to the wooden totem near its center.
 3. Press **E** within reach. The original minigame opens for that player.
 4. Follow its objective; the original rowboat remains the finish line when required.
-5. Winning returns you to the totem with prizes. Losing or clicking
-   **Leave challenge (no prizes)** returns you without prizes or loss of existing gear.
+5. Winning returns you to two supply drops beside the totem and starts its shared
+   five-minute cooldown. Losing or clicking **Leave** allows immediate retry.
    **Esc** opens the usual pause menu; **Resume voyage** returns to the challenge.
 
 Each island allows one participant at a time. An occupied totem turns amber and
@@ -30,24 +30,26 @@ inventory actions, and hunger drain are suspended. Solo pause still pauses the g
 - Each participant runs the scene in an independent `SubViewport`/`World2D`.
   The sailing scene stays loaded; the actual player remains at the totem.
 - The challenge avatar uses an empty, temporary prize bag. Parrot orders consume
-  fruit from that bag, never from your voyage supplies. The HUD shows its contents.
+  fruit from that bag, never from your voyage supplies. Its contents do not appear in the voyage HUD or become voyage rewards.
 - `IslandGame.embedded_finished` returns the result to the adapter. Standalone
   **F6** minigames retain their old return flow for existing tests and development.
 - The host checks proximity, living/available player, occupancy, and attempt token.
-  It grants allowed prizes once into the actual player's inventory. Overflow becomes
-  ordinary world pickups beside the totem; step away and back after freeing space.
+  It rolls two distinct types from coal, string, leather, rope and medpack, once.
+  Supplies contain 1–3 units; medpacks contain one and cannot stack. Both rewards
+  pop out as shared world pickups; make inventory space and walk over them.
 - Cancellation, failure, disconnection, death, and a ten-minute reservation limit
-  release the island. Replay is allowed. Reservations are temporary, not saved.
+  release the island without cooldown. Success locks the island for five minutes.
+  Active reservations are temporary; successful cooldown expiry is saved.
 
 ## Current boundaries
 
 The minigame simulation and reported outcome are local to the participant. The
-host validates reservation ownership and per-scene prize limits, but does **not**
+host validates reservation ownership and generates bounded rewards, but does **not**
 independently verify puzzle completion. This is a cooperative prototype trust
-model, not cheat-resistant authoritative minigame simulation. The `PRIZES` table
-must be updated if designers increase the original scenes' reward amounts.
+model, not cheat-resistant authoritative minigame simulation. Original scene loot
+is ignored by the voyage adapter; change its `REWARDS` table to change supplies.
 
-The game and deployed Harbor use session protocol `holy-ship-coop-11`, preventing connections to older clients without the totem RPCs. Reload browser tabs after updating. Local ENet host/guest tests pass with the new protocol.
+The game and deployed Harbor use session protocol `holy-ship-coop-20`, preventing connections to older clients without the totem RPCs. Reload browser tabs after updating. Local ENet host/guest tests pass with the new protocol.
 
 ## Validation
 
@@ -81,3 +83,6 @@ minigame suite. Rendered previews were inspected with the Compatibility renderer
 The network test processes also emitted ObjectDB/resource-in-use warnings at
 shutdown; their gameplay assertions passed. These warnings are not a claim of
 clean runtime resource teardown.
+
+November 26 update: 218 totem checks and 20 native host/guest checks pass.
+The totem HUD now uses a compact objective, timer and energy bar.

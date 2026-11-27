@@ -101,16 +101,38 @@ func run() -> void:
 	manager.game.win_delay_seconds = 0.01
 	manager.game.win()
 	await get_tree().create_timer(0.1).timeout
-	check(bag.get_quantity(&"coconut") == before + 2, "Win transfers earned prizes")
+	var won_drops: Dictionary = manager.service_for(1).drops
+	check(bag.get_quantity(&"coconut") == before and won_drops.size()==2, "Win spawns two supplies instead of minigame loot")
+	if "--capture" in OS.get_cmdline_user_args():
+		var camera := Camera2D.new()
+		ship.add_child(camera)
+		camera.global_position = player.global_position
+		camera.make_current()
+		await get_tree().create_timer(0.85).timeout
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png("res://.godot/totem-rewards.png")
+		camera.queue_free()
+	var rewards := won_drops.values()
+	check(rewards[0].id != rewards[1].id and rewards.all(func(entry): return entry.id in IslandChallenges.REWARDS and entry.quantity >= 1 and entry.quantity <= 3 and (entry.id != &"medpack" or entry.quantity == 1)),"Rewards are distinct and bounded")
 	manager.finish(1, str(island.name), token, true, {"coconut": 2})
-	check(bag.get_quantity(&"coconut") == before + 2, "Duplicate completion cannot award twice")
+	check(won_drops.size()==2, "Duplicate completion cannot award twice")
+	check(not manager.try_start(1,str(island.name)), "Success starts shared cooldown")
+	var saved_cooldowns := manager.capture_cooldowns()
+	manager.locks.clear()
+	manager.restore_cooldowns(saved_cooldowns)
+	check(manager.locks.has(str(island.name)) and manager.locks[str(island.name)].until > ship.ocean_fish.shared_time()+290.0,"Successful cooldown survives save and restore")
+	manager.locks[str(island.name)].until = ship.ocean_fish.shared_time()-1.0
+	await get_tree().process_frame
+	await get_tree().process_frame
+	player.global_position = island.get_node("MinigameTotem").global_position
+	player.update_land(true)
 	check(manager.try_start(1, str(island.name)), "Replay allowed")
 	await frames()
 	manager.game.give_item(&"coconut", 4)
 	manager.game.lose_delay_seconds = 0.01
 	manager.game.lose("Test timeout")
 	await get_tree().create_timer(0.1).timeout
-	check(bag.get_quantity(&"coconut") == before + 2 and manager.locks.is_empty(), "Loss keeps gear and releases lock")
+	check(bag.get_quantity(&"coconut") == before and manager.locks.is_empty(), "Loss keeps gear and releases lock")
 	# Rejected result packets must not release another player's reservation.
 	check(manager.try_start(1, str(island.name)), "Validation attempt starts")
 	await frames()
@@ -132,7 +154,7 @@ func run() -> void:
 	manager._finished_local(true)
 	await frames()
 	var drops: Dictionary = manager.service_for(1).drops
-	check(drops.values().any(func(entry): return entry.id == &"coconut" and entry.quantity == 2 and entry.world), "Full-bag prizes remain ashore")
+	check(drops.values().any(func(entry): return entry.id in IslandChallenges.REWARDS and entry.world), "Full-bag prizes remain ashore")
 	player.global_position = Vector2.ZERO
 	player.update_land(false)
 	check(not manager.try_start(1, str(island.name)), "Remote start rejected")

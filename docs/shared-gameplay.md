@@ -1,4 +1,4 @@
-# Shared gameplay update — protocol 19
+# Shared gameplay update — protocol 20
 
 ## Backups and cooking provenance
 
@@ -31,11 +31,14 @@ There is no position stream for all ocean fish.
 
 The host searches at most four times per second while waiting, within 110 world
 pixels of the bobber. Only visible, water-valid, unclaimed school members qualify.
-A claimed fish approaches at 45 pixels/second, then triggers the existing bite and
+A claimed fish retains its original length, heading and animation phase. It turns
+and swims at 45 pixels/second, stops with its nose beside the bobber, then triggers the existing bite and
 local 60 Hz tension minigame. Its identity/species/attraction position travel with
 the angler's existing state; observers see that fish instead of an ambient copy.
 Two anglers cannot claim one member. A successful catch consumes its claim and
-hides that member for 90 seconds. Cancellation releases it. No nearby fish means
+hides that member for 90 seconds. Cancellation releases it along a three-second return to its original school route;
+returns farther than 600 pixels may reset immediately. At most 32 return records
+are retained, sent only with shared-state changes. No nearby fish means
 no reward; an empty cast times out after 25 seconds. Fishing never awards rope.
 
 School rendering remains a bounded 5x5 recycled window / one MultiMesh; remote
@@ -46,6 +49,8 @@ revision channel, not repeated full data in every motion packet.
 
 ## Map, damage and sharks
 
+- M or Tab toggles the map. Closed-map markers are plain circles on a layer above
+  the health/hunger HUD.
 - Click/tap the map to set your one destination. C clears your destination.
   No extra pin tool. Up to four crew destinations use distinct colors; positions
   are validated and ownership comes from the sender. Departed crew markers clear.
@@ -55,9 +60,10 @@ revision channel, not repeated full data in every motion packet.
 - Damage flash uses each sailor's existing replicated hurt serial, so observers
   see it too. This adds no damage effect RPC or per-frame color synchronization.
 - Each new swim gets a random 4–8 second shark activation delay. Sharks approach
-  from nearby, circle briefly, track the first portion of a faster lunge, and
+  from 1,500 pixels away, circle briefly, track the first portion of a faster lunge, and
   retreat briefly between attacks. They linger for 3.5 seconds after losing a
   swimmer before departing. Shore/deck remain protected by navigation/eligibility.
+  Reentering while your sharks linger resumes pursuit without another spawn delay.
   Maximum shark count remains eight. These difficulty settings need human tuning.
 
 ## Validation / next playtest
@@ -92,3 +98,35 @@ Hunger loses one pip every 100 seconds idle, 75 walking, or 38 swimming (previou
 120/90/45). Chewing uses softer filtered noise; a separate short synthesized burp
 plays only on the replicated successful-eat serial, never on a cancelled hold.
 No new audio asset, dependency or paid service is required.
+
+## Totem supplies and medical use — November 26
+
+A successful totem attempt spawns two different supply types beside the totem:
+coal, string, leather, rope (1–3 each), or one medpack. Temporary minigame loot
+never transfers into the voyage bag. Rewards use the existing reliable world-drop
+state; each client animates a 0.75-second pop-out using the shared clock, with a
+0.8-second pickup grace period. No per-frame reward animation messages are sent.
+
+Success starts a five-minute cooldown shared by the crew and saved as an absolute
+expiry. Failing, leaving or disconnecting releases the attempt without cooldown.
+The HUD shows the objective and remaining totem energy, with no pirate track or
+temporary-loot messages. Completion remains participant-reported; the host owns
+reward selection, quantities, reservation tokens, duplicate prevention and cooldown.
+
+Medpacks occupy one slot each. Select one and hold the use button for two seconds:
+local bandaging sound/progress begins immediately, then the host validates elapsed
+time, selected slot and unchanged inventory before consuming it and healing fully.
+Releasing early cancels; full-health players cannot consume one. A replicated heal
+serial triggers the completion sound. Eating has a louder, longer voiced burp only
+after successful consumption.
+
+Water-entry splashes now use a replicated event serial and position so observers
+see them too; initial snapshots do not replay historical splashes. Sanctuary seal
+instructions use supported numerals and commas instead of missing arrow glyphs.
+
+Protocol 20 preserves the existing WebRTC/relay transport, prediction and smoothing.
+Refresh every device together. Validation includes all 19 totem scenes, cooldown
+save/restore, distinct rewards, held-medpack cancellation/consumption, malformed
+return records, remote splashes, and three-player relay gameplay. Browser testing
+covers direct WebRTC and forced fallback; physical-phone latency still needs a
+real playtest.

@@ -124,6 +124,8 @@ func _place_access(crew: CharacterBody2D) -> void:
 func _finish_phase(crew: CharacterBody2D) -> void:
 	match crew.access_motion:
 		&"jump":
+			crew.splash_serial += 1
+			crew.splash_position = crew.global_position
 			var splash := preload("res://scripts/visuals/water_splash.gd").new()
 			ship.add_child(splash)
 			splash.global_position = crew.global_position

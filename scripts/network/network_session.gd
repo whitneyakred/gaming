@@ -1,7 +1,7 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-19"
+const PROTOCOL := "holy-ship-coop-20"
 var crew_markers: Dictionary = {}
 const INPUT_REFRESH_INTERVAL := 0.5
 const DEFAULT_PORT := 24567
@@ -290,10 +290,14 @@ func load_game() -> void:
 			VoyageState.get_ship_storage(18, 1).restore(port_slots)
 			var drops: Dictionary = VoyageState.floor_items.get("ship", {})
 			drops.merge(_restored.get("drops", {}), true)
+			for entry: Dictionary in drops.values():
+				entry.erase("spawn_origin")
+				entry.erase("spawn_time")
 			for key: int in drops:
 				dropped_id = maxi(dropped_id, key + 1)
 		ship.get_node("Cooking").restore(_restored.get("grill", {}))
 		ship.get_node("Cooking").seed_fuel()
+		ship.get_node("IslandChallenges").restore_cooldowns(_restored.get("totem_cooldowns",{}))
 		if not dedicated:
 			spawn_crew(1)
 	else:
@@ -508,6 +512,8 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 			if args.get("clear",false) is bool and args.get("clear",false): crew_markers.erase(id)
 			elif args.get("point") is Vector2 and args.point.is_finite() and MapState.world_bounds.has_point(args.point): crew_markers[id] = args.point
 			MapState.accept_markers(crew_markers)
+		"medpack":
+			ship.survival.medpack(id,str(args.get("action","")),int(args.get("index",-1)))
 		"eat":
 			if int(args.get("revision", -1)) == service.view_revision and not inputs[id].get("blocked",false):
 				ship.survival.eat(id, int(args.get("index", -1)))
@@ -737,17 +743,17 @@ func _send_snapshot() -> void:
 		var player: CharacterBody2D = players[id]
 		var service: InventoryService = services[id]
 		var fishing: RodFishing = service.get_node("Fishing")
-		crew[id] = {"island_challenge": player.island_challenge, "eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("ack", inputs[id].get("sequence", -1)), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
+		crew[id] = {"island_challenge": player.island_challenge, "heal":player.heal_serial,"splash":player.splash_serial,"splash_position":player.splash_position,"eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("ack", inputs[id].get("sequence", -1)), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
 			"station": str(player.active_station.name) if player.using_station else "", "inventory": _capture_bag(service.inventory),
 			"access_motion": player.access_motion, "access_progress": player.access_progress,
 			"selected": service.hud.selected, "chest": service.hud.storage_open, "chest_id": service.active_chest_id, "grill_open": service.hud.grill_open, "revision": service.view_revision, "pickup_serial": service.pickup_serial, "drop_serial": service.drop_serial,
-			"fish": {"catch_id": fishing.catch_id, "catch_species": fishing.catch_species, "catch_position": fishing.catch_position, "attached": fishing._cast_from_ship, "ship_target": fishing._ship_target, "ship_origin": fishing._ship_origin, "replay": fishing.replay_frame, "attempt": fishing.attempt_id, "seed": fishing.fight_seed, "state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
+			"fish": {"catch_length":fishing.catch_length,"catch_angle":fishing.catch_angle,"catch_phase":fishing.catch_phase,"catch_speed":fishing.catch_speed,"catch_id": fishing.catch_id, "catch_species": fishing.catch_species, "catch_position": fishing.catch_position, "attached": fishing._cast_from_ship, "ship_target": fishing._ship_target, "ship_origin": fishing._ship_origin, "replay": fishing.replay_frame, "attempt": fishing.attempt_id, "seed": fishing.fight_seed, "state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
 				"progress": fishing.fight.progress, "tension": fishing.fight.tension, "green": fishing.fight.green_center,
 				"width": fishing.fight.green_width, "danger": fishing.fight.danger, "held": fishing.held, "catches": fishing.visual_catches}}
 	_snapshot_serial += 1
 	var data := {"serial": _snapshot_serial, "time": Time.get_ticks_msec() / 1000.0, "position": ship.global_position, "rotation": ship.global_rotation, "wind": ship.wind_velocity,
 		"sail": ship.sail_level, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees, "anchor": ship.anchor_deployed,
-		"markers": crew_markers.duplicate(), "fish_taken": ship.ocean_fish.taken.duplicate(), "paradise_quest": VoyageState.quest_data(), "island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": _capture_bag(VoyageState.get_ship_storage()), "port_storage": _capture_bag(VoyageState.get_ship_storage(18, 1)), "drops": VoyageState.floor_items.get("ship", {})}
+		"markers": crew_markers.duplicate(), "fish_taken": ship.ocean_fish.taken.duplicate(), "fish_returns":ship.ocean_fish.returns.duplicate(true), "paradise_quest": VoyageState.quest_data(), "island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": _capture_bag(VoyageState.get_ship_storage()), "port_storage": _capture_bag(VoyageState.get_ship_storage(18, 1)), "drops": VoyageState.floor_items.get("ship", {})}
 	data["host_frame_ms"] = _frame_peak_ms
 	_frame_peak_ms = 0.0
 	_shared.extract(data)
@@ -862,9 +868,9 @@ static func valid_snapshot(data: Dictionary) -> bool:
 		var entry: Dictionary = data.crew[id]
 		if not _fields(entry, {"name": TYPE_STRING, "position": TYPE_VECTOR2, "outside": TYPE_BOOL, "land": TYPE_BOOL, "station": TYPE_STRING, "selected": TYPE_INT, "chest": TYPE_BOOL, "revision": TYPE_INT, "fish": TYPE_DICTIONARY}): return false
 		if entry.station not in ["", "Helm", "Sail", "Anchor", "Galley"] or not SharedSnapshotState.valid_slots(entry.get("inventory")): return false
-		if not _optional_fields(entry, {"ack": TYPE_INT, "health": TYPE_INT, "hunger": TYPE_INT, "eat": TYPE_INT, "hurt": TYPE_INT, "respawn": TYPE_INT, "danger": TYPE_FLOAT, "island_challenge": TYPE_BOOL, "access_motion": TYPE_STRING_NAME, "access_progress": TYPE_FLOAT, "chest_id": TYPE_INT, "grill_open": TYPE_BOOL, "pickup_serial": TYPE_INT, "drop_serial": TYPE_INT}): return false
+		if not _optional_fields(entry, {"heal":TYPE_INT,"splash":TYPE_INT,"splash_position":TYPE_VECTOR2,"ack": TYPE_INT, "health": TYPE_INT, "hunger": TYPE_INT, "eat": TYPE_INT, "hurt": TYPE_INT, "respawn": TYPE_INT, "danger": TYPE_FLOAT, "island_challenge": TYPE_BOOL, "access_motion": TYPE_STRING_NAME, "access_progress": TYPE_FLOAT, "chest_id": TYPE_INT, "grill_open": TYPE_BOOL, "pickup_serial": TYPE_INT, "drop_serial": TYPE_INT}): return false
 		if not _fields(entry.fish, {"attempt": TYPE_INT, "seed": TYPE_INT, "state": TYPE_INT, "target": TYPE_VECTOR2, "origin": TYPE_VECTOR2, "clock": TYPE_FLOAT, "progress": TYPE_FLOAT, "tension": TYPE_FLOAT, "green": TYPE_FLOAT, "width": TYPE_FLOAT, "danger": TYPE_FLOAT, "held": TYPE_BOOL, "catches": TYPE_INT}): return false
-		if not _optional_fields(entry.fish, {"catch_id": TYPE_STRING, "catch_species": TYPE_INT, "catch_position": TYPE_VECTOR2}): return false
+		if not _optional_fields(entry.fish, {"catch_length":TYPE_FLOAT,"catch_angle":TYPE_FLOAT,"catch_phase":TYPE_FLOAT,"catch_speed":TYPE_FLOAT,"catch_id": TYPE_STRING, "catch_species": TYPE_INT, "catch_position": TYPE_VECTOR2}): return false
 		if str(entry.fish.get("catch_id", "")).length() > 80 or int(entry.fish.get("catch_species", 0)) not in range(6): return false
 		if entry.fish.state < 0 or entry.fish.state > RodFishing.State.REELING: return false
 		if not _optional_fields(entry.fish, {"attached": TYPE_BOOL, "ship_target": TYPE_VECTOR2, "ship_origin": TYPE_VECTOR2, "replay": TYPE_INT}): return false
@@ -910,6 +916,7 @@ func apply_snapshot(data: Dictionary) -> void:
 	# Sprite animation, fading and rendering remain local; no per-fish packets.
 	MapState.accept_markers(data.markers)
 	ship.ocean_fish.taken = data.fish_taken.duplicate()
+	ship.ocean_fish.returns = data.fish_returns.duplicate(true)
 	if is_instance_valid(ship.ocean_fish): ship.ocean_fish.synchronize(float(data.get("time", 0.0)))
 	ship.survival.restore(data.get("survival", {}))
 	VoyageState.restore_quest(data.get("paradise_quest", {}))
@@ -948,6 +955,15 @@ func apply_snapshot(data: Dictionary) -> void:
 		var service: InventoryService = services[id]
 		var respawned: bool = player.respawn_serial != int(entry.get("respawn", 0))
 		player.eat_serial = entry.get("eat", 0)
+		player.heal_serial = entry.get("heal",0)
+		var splash_seen := player.has_meta("splash_seen")
+		player.set_meta("splash_seen",true)
+		if player.splash_serial != int(entry.get("splash",0)):
+			player.splash_serial = entry.get("splash",0)
+			if splash_seen and entry.get("splash_position") is Vector2:
+				var splash := preload("res://scripts/visuals/water_splash.gd").new()
+				ship.add_child(splash)
+				splash.global_position = entry.splash_position
 		player.island_challenge = entry.get("island_challenge", false)
 		player.health = entry.get("health", 15)
 		player.hunger = entry.get("hunger", 15)
@@ -1006,6 +1022,10 @@ func apply_snapshot(data: Dictionary) -> void:
 			fishing.fight.danger = fish.danger
 		fishing.catch_id = fish.get("catch_id", "")
 		fishing.catch_species = fish.get("catch_species", 0)
+		fishing.catch_length = clampf(fish.get("catch_length",30.0),10.0,80.0)
+		fishing.catch_angle = fish.get("catch_angle",0.0)
+		fishing.catch_phase = fish.get("catch_phase",0.0)
+		fishing.catch_speed = fish.get("catch_speed",30.0)
 		fishing.catch_position = fish.get("catch_position", Vector2.ZERO)
 		fishing.visual_catches = fish.catches
 		fishing.attempt_id = fish.attempt
@@ -1157,6 +1177,7 @@ func _reconcile_local(entry: Dictionary, transition: bool) -> void:
 func _peer_left(id: int) -> void:
 	if not online or not multiplayer.is_server():
 		return
+	ship.survival.medical.erase(id)
 	ship.get_node("Cooking").release_for(id)
 	crew_markers.erase(id)
 	MapState.accept_markers(crew_markers)
@@ -1196,7 +1217,7 @@ func save_world() -> void:
 		return
 	for id: int in players:
 		_remember(id)
-	var data := {"paradise_quest": VoyageState.quest_data(), "discovered": MapState.discovered_islands, "seed": ship.world_seed, "version": PROTOCOL, "title": crew_title, "position": ship.global_position, "rotation": ship.global_rotation,
+	var data := {"totem_cooldowns":ship.get_node("IslandChallenges").capture_cooldowns(), "paradise_quest": VoyageState.quest_data(), "discovered": MapState.discovered_islands, "seed": ship.world_seed, "version": PROTOCOL, "title": crew_title, "position": ship.global_position, "rotation": ship.global_rotation,
 		"grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "port_storage": VoyageState.get_ship_storage(18, 1).capture(), "drops": VoyageState.floor_items.get("ship", {}), "accounts": accounts}
 	if not VoyageSaves.store(data):
 		set_status(VoyageSaves.last_error)
@@ -1204,7 +1225,7 @@ func save_world() -> void:
 
 func load_world() -> void:
 	var data := VoyageSaves.world(VoyageSaves.selected)
-	if data.get("version") in [PROTOCOL, "holy-ship-coop-18", "holy-ship-coop-17", "holy-ship-coop-16", "holy-ship-coop-15", "holy-ship-coop-14", "holy-ship-coop-13", "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
+	if data.get("version") in [PROTOCOL, "holy-ship-coop-19", "holy-ship-coop-18", "holy-ship-coop-17", "holy-ship-coop-16", "holy-ship-coop-15", "holy-ship-coop-14", "holy-ship-coop-13", "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
 		_restored = data
 		accounts = data.get("accounts", {})
 

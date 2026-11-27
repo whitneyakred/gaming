@@ -76,6 +76,11 @@ func run() -> void:
 	full.serial = 50
 	check(receiver.expand(sender.motion(full)).storage[0].quantity == 3, "Latest-only motion is safe after skipped snapshots")
 	check(not receiver.accept(99, {"bags": null}), "Malformed shared state rejected")
+	var malformed := sender.current.duplicate(true)
+	malformed["fish_returns"] = 42
+	check(not receiver.accept(100,malformed), "Invalid fish return container rejected before property access")
+	malformed["fish_returns"] = {"fish": {"position":Vector2.ZERO,"angle":0.0,"time":NAN,"duration":3.0}}
+	check(not receiver.accept(100,malformed), "Nonfinite fish return clock rejected")
 	var inventory := ShipInventory.new()
 	var slots: Array[Dictionary] = [{"id": &"coal", "quantity": 4}]
 	inventory.max_inv_space = 1

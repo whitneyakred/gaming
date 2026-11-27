@@ -70,6 +70,10 @@ func _ready() -> void:
 	hud = get_node_or_null(hud_path) as IslandHUD
 	player = get_node_or_null(player_path) as CharacterBody2D
 	time_remaining = time_limit_seconds
+	if embedded:
+		threat_label = "Totem energy"
+		time_up_message = "Time ran out. Try again!"
+		win_message = "Totem complete!"
 
 	if hud:
 		hud.hide_message()
@@ -223,7 +227,7 @@ func win(message: String = "") -> void:
 	if _run_ended:
 		return
 	_end_run()
-	show_message(message if not message.is_empty() else win_message, 0.0)
+	show_message("Totem complete!" if embedded else (message if not message.is_empty() else win_message), 0.0)
 	run_won.emit()
 	await get_tree().create_timer(win_delay_seconds, false).timeout
 	_row_back(true)
@@ -233,7 +237,7 @@ func lose(reason: String) -> void:
 		return
 	_end_run()
 	_take_back_prizes()
-	show_message(reason + " Game Over!\nRow back to the ship empty-handed.", 0.0)
+	show_message("Try again!" if embedded else reason + " Game Over!\nRow back to the ship empty-handed.", 0.0)
 	run_lost.emit(reason)
 	await get_tree().create_timer(lose_delay_seconds, false).timeout
 	_row_back(false)

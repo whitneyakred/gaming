@@ -79,9 +79,11 @@ func host_tests() -> void:
 	await await_phase("won")
 	await wait(0.3)
 	var bag: PlayerInventory = NetworkSession.players[guest_id].player_inventory
-	check(bag.get_quantity(&"coconut") == 2, "Guest prizes reach authoritative inventory")
-	check(manager.locks.is_empty(), "Guest completion releases lock")
+	check(bag.get_quantity(&"coconut") == 0 and manager.service_for(guest_id).drops.size()==2, "Guest win spawns two host-owned rewards")
+	check(manager.locks[str(island.name)].player == 0,"Guest success starts shared cooldown")
 	check(ship.player.player_inventory.get_quantity(&"coconut") == 0, "Host never receives guest prizes")
+	manager.locks[str(island.name)].until = ship.ocean_fish.shared_time()-1.0
+	await wait(0.2)
 	phase("restart")
 	await await_phase("disconnecting")
 	await wait(0.8)
@@ -115,7 +117,7 @@ func guest_tests() -> void:
 	manager.game.win()
 	await wait(0.4)
 	check(not is_instance_valid(manager.game), "Host acknowledges result and closes challenge")
-	check(ship.player.player_inventory.get_quantity(&"coconut") == 2, "Prizes replicate to guest")
+	check(ship.player.player_inventory.get_quantity(&"coconut") == 0 and NetworkSession.services[NetworkSession.local_id].drops.size()==2,"World reward drops replicate to guest")
 	phase("won")
 	await await_phase("restart")
 	NetworkSession.command("interact")

@@ -6,6 +6,9 @@ const COCONUT_WHOLE_ICON := preload("res://assets/items/coconut_whole.png")
 
 
 func _ready() -> void:
+	for id in [&"string", &"leather"]:
+		ItemDatabase.register_item(make_item(id,String(id).capitalize(),"Totem supplies.",20,ItemData.Category.MATERIAL))
+	ItemDatabase.register_item(make_item(&"medpack","Medpack","Hold to restore full health.",1,ItemData.Category.TOOL))
 	for metal in ["bronze", "silver", "gold"]:
 		ItemDatabase.register_item(make_item(StringName(metal + "_key"), metal.capitalize() + " Key",
 			"Insert into the Paradise gate. Returns to its sanctuary if lost.", 1, ItemData.Category.TOOL,
