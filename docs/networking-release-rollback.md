@@ -1,5 +1,31 @@
 # Networking playtest release and rollback
 
+## November 26 protocol 19 shared gameplay release
+
+Merged locally into `systems-revamp` at `b762211` from
+`codex/gameplay-integration`. Pages production branch is now `systems-revamp`.
+The direct upload does not require a GitHub push.
+
+- Website: https://holy-ship.pages.dev/play/
+- Pages: `994b21ea-b93f-41ef-b351-e1e07eb0c9b6`.
+- Worker: `05ed6d11-2b98-4f82-93a8-4a47f20dc3f8`.
+- Protocol: `holy-ship-coop-19`; live HTML/JS/PCK SHA-256 hashes match the export.
+- Source backups: `backup/furnace-cooking-before-minigame` at `2c77de2` and
+  `backup/systems-revamp-before-gameplay` at `bcbd998`.
+- Immediate website rollback: restore protocol 18 Pages
+  `236228c0-1a9c-41b9-be4c-be2235797491` and Worker
+  `a6c947bd-a6e3-453d-9a1b-5775a84c2fea` together. Refresh every device.
+- Protocol 19 accepts protocol 18 saves and recovers old furnace food/fuel.
+  Backup branches preserve source, not browser saves; an older release may not
+  accept a save rewritten with protocol 19.
+
+See [shared gameplay](shared-gameplay.md) for controls, bounds and trust limits.
+Validation: Godot parser/export; 86 fishing, 18 cooking, 15 shared-interaction,
+72 survival, 33 character-animation, 9,968 ocean-fish, 82 responsiveness and 26
+RTC checks; smoothing suite; 71 host/two-guest relay checks; 19 service tests;
+real-browser WebRTC host/join, movement/hotbar and forced relay fallback.
+
+
 ## November 26 protocol 18 follow-up
 
 Deployed source `132b303` from `codex/webrtc-fallback` after host-presentation,
