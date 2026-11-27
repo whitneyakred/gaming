@@ -15,6 +15,7 @@ var reasons: Dictionary = {}
 var direct_sent := 0
 var direct_received := 0
 var fallbacks := 0
+var attempts: Dictionary = {}
 
 func join(id: int) -> void:
 	if not enabled or id == own_id or (own_id != 1 and id != 1) or links.has(id): return
@@ -51,6 +52,7 @@ func receive_signal(id: int, data: Variant) -> void:
 		var now := Time.get_ticks_msec()
 		links[id] = {"connection": connection, "channel": fast, "started": now, "last_seen": now, "last_ping": 0, "confirmed": false, "remote": false, "signals": 0, "candidates": []}
 		reasons[id] = "connecting"
+		attempts[id] = {"local_candidates": 0, "remote_candidates": 0, "local_description": "", "remote_description": ""}
 		connection.session_description_created.connect(_description.bind(id))
 		connection.ice_candidate_created.connect(_candidate.bind(id))
 		if own_id == 1 and connection.create_offer() != OK: stop(id, "offer failed")
@@ -63,6 +65,7 @@ func receive_signal(id: int, data: Variant) -> void:
 		return
 	var connection: WebRTCPeerConnection = link.connection
 	if data.type == "ice":
+		attempts[id].remote_candidates += 1
 		if not link.remote:
 			link.candidates.append(data)
 		elif connection.add_ice_candidate(data.media, int(data.index), data.candidate) != OK:
@@ -73,6 +76,7 @@ func receive_signal(id: int, data: Variant) -> void:
 			stop(id, "description rejected")
 			return
 		link.remote = true
+		attempts[id].remote_description = data.type
 		for candidate: Dictionary in link.candidates:
 			connection.add_ice_candidate(candidate.media, int(candidate.index), candidate.candidate)
 		link.candidates.clear()
@@ -83,10 +87,13 @@ func _description(type: String, sdp: String, id: int) -> void:
 	if sdp.length() > 12000 or connection.set_local_description(type, sdp) != OK:
 		stop(id, "local description failed")
 		return
+	attempts[id].local_description = type
 	signal_out.emit(id, {"type": type, "sdp": sdp})
 
 func _candidate(media: String, index: int, candidate: String, id: int) -> void:
-	if links.has(id): signal_out.emit(id, {"type": "ice", "media": media, "index": index, "candidate": candidate})
+	if links.has(id):
+		attempts[id].local_candidates += 1
+		signal_out.emit(id, {"type": "ice", "media": media, "index": index, "candidate": candidate})
 
 func poll() -> void:
 	var now := Time.get_ticks_msec()
@@ -95,6 +102,9 @@ func poll() -> void:
 		var connection: WebRTCPeerConnection = link.connection
 		connection.poll()
 		if not links.has(id): continue
+		attempts[id].connection_state = connection.get_connection_state()
+		attempts[id].signaling_state = connection.get_signaling_state()
+		attempts[id].gathering_state = connection.get_gathering_state()
 		var fast: WebRTCDataChannel = link.channel
 		if connection.get_connection_state() in [WebRTCPeerConnection.STATE_FAILED, WebRTCPeerConnection.STATE_CLOSED, WebRTCPeerConnection.STATE_DISCONNECTED]:
 			stop(id, "connection lost")
@@ -144,10 +154,12 @@ func stop(id: int, reason: String, notify_remote := true) -> void:
 func leave(id: int) -> void:
 	stop(id, "left", false)
 	reasons.erase(id)
+	attempts.erase(id)
 
 func close() -> void:
 	for id: int in links.keys(): leave(id)
 	reasons.clear()
+	attempts.clear()
 
 func diagnostics() -> Dictionary:
-	return {"enabled": enabled, "peers": reasons.duplicate(), "direct_sent_bytes": direct_sent, "direct_received_bytes": direct_received, "fallbacks": fallbacks}
+	return {"enabled": enabled, "peers": reasons.duplicate(), "attempts": attempts.duplicate(true), "direct_sent_bytes": direct_sent, "direct_received_bytes": direct_received, "fallbacks": fallbacks}

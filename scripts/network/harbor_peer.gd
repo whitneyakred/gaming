@@ -25,6 +25,7 @@ var latest_snapshot := PackedByteArray()
 var rtc := HarborRTC.new()
 var send_serial := 0
 var received_serials: Dictionary = {}
+var snapshot_window := RelaySnapshotWindow.new()
 
 func _init() -> void:
 	rtc.signal_out.connect(_send_signal)
@@ -101,6 +102,7 @@ func control(data: Dictionary) -> void:
 			identities.erase(departed)
 			rtc.leave(departed)
 			received_serials.erase(departed)
+			snapshot_window.remove(departed)
 			# A burst can contain RPCs followed by departure in the same poll.
 			# SceneMultiplayer receives disconnect events before draining packets;
 			# never leave it RPCs from a peer it has just removed.
@@ -167,9 +169,9 @@ func _receive_direct(id: int, packet: PackedByteArray) -> void:
 	# Identity comes from this authenticated link, never the peer's packet.
 	if not identities.has(id) or packet.size() < HEADER + 4 or packet.decode_s32(0) != id or packet[11] != 2 or packet[9] == MultiplayerPeer.TRANSFER_MODE_RELIABLE: return
 	bytes_received += packet.size()
-	_receive_packet(packet)
+	_receive_packet(packet, true)
 
-func _receive_packet(packet: PackedByteArray) -> void:
+func _receive_packet(packet: PackedByteArray, direct: bool = false) -> void:
 	if packet.size() < HEADER or packet.size() > MAX_PACKET + HEADER: return
 	var sender := packet.decode_s32(0)
 	var recipient := packet.decode_s32(4)
@@ -178,12 +180,19 @@ func _receive_packet(packet: PackedByteArray) -> void:
 	if packet[8] > 2 or packet[9] > 2 or packet[10] > 1: return
 	if packet[11] == 1:
 		if packet.size() <= 14000 and packet[10] == 0 and packet[9] == MultiplayerPeer.TRANSFER_MODE_RELIABLE:
-			rtc.receive_signal(sender, JSON.parse_string(packet.slice(HEADER).get_string_from_utf8()))
+			var data: Variant = JSON.parse_string(packet.slice(HEADER).get_string_from_utf8())
+			if data is Dictionary and data.get("type") == "snapshot_ack":
+				if own_id == 1: snapshot_window.acknowledge(sender, data.get("serial"))
+			else: rtc.receive_signal(sender, data)
 		return
 	var offset := HEADER
 	if packet[11] == 2:
 		if packet.size() < HEADER + 4 or packet[9] == MultiplayerPeer.TRANSFER_MODE_RELIABLE: return
 		var serial := packet.decode_u32(HEADER)
+		if not direct and sender == 1 and own_id != 1 and packet[10] == 1:
+			# Receipt is independent of shared-state revision/application. Ack even
+			# an older relay packet overtaken by the direct path during upgrade.
+			_send_signal(1, {"type": "snapshot_ack", "serial": serial})
 		var stream := int(packet[8]) * 2 + int(packet[10])
 		var sequences: Dictionary = received_serials.get(sender, {})
 		if serial <= int(sequences.get(stream, 0)): return
@@ -222,6 +231,7 @@ func _send_packet(bytes: PackedByteArray, recipient: int, packet_channel: int, p
 	if state != MultiplayerPeer.CONNECTION_CONNECTED: return ERR_UNCONFIGURED
 	if bytes.size() > MAX_PACKET - 4: return ERR_OUT_OF_MEMORY
 	var packet := _envelope(bytes, recipient, packet_channel, packet_mode, kind)
+	if kind == 1 and own_id == 1: return _send_snapshot_packet(packet)
 	if packet_mode != MultiplayerPeer.TRANSFER_MODE_RELIABLE:
 		# Preserve a single relay broadcast when nobody has a usable direct path.
 		var recipients: Array[int] = []
@@ -244,6 +254,38 @@ func _send_packet(bytes: PackedByteArray, recipient: int, packet_channel: int, p
 			return OK
 	return _relay(packet)
 
+func _send_snapshot_packet(packet: PackedByteArray) -> Error:
+	var relay_ids: Array[int] = []
+	var all_relay := true
+	for id: int in identities:
+		if id == own_id: continue
+		if rtc.send(id, packet):
+			all_relay = false
+			bytes_sent += packet.size()
+			packets_sent += 1
+		elif snapshot_window.available(id): relay_ids.append(id)
+		else:
+			all_relay = false
+			snapshot_window.skipped += 1
+	if socket.get_current_outbound_buffered_amount() > 16384:
+		snapshot_window.skipped += relay_ids.size()
+		return OK
+	if relay_ids.is_empty(): return OK
+	# Keep one broadcast upload when all recipients have space; a slow guest
+	# never holds up direct peers or other relay recipients.
+	if all_relay:
+		var result := _relay(packet)
+		if result == OK:
+			for id: int in relay_ids: snapshot_window.sent(id, packet.decode_u32(HEADER))
+		return result
+	for id: int in relay_ids:
+		var copy := packet.duplicate()
+		copy.encode_s32(4, id)
+		var result := _relay(copy)
+		if result != OK: return result
+		snapshot_window.sent(id, packet.decode_u32(HEADER))
+	return OK
+
 func _relay(packet: PackedByteArray) -> Error:
 	var queued := socket.get_current_outbound_buffered_amount()
 	# Never queue stale movement/snapshots behind a slow link.
@@ -265,6 +307,7 @@ func _disconnect_peer(id: int, _force: bool) -> void:
 func _close() -> void:
 	rtc.close()
 	received_serials.clear()
+	snapshot_window.pending.clear()
 	state = MultiplayerPeer.CONNECTION_DISCONNECTED
 	incoming.clear()
 	latest_snapshot = PackedByteArray()

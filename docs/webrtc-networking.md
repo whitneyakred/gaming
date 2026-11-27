@@ -1,5 +1,55 @@
 # Optional WebRTC fast path
 
+## Protocol 18 follow-up: host presentation and relay flow control
+
+The same-Wi-Fi guest log `holy-ship-network-1795739096.json` covered 105 seconds:
+no direct WebRTC bytes, median snapshot gap 64 ms, maximum recorded arrival gap
+174 ms, median 69 FPS, and no position resets. Both supplied playtests used relay;
+the good same-Wi-Fi result does not establish that direct negotiation works on
+the phone. Cross-network WebRTC is supported in principle; STUN-only connectivity
+depends on NAT/firewall rules and is not guaranteed. No TURN is configured.
+
+Protocol 18 adds:
+
+- Host-only presentation smoothing for remote crew input batches, in deck-local
+  coordinates while aboard and world coordinates while swimming. The confirmed
+  collision body and input acknowledgement remain immediate. Visual movement is
+  bounded to 150 ms and 80 pixels; traversal, respawn, teleport and station changes
+  cancel it. There is no extrapolation or movement of the authoritative body.
+- At most two unacknowledged **relay world snapshots per guest**. The host skips
+  sending additional snapshots to that guest until a receipt arrives, then sends
+  current state; it does not maintain a backlog of skipped snapshots. Direct
+  recipients and other relay recipients proceed independently. Receipt messages
+  use the existing authenticated reliable relay. At high RTT this trades snapshot
+  rate (roughly at most two per RTT) for bounded snapshot backlog. It does not
+  remove queueing from reliable inputs/actions or guarantee low cellular latency.
+- RTT probes run even when the overlay is hidden; delayed replies remain valid
+  for 30 seconds. Frame peaks measure elapsed wall time rather than engine-clamped
+  frame delta. `snapshot_delay_growth_ms` compares receive/host timestamp offsets
+  against their session minimum: useful for growing delay, not absolute latency.
+- Exported transport `attempts` record description stages, ICE candidate counts,
+  connection/signaling/gathering states, with no addresses or SDP. A phone host
+  can export via **Esc/pause → Export network history** when browser download is
+  supported. Guest-only logs remain useful.
+
+Protocol 17 clients cannot acknowledge the new snapshot window, so game and
+Worker must both use protocol 18 and every player must refresh. Protocol 18 loads
+protocol 17 and 16 saves. `systems-revamp` is not merged by this follow-up.
+
+The browser regression suite additionally withholds a relay guest's receipts,
+checks the two-snapshot bound while a direct guest continues, then verifies
+recovery uses current snapshots. Native tests cover invalid/forged receipts,
+host visual continuity, boat motion, unchanged collision positions and traversal.
+
+Local validation: 26 transport/window checks, smoothing suite, 82 responsiveness
+checks, 19 service checks, and 68 three-player gameplay checks passed. The same
+68 gameplay checks also passed with 80–120 ms delay in each guest-proxy direction
+and a 300 ms stall every 5 seconds. Browser tests passed real direct/fallback
+connections, slow-guest receipts, mobile-emulated host/guest roles and silent
+path failure. This is not evidence of physical-phone or cross-network performance.
+
+## Original protocol 17 implementation
+
 Implemented on `codex/webrtc-fallback`, protocol `holy-ship-coop-17`. Source
 `bc93e77` was deployed for playtesting on November 26, 2026; see
 [release and rollback](networking-release-rollback.md). Deploy matching game and Worker builds together;

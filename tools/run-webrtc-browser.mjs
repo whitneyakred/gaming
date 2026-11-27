@@ -12,7 +12,7 @@ const [godot, base='http://127.0.0.1:8790'] = process.argv.slice(2);
 if (!godot || new URL(base).hostname !== '127.0.0.1') throw Error('Provide Godot executable and a local relay URL');
 const root=process.cwd(), project=path.join(root,'.godot/rtc-browser'), out=path.join(project,'web');
 await mkdir(out,{recursive:true});
-for(const file of ['harbor_peer.gd','harbor_rtc.gd']) await copyFile(path.join(root,'scripts/network',file),path.join(project,file));
+for(const file of ['harbor_peer.gd','harbor_rtc.gd','relay_snapshot_window.gd']) await copyFile(path.join(root,'scripts/network',file),path.join(project,file));
 await copyFile(path.join(root,'tests/harbor_rtc_browser.gd'),path.join(project,'main.gd'));
 await writeFile(path.join(project,'project.godot'),'config_version=5\n[application]\nrun/main_scene="res://main.tscn"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n');
 await writeFile(path.join(project,'main.tscn'),'[gd_scene load_steps=2 format=3]\n[ext_resource type="Script" path="res://main.gd" id="1"]\n[node name="Test" type="Node"]\nscript = ExtResource("1")\n');
@@ -56,16 +56,30 @@ async function ticket(endpoint, data={}) {
  const res=await fetch(base+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({protocol,token:randomBytes(24).toString('hex'),password:'',...data})});
  const result=await res.json(); if(!res.ok) throw Error(JSON.stringify(result)); return result;
 }
-async function pageFor(ticket, mobile=false, disabled=false, blocked=false) {
+async function pageFor(ticket, mobile=false, disabled=false, blocked=false, holdAcks=false) {
  const context=await browser.newContext(mobile?{...devices['Pixel 7']}:{viewport:{width:800,height:600}});
- await context.addInitScript(({url,disabled,blocked})=>{
+ await context.addInitScript(({url,disabled,blocked,holdAcks})=>{
   window.rtcURL=url;window.rtcDisabled=disabled;
   window.rtcDrop=blocked;
+  window.holdSnapshotAcks=holdAcks;
+  window.heldAcks=[];
+  window.flushSnapshotAcks=()=>{window.holdSnapshotAcks=false;window.heldAcks.splice(0).forEach(send=>send());};
+  const OriginalSocket=window.WebSocket;
+  window.WebSocket=class extends OriginalSocket {
+   send(data){
+    const bytes=data instanceof ArrayBuffer?new Uint8Array(data):ArrayBuffer.isView(data)?new Uint8Array(data.buffer,data.byteOffset,data.byteLength):null;
+    if(window.holdSnapshotAcks&&bytes?.[11]===1){
+     const message=JSON.parse(new TextDecoder().decode(bytes.subarray(12)));
+     if(message.type==='snapshot_ack'){const copy=bytes.slice();window.heldAcks.push(()=>super.send(copy));return;}
+    }
+    return super.send(data);
+   }
+  };
   const original=window.RTCPeerConnection;
   window.RTCPeerConnection=class extends original {
    createDataChannel(...args) {const channel=super.createDataChannel(...args),send=channel.send.bind(channel);channel.send=data=>{if(!window.rtcDrop)send(data);};return channel;}
   };
- },{url:'ws://127.0.0.1:8793/api/socket/'+ticket.id+'?ticket='+encodeURIComponent(ticket.ticket),disabled,blocked});
+ },{url:'ws://127.0.0.1:8793/api/socket/'+ticket.id+'?ticket='+encodeURIComponent(ticket.ticket),disabled,blocked,holdAcks});
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
  await page.goto('http://127.0.0.1:8793/');
  await page.waitForFunction(()=>window.rtcResult?.state===2,{},{timeout:30000});
@@ -80,8 +94,18 @@ try {
  await guest.waitForFunction(()=>window.rtcResult.snapshots>15 && window.rtcResult.reliable>15);
  let before=await sample(guest);
  assert.ok(before.rtc.direct_received_bytes>0,'Mobile browser receives direct Godot snapshots');
- const fallback=await pageFor(await ticket('/api/crews/'+room.id+'/join'),false,true);
+ const fallback=await pageFor(await ticket('/api/crews/'+room.id+'/join'),false,true,false,true);
+ await fallback.waitForFunction(()=>window.heldAcks.length===2);
+ const heldSnapshotCount=(await sample(fallback)).snapshots;
+ assert.ok(heldSnapshotCount>0 && heldSnapshotCount<=2,'At most two snapshots delivered before receipts');
+ const movingBefore=await sample(guest);
+ await guest.waitForFunction(old=>window.rtcResult.snapshots>old+15,movingBefore.snapshots);
+ assert.equal((await sample(fallback)).snapshots,heldSnapshotCount,'Unacknowledged relay snapshots are bounded while direct peer continues');
+ const hostBeforeFlush=await sample(host);
+ assert.equal(hostBeforeFlush.window.pending[String((await sample(fallback)).id)],2);
+ await fallback.evaluate(()=>window.flushSnapshotAcks());
  await fallback.waitForFunction(()=>window.rtcResult.snapshots>10 && window.rtcResult.reliable>10);
+ assert.ok((await sample(fallback)).last_snapshot>=hostBeforeFlush.sent_tick,'Recovery sends fresh state rather than replaying a backlog');
  assert.equal((await sample(fallback)).rtc.direct_received_bytes,0,'Disabled peer stays on relay in mixed crew');
  results.push({case:'direct + mixed relay crew',host:await sample(host),mobile:before,fallback:await sample(fallback)});
  await guest.evaluate(()=>window.rtcStop=true);
@@ -115,5 +139,5 @@ try {
  assert.deepEqual(errors,[],'No browser/Godot runtime errors');
  await writeFile(path.join(project,'results.json'),JSON.stringify(results,null,2));
  console.log('PASS: direct Godot WebRTC, mobile host/guest emulation, mixed relay crew, mid-session fallback, blocked path, silent path loss; no runtime errors.');
-} catch(error) {console.error('Browser errors:',errors);throw error;}
+} catch(error) {console.error('Browser errors:',errors);for(const c of browser.contexts())for(const p of c.pages())console.error(await p.evaluate(()=>({result:window.rtcResult,heldAcks:window.heldAcks?.length})).catch(()=>null));throw error;}
 finally {await browser.close();for(const socket of sockets)socket.destroy();await new Promise(r=>server.close(r));}

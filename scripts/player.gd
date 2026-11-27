@@ -28,6 +28,7 @@ var _deck_layer: int
 var presentation: Node2D
 var presentation_offset := Vector2.ZERO # World-space; never changes collision state.
 @export var correction_response := 18.0
+var _remote_motion: Dictionary = {}
 @export var character_appearance: CharacterAppearance = preload("res://assets/player/characters/viking/appearance.tres")
 var using_station: bool:
 	get:
@@ -87,7 +88,18 @@ func _physics_process(_delta: float) -> void:
 
 func _process(_delta: float) -> void:
 	global_rotation = 0.0
-	presentation_offset *= exp(-correction_response * _delta)
+	if not _remote_motion.is_empty():
+		if is_overboard != _remote_motion.outside or on_land != _remote_motion.land or respawn_serial != _remote_motion.respawn or access_motion != &"" or health <= 0 or using_station or position.distance_to(_remote_motion.target) > 0.01:
+			_remote_motion.clear()
+			presentation_offset = Vector2.ZERO
+		else:
+			_remote_motion.elapsed = minf(_remote_motion.elapsed + _delta, _remote_motion.duration)
+			var point: Vector2 = Vector2(_remote_motion.start).lerp(_remote_motion.target, _remote_motion.elapsed / _remote_motion.duration)
+			var world_point: Vector2 = point if is_overboard else get_parent().to_global(point)
+			presentation_offset = world_point - global_position
+			if _remote_motion.elapsed >= _remote_motion.duration: _remote_motion.clear()
+	else:
+		presentation_offset *= exp(-correction_response * _delta)
 	if presentation_offset.length_squared() < 0.0001: presentation_offset = Vector2.ZERO
 	if presentation != null:
 		presentation.position = global_transform.basis_xform_inv(presentation_offset)
@@ -99,7 +111,19 @@ func _process(_delta: float) -> void:
 	z_index = -1 if is_overboard and not on_land and access_motion in [&"", &"dunk", &"surface", &"align"] else 1
 
 func smooth_correction(previous_visual: Vector2) -> void:
+	_remote_motion.clear()
 	presentation_offset = (previous_visual - global_position).limit_length(80.0)
+
+func smooth_remote_motion(previous_visual: Vector2, duration: float) -> void:
+	# The host has already simulated and acknowledged the whole input batch.
+	# Display that displacement over its duration without delaying collisions.
+	if access_motion != &"" or health <= 0 or using_station or previous_visual.distance_to(global_position) > 80.0:
+		_remote_motion.clear()
+		presentation_offset = Vector2.ZERO
+		return
+	var start: Vector2 = previous_visual if is_overboard else get_parent().to_local(previous_visual)
+	_remote_motion = {"start": start, "target": position, "elapsed": 0.0, "duration": clampf(duration, 1.0 / 60.0, 0.15), "outside": is_overboard, "land": on_land, "respawn": respawn_serial}
+	presentation_offset = previous_visual - global_position
 
 func visual_position() -> Vector2:
 	return global_position + presentation_offset

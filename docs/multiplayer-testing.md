@@ -1,5 +1,12 @@
 # Holy Ship browser and desktop multiplayer tests
 
+Protocol 18: test host-visible remote crew while walking, swimming, using ladders
+and riding a moving boat. Run the browser suite's withheld-receipt scenario and
+export diagnostics with the overlay hidden to verify RTT collection. Repeat the
+phone-cellular/computer-Wi-Fi test; LAN success is a diagnostic comparison, not
+evidence that arbitrary internet paths are healthy. Details:
+[host smoothing and relay flow](webrtc-networking.md#protocol-18-follow-up-host-presentation-and-relay-flow-control).
+
 Architecture and release workflow: [Multiplayer system and operations guide](multiplayer-system.md).
 
 ## Protocol 16 local validation and diagnostics

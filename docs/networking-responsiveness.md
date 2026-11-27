@@ -1,5 +1,9 @@
 # Local responsiveness and prompt disconnects
 
+Protocol 18 adds host-side remote-player presentation smoothing, bounded relay
+snapshot flow, and always-on RTT/negotiation diagnostics. See
+[WebRTC follow-up](webrtc-networking.md#protocol-18-follow-up-host-presentation-and-relay-flow-control).
+
 ## Movement replay and presentation update — November 26, 2026 / protocol 16
 
 Implemented on `codex/network-smoothing-replay`. This is selective client movement

@@ -7,6 +7,7 @@ var reliable := 0
 var elapsed := 0.0
 var clock := 0.0
 var stopped := false
+var last_snapshot := 0
 func _ready() -> void:
 	peer.rtc.enabled = not bool(JavaScriptBridge.eval("window.rtcDisabled || false"))
 	peer.connect_url(str(JavaScriptBridge.eval("window.rtcURL")))
@@ -22,9 +23,12 @@ func _process(delta: float) -> void:
 		count += 1
 		if peer.own_id == 1: peer.send_world_snapshot(var_to_bytes(count))
 		peer._send_packet(var_to_bytes(count), 0 if peer.own_id == 1 else 1, 0, MultiplayerPeer.TRANSFER_MODE_RELIABLE)
-	if not peer.take_world_snapshot().is_empty(): snapshots += 1
+	var snapshot := peer.take_world_snapshot()
+	if not snapshot.is_empty():
+		snapshots += 1
+		last_snapshot = int(bytes_to_var(snapshot))
 	while peer._get_available_packet_count() > 0:
 		peer._get_packet_script()
 		reliable += 1
-	var data := {"id": peer.own_id, "state": peer.state, "snapshots": snapshots, "reliable": reliable, "seconds": elapsed, "rtc": peer.rtc.diagnostics()}
+	var data := {"id": peer.own_id, "state": peer.state, "snapshots": snapshots, "last_snapshot": last_snapshot, "sent_tick": count, "window": peer.snapshot_window.diagnostics(), "reliable": reliable, "seconds": elapsed, "rtc": peer.rtc.diagnostics()}
 	JavaScriptBridge.eval("window.rtcResult = " + JSON.stringify(data))

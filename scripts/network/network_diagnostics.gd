@@ -19,12 +19,25 @@ var history: Array[Dictionary] = []
 var events: Array[Dictionary] = []
 const EVENT_LIMIT := 600
 var _recording := false
+var pending_pings: Dictionary = {}
+var snapshot_delay_growth_ms := 0.0
+var _minimum_snapshot_offset := INF
+var _previous_frame_usec := 0
+
+func accept_ping_reply(stamp: int) -> void:
+	if not pending_pings.has(stamp): return
+	rtt_ms = maxi(0, Time.get_ticks_msec() - stamp)
+	pending_pings.erase(stamp)
 
 func record_event(kind: String, details: Dictionary) -> void:
 	if not _recording:
 		history.clear()
 		events.clear()
 		_recording = true
+	if kind == "snapshot_received" and details.get("host_time") is float:
+		var offset := Time.get_ticks_msec() - float(details.host_time) * 1000.0
+		_minimum_snapshot_offset = minf(_minimum_snapshot_offset, offset)
+		snapshot_delay_growth_ms = maxf(0.0, offset - _minimum_snapshot_offset)
 	events.append({"tick_ms": Time.get_ticks_msec(), "kind": kind, "details": details})
 	while events.size() > EVENT_LIMIT: events.pop_front()
 
@@ -48,7 +61,7 @@ func record_sample() -> void:
 		var buffer: CrewInputBuffer = session._crew_buffers[id]
 		queues[str(id)] = {"queued": buffer.frames.size(), "ack": buffer.acknowledged, "rejected": buffer.rejected}
 	var peer := multiplayer.multiplayer_peer as HarborPeer
-	history.append({"utc": Time.get_unix_time_from_system(), "tick_ms": Time.get_ticks_msec(), "role": "host" if session.local_id == 1 else "guest", "fps": Engine.get_frames_per_second(), "frame_peak_ms": last_frame_peak, "host_frame_ms": session.host_frame_ms, "rtt_ms": rtt_ms, "snapshot_gap_ms": session.snapshot_gap_ms, "snapshot_age_ms": Time.get_ticks_msec() - session.snapshot_received_at if session.snapshot_received_at else 0, "buffer_ms": session._motion_buffer.playback_delay * 1000, "underruns": session._motion_buffer.underruns, "correction_px": session.last_correction, "state_resets": session.transition_resets, "drift_resets": session.distance_resets, "replayed": session.replayed_frames, "replay_ms": session.replay_ms, "access_rejections": session.access_rejections, "up_kib_s": upload, "down_kib_s": download, "queued_bytes": peer.socket.get_current_outbound_buffered_amount() if peer else 0, "coalesced": peer.skipped_packets if peer else 0, "transport": peer.rtc.diagnostics() if peer else {}, "crew_inputs": queues})
+	history.append({"utc": Time.get_unix_time_from_system(), "tick_ms": Time.get_ticks_msec(), "role": "host" if session.local_id == 1 else "guest", "fps": Engine.get_frames_per_second(), "frame_peak_ms": last_frame_peak, "host_frame_ms": session.host_frame_ms, "rtt_ms": rtt_ms, "snapshot_gap_ms": session.snapshot_gap_ms, "snapshot_age_ms": Time.get_ticks_msec() - session.snapshot_received_at if session.snapshot_received_at else 0, "buffer_ms": session._motion_buffer.playback_delay * 1000, "underruns": session._motion_buffer.underruns, "correction_px": session.last_correction, "state_resets": session.transition_resets, "drift_resets": session.distance_resets, "replayed": session.replayed_frames, "replay_ms": session.replay_ms, "access_rejections": session.access_rejections, "up_kib_s": upload, "down_kib_s": download, "queued_bytes": peer.socket.get_current_outbound_buffered_amount() if peer else 0, "coalesced": peer.skipped_packets if peer else 0, "transport": peer.rtc.diagnostics() if peer else {}, "relay_snapshot_window": peer.snapshot_window.diagnostics() if peer else {}, "snapshot_delay_growth_ms": snapshot_delay_growth_ms, "crew_inputs": queues})
 	while history.size() > HISTORY_LIMIT: history.pop_front()
 
 func _ready() -> void:
@@ -79,13 +92,19 @@ func _input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	label.visible = enabled and NetworkSession.online
-	NetworkSession._frame_peak_ms = maxf(NetworkSession._frame_peak_ms, delta * 1000.0)
-	frame_peak = maxf(frame_peak, delta * 1000.0)
+	var now_usec := Time.get_ticks_usec()
+	var frame_ms := float(now_usec - _previous_frame_usec) / 1000.0 if _previous_frame_usec else delta * 1000.0
+	_previous_frame_usec = now_usec
+	NetworkSession._frame_peak_ms = maxf(NetworkSession._frame_peak_ms, frame_ms)
+	frame_peak = maxf(frame_peak, frame_ms)
 	clock += delta
 	if not NetworkSession.online or not NetworkSession.world_ready:
 		_recording = false
 		rtt_ms = -1
 		ping_sent = 0
+		pending_pings.clear()
+		_minimum_snapshot_offset = INF
+		snapshot_delay_growth_ms = 0.0
 		previous_sent = 0
 		previous_received = 0
 		clock = 0.0
@@ -101,9 +120,12 @@ func _process(delta: float) -> void:
 	peak_snapshot_gap = maxi(peak_snapshot_gap, NetworkSession.snapshot_gap_ms)
 	peak_correction = maxf(peak_correction, NetworkSession.last_correction)
 	ping_clock += delta
-	if enabled and NetworkSession.local_id != 1 and ping_clock >= 2.0:
+	for stamp: int in pending_pings.keys():
+		if Time.get_ticks_msec() - stamp > 30000: pending_pings.erase(stamp)
+	if NetworkSession.local_id != 1 and ping_clock >= 2.0:
 		ping_clock = 0.0
 		ping_sent = Time.get_ticks_msec()
+		pending_pings[ping_sent] = true
 		NetworkSession.diagnostic_ping.rpc_id(1, ping_sent)
 	if clock < 0.5: return
 	last_frame_peak = frame_peak
@@ -131,6 +153,7 @@ func report() -> String:
 	var peer := multiplayer.multiplayer_peer as HarborPeer
 	if peer:
 		text += "Up %.1f / down %.1f KiB/s | queued %d B | coalesced/skipped %d\n" % [upload, download, peer.socket.get_current_outbound_buffered_amount(), peer.skipped_packets]
+		text += "Snapshot delay growth %.0f ms | relay window skips %d\n" % [snapshot_delay_growth_ms, peer.snapshot_window.skipped]
 		text += "Motion transport: %s | direct %.1f / %.1f KiB | fallbacks %d\n" % [str(peer.rtc.reasons) if peer.rtc.enabled else "relay (WebRTC unavailable/disabled)", peer.rtc.direct_sent / 1024.0, peer.rtc.direct_received / 1024.0, peer.rtc.fallbacks]
 	if session.services.has(session.local_id):
 		var fishing: RodFishing = session.services[session.local_id].get_node("Fishing")

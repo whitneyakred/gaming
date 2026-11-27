@@ -1,7 +1,7 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-17"
+const PROTOCOL := "holy-ship-coop-18"
 const INPUT_REFRESH_INTERVAL := 0.5
 const DEFAULT_PORT := 24567
 const MAX_CREW := 4
@@ -681,9 +681,13 @@ func _physics_process(delta: float) -> void:
 		if id == local_id:
 			_move_input(player, move, delta)
 		else:
+			var before_visual: Vector2 = player.visual_position()
+			var before_position: Vector2 = player.position
 			player.velocity = Vector2.ZERO
 			for frame: Dictionary in playback:
 				_move_input(player, Vector2.ZERO if blocked or frame.blocked else frame.move, 1.0 / Engine.physics_ticks_per_second)
+			if player.position != before_position:
+				player.smooth_remote_motion(before_visual, float(playback.size()) / Engine.physics_ticks_per_second)
 		player.get_node("CrewName").rotation = -player.global_rotation
 		ship.get_node("SwimAccess").update_crew(player)
 		if fishing.state != RodFishing.State.IDLE:
@@ -805,8 +809,7 @@ func diagnostic_ping(stamp: int) -> void:
 
 @rpc("authority", "call_remote", "unreliable", 1)
 func diagnostic_pong(stamp: int) -> void:
-	if stamp == diagnostics.ping_sent:
-		diagnostics.rtt_ms = maxi(0, Time.get_ticks_msec() - stamp)
+	diagnostics.accept_ping_reply(stamp)
 
 static func _fields(data: Dictionary, types: Dictionary) -> bool:
 	for key: String in types:
@@ -1184,7 +1187,7 @@ func save_world() -> void:
 
 func load_world() -> void:
 	var data := VoyageSaves.world(VoyageSaves.selected)
-	if data.get("version") in [PROTOCOL, "holy-ship-coop-16", "holy-ship-coop-15", "holy-ship-coop-14", "holy-ship-coop-13", "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
+	if data.get("version") in [PROTOCOL, "holy-ship-coop-17", "holy-ship-coop-16", "holy-ship-coop-15", "holy-ship-coop-14", "holy-ship-coop-13", "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
 		_restored = data
 		accounts = data.get("accounts", {})
 

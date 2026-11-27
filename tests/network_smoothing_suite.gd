@@ -114,6 +114,35 @@ func run() -> void:
 	crew.move_crew(Vector2.DOWN, 1.0 / 120.0)
 	check(absf(crew.position.distance_to(fixed_start) - crew.walk_speed / 120.0) < 0.01, "Collision movement uses explicit replay delta outside physics callback")
 	crew.position = fixed_start
+	# Host presentation spreads a six-frame batch over 100 ms. Authority does
+	# not wait, and boat motion must not turn a deck-relative lerp into sliding.
+	var remote_start: Vector2 = crew.visual_position()
+	crew.position += Vector2(12, 0)
+	var remote_body: Vector2 = crew.position
+	crew.smooth_remote_motion(remote_start, 0.1)
+	check(crew.visual_position().distance_to(remote_start) < 0.001, "Host batch has no instant visual jump")
+	crew._process(0.05)
+	check(crew.position == remote_body, "Host smoothing never moves authoritative collision body")
+	check(absf(crew.visual_position().distance_to(remote_start) - 6.0) < 0.01, "Host remote sailor advances smoothly between batches")
+	var old_ship_position: Vector2 = ship.position
+	ship.position += Vector2(100, 0)
+	crew._process(0.0)
+	check(crew.visual_position().distance_to(remote_start + Vector2(106, 0)) < 0.01, "Remote presentation follows shared moving ship")
+	ship.position = old_ship_position
+	crew._process(0.05)
+	check(crew.presentation_offset.length() < 0.01, "Host presentation reaches confirmed endpoint without extrapolation")
+	crew.smooth_remote_motion(crew.visual_position() - Vector2(12, 0), 0.1)
+	crew.access_motion = &"climb"
+	crew._process(0.01)
+	check(crew.presentation_offset == Vector2.ZERO, "Traversal cancels walking smoothing")
+	crew.access_motion = &""
+	crew.position = fixed_start
+	NetworkSession.diagnostics.pending_pings[Time.get_ticks_msec() - 5000] = true
+	var old_ping := int(NetworkSession.diagnostics.pending_pings.keys()[0])
+	NetworkSession.diagnostics.accept_ping_reply(old_ping)
+	check(NetworkSession.diagnostics.rtt_ms >= 5000, "Late RTT replies remain measurable beyond next probe")
+	NetworkSession.diagnostics.accept_ping_reply(Time.get_ticks_msec() - 1)
+	check(NetworkSession.diagnostics.rtt_ms >= 5000, "Unrequested RTT stamps ignored")
 	NetworkSession._last_snapshot = {"trim": 0.0, "wheel": 0.0}
 	NetworkSession._prediction = [{"sequence": 1, "position": crew.position, "move": Vector2.ZERO, "trim": 0.0, "wheel": 0.0}, {"sequence": 2, "position": crew.position, "move": Vector2.DOWN, "trim": 0.0, "wheel": 0.0}]
 	var visual_before: Vector2 = crew.visual_position()

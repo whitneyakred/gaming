@@ -7,6 +7,21 @@ func check(value: bool, message: String) -> void:
 		failures += 1
 		push_error(message)
 func _initialize() -> void:
+	var window := RelaySnapshotWindow.new()
+	window.sent(2, 1)
+	window.sent(2, 2)
+	check(not window.available(2) and window.available(3), "Slow relay guest cannot queue history or block another guest")
+	for bad: Variant in [null, "2", 99, 1.5, INF]: window.acknowledge(2, bad)
+	check(not window.available(2), "Malformed or unsent acknowledgements cannot release window")
+	window.acknowledge(3, 2)
+	check(not window.available(2), "One guest cannot release another guest's window")
+	window.acknowledge(2, 1)
+	check(window.available(2) and window.pending[2] == [2], "Receipt releases only acknowledged snapshots")
+	window.acknowledge(2, 2)
+	window.sent(2, 100)
+	check(window.pending[2] == [100], "Resume sends current snapshot, without queued history")
+	window.remove(2)
+	check(not window.pending.has(2), "Rejoin starts with a fresh window")
 	for invalid: Variant in [null, [], "hello", {}, {"type": 2}, {"type": "offer", "sdp": 12}, {"type": "ice", "media": "0", "index": INF, "candidate": "x"}, {"type": "ice", "media": "0", "index": 0.5, "candidate": "x"}, {"type": "offer", "sdp": "x".repeat(12001)}]:
 		check(not HarborRTC.valid_signal(invalid), "Malformed signaling must be ignored")
 	check(HarborRTC.valid_signal({"type": "hello"}), "Capability message accepted")
