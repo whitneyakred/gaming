@@ -445,7 +445,7 @@ position = Vector2(66, 72)
 position = Vector2(6, 130)
 ship = NodePath("..")
 local_player = NodePath("../Player")
-interaction_distance = 32.0
+interaction_distance = 42.0
 
 [node name="Sail" parent="." unique_id=1300635341 node_paths=PackedStringArray("ship", "local_player") instance=ExtResource("10")]
 position = Vector2(6, 0)
@@ -517,4 +517,4 @@ script = ExtResource("swim_access")
 
 
 [node name="Crafting" parent="." instance=ExtResource("crafting")]
-position = Vector2(3, -177)
+position = Vector2(6, -177)

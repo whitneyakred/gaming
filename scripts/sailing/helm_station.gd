@@ -2,6 +2,8 @@ class_name HelmStation
 extends ShipStation
 ## A/D turns the wheel up to 1.5 revolutions either way; releasing preserves rudder.
 
+@export var operator_offset := Vector2(0, 40)
+
 @export_range(1.0, 360.0) var wheel_turn_speed_degrees: float = 165.0
 @export_range(0.0, 90.0) var center_assist_angle_degrees: float = 25.0
 @export_range(1.0, 180.0) var center_assist_speed_degrees: float = 60.0
@@ -15,3 +17,14 @@ func _apply_controls(delta: float) -> void:
 		# Help only after releasing A/D near true zero, never at a full revolution.
 		angle = move_toward(angle, 0.0, center_assist_speed_degrees * delta)
 	ship.set_wheel_angle(angle)
+
+func try_take_control(crew: CharacterBody2D) -> bool:
+	if not super.try_take_control(crew): return false
+	# Authority places feet on the clear pad astern of the wheel. Existing crew
+	# snapshots carry this position; guests never invent a second station owner.
+	var previous_visual: Vector2 = crew.visual_position()
+	crew.global_position = to_global(operator_offset)
+	crew.velocity = Vector2.ZERO
+	crew.smooth_correction(previous_visual)
+	if crew.idle_sprite is CrewSprite: crew.idle_sprite.refresh(0.0)
+	return true

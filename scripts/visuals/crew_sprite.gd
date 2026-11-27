@@ -60,6 +60,11 @@ func refresh(delta: float) -> void:
 		elif crew.access_motion == &"step_on":
 			var direction: Vector2 = crew.get_parent().global_transform.basis_xform(Vector2.RIGHT)
 			facing = (2 if direction.x > 0 else 1) if absf(direction.x) > absf(direction.y) else (0 if direction.y > 0 else 3)
+	if crew.using_station and crew.active_station is HelmStation:
+		var toward_wheel: Vector2 = crew.active_station.global_position - crew.global_position
+		if absf(toward_wheel.x) > absf(toward_wheel.y): facing = 2 if toward_wheel.x > 0 else 1
+		else: facing = 0 if toward_wheel.y > 0 else 3
+		moving = false
 	var atlas := appearance.swim_atlas if swimming else appearance.walk_atlas
 	if atlas == null: return
 	texture = atlas
