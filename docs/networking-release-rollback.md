@@ -1,5 +1,31 @@
 # Networking playtest release and rollback
 
+## November 27 solid props and streamlined challenges (protocol 24)
+
+- Source: `5a5b1d6` on `systems-revamp` (gameplay commits `31e67da`, `94e8fd5`, `53a2baf`), pushed to GitHub.
+- Pages: `9ec01793-10da-4dfd-9f8d-9012730ea9c0`.
+- Worker: `fae37c4c-372e-4588-8f0c-1f3fc0d20dd5`.
+- Rollback pair: Pages https://0bdc38b6.holy-ship.pages.dev and Worker `70cabbb8-80bd-4474-952f-4e2c46a6f10a` (protocol 23). Source before this update: `5e4dbae`.
+- Website: https://holy-ship.pages.dev/play/
+
+Removes interaction popups, adds immediate name-only inventory hover, enlarges
+the medpack icon, shows green healing/blue eating rings and a draining yellow
+totem cooldown ring. Props collide with player feet and totems use correct depth
+sorting. Challenges retain normal zoom and automatically finish their objectives.
+See [implementation and tests](prop-collision-and-ui.md).
+
+Protocol 24 requires both clients and Harbor to update together because collision
+affects prediction. Protocol-23 saves are accepted without adding another pickaxe
+kit. Older builds may reject saves rewritten by protocol 24; preserve a prior slot
+when testing rollback. No paid service, transport change or new dependency.
+
+Godot parser, HTML5 export, focused UI/collision tests, all 19 standalone puzzle
+regressions, 370 totem checks, 26 three-process collision/regrowth checks and the
+full 76-check native three-player gameplay scenario passed. Live HTML/JS/PCK
+hashes match the export and health reports protocol 24. Two live browser sessions
+passed host/join, direct WebRTC, movement/hotbar input and forced relay fallback
+without runtime errors. Refresh both devices.
+
 ## November 27 small interaction hints (protocol 23)
 
 - Source: `f9ad281`, pushed to `systems-revamp` (hint positioning: `8285139`).

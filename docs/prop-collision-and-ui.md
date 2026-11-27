@@ -1,5 +1,7 @@
 # Prop collision and simplified UI — protocol 24
 
+Pushed on `systems-revamp` and deployed from `5a5b1d6`; see [release and rollback](networking-release-rollback.md).
+
 ## Player-facing changes
 
 - Removed proximity interaction popups entirely. Space and E still interact.
@@ -24,5 +26,6 @@ Protocol 24 prevents older clients with pass-through movement from joining and f
 - All standalone puzzle regressions pass. Existing 3,320 harvesting/catalog checks, 86 responsiveness checks, movement smoothing, 12 save checks and 84 survival checks pass.
 - Native visual captures check front/behind totem ordering, yellow cooldown, green healing, blue eating, the larger medpack, name-only hover labels and normal challenge framing.
 - Three-process mining/regrowth replication passes 26 checks, including equal resource collision radii on host and both guests. World interaction (32 checks), TypeScript validation and the HTML5 release export also pass.
+- The full native three-player gameplay scenario passes 76 checks. Live game hashes match the export; Harbor reports protocol 24.
 
 Playtest on phone and desktop after refreshing both. Walk diagonally around trunks, rocks and totems; harvest and revisit regrown resources; hold food/medpack and release partway; complete a challenge without returning to its start. Real cellular latency and phone GPU performance still require device testing.
