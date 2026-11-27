@@ -64,6 +64,7 @@ var _bag_on_arrival: Array[Dictionary] = []
 var _floor_on_arrival: Dictionary = {}
 
 const COIN_ITEM_ID: StringName = &"gold_coin"
+static var exit_hint_pattern: RegEx
 
 
 func _ready() -> void:
@@ -105,6 +106,9 @@ func _process(delta: float) -> void:
 
 	_game_process(delta)
 	if _run_ended:
+		return
+	if embedded and _is_objective_complete():
+		win()
 		return
 
 	if has_time_limit() and not _timer_paused:
@@ -181,6 +185,11 @@ func set_prompt(text: String) -> void:
 
 func clearing_text(text: String) -> String:
 	if not embedded: return text
+	if _is_objective_complete(): return "Complete!"
+	if exit_hint_pattern == null:
+		exit_hint_pattern = RegEx.new()
+		exit_hint_pattern.compile("(?i)(?:then |and )?(?:head|run|return|walk back|get back|find your way back|back|row)[^.!\\n]*(?:rowboat|home|ship|dock|back)[.!]?")
+	text = exit_hint_pattern.sub(text,"",true)
 	return text.replace("Press E", "Press Space").replace("E to", "Space to").replace("E at", "Space at").replace("E again", "Space again").replace("rowboat", "exit totem").replace("Row back", "Return").replace("row back", "return")
 
 ## The voyage inventory of `receiver` (default: this island's player).
@@ -201,7 +210,7 @@ func give_item(item_id: StringName, amount: int = 1, receiver: Node = null) -> i
 		return 0
 	var added := inventory.add_items(item, amount)
 	if added > 0 and hud:
-		hud.show_toast("+%d %s" % [added, item.display_name])
+		if not embedded: hud.show_toast("+%d %s" % [added, item.display_name])
 	if added < amount:
 		_warn_bag_full(item)
 	return added
@@ -215,7 +224,7 @@ func give_treasure(prefix: String = "") -> int:
 	var line := "%d coins collected!" % added
 	if added == 0:
 		line = "Your bag is full! The coins stay behind."
-	show_message("Objective complete! Return to the exit totem." if embedded else (line if prefix.is_empty() else "%s\n%s" % [prefix, line]), 2.5)
+	if not embedded: show_message(line if prefix.is_empty() else "%s\n%s" % [prefix, line], 2.5)
 	return added
 
 ## Called by scripts/rowboat.gd when the player reaches the rowboat.

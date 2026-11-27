@@ -47,8 +47,8 @@ func _update_camera(delta: float) -> void:
 		return
 	if challenge_center.is_finite():
 		camera.global_position = challenge_center
-		var size := get_viewport_rect().size
-		camera.zoom = Vector2.ONE * minf(size.x / 1280.0, size.y / 1000.0)
+		_station_zoom = 1.0
+		_refresh_camera_scale()
 		return
 	var station: Node2D = null
 	if is_instance_valid(helm) and is_instance_valid(helm.local_player):

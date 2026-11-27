@@ -48,6 +48,7 @@ func install_totems() -> void:
 		else:
 			totem.global_position = center
 		totem.global_scale = Vector2.ONE
+	if is_instance_valid(ship.foliage): ship.foliage.rebuild_collision()
 
 func crew_for(id: int) -> CharacterBody2D:
 	return NetworkSession.players.get(id) if NetworkSession.online else ship.player
@@ -161,6 +162,8 @@ func _process(delta: float) -> void:
 			totem.set_occupied(locks.has(str(island.name)))
 	if is_instance_valid(game):
 		game.process_mode = Node.PROCESS_MODE_DISABLED if PauseMenu.is_paused() or _waiting else Node.PROCESS_MODE_INHERIT
+		if is_instance_valid(game.player):
+			ship._view.challenge_center = arena.to_global(game.player.visual_position())
 
 func _input(event: InputEvent) -> void:
 	if not is_instance_valid(game) or PauseMenu.is_paused(): return
@@ -200,14 +203,14 @@ func begin_local(island_id: String, token: int) -> void:
 	ship.add_child(arena)
 	arena.set_as_top_level(true)
 	arena.global_position = island.get_node("MinigameTotem").global_position
-	arena.scale = Vector2.ONE * 0.82
+	arena.scale = Vector2.ONE
 	arena.z_index = 31
 	ship._view.challenge_center = arena.global_position
 	game = load(island.scene).instantiate() as IslandGame
 	game.embedded = true
+	game.win_delay_seconds = 0.35
 	if game is CollectIsland:
 		_viewport.size = Vector2i(720, 640)
-		arena.scale = Vector2.ONE * 1.15
 		for child in game.get_node("World").get_children():
 			if child is Sprite2D:
 				child.texture = IslandFoliage.icon(3 if String(child.name).begins_with("Palm") else 0)
@@ -215,30 +218,23 @@ func begin_local(island_id: String, token: int) -> void:
 				child.hframes = 1
 				child.vframes = 1
 				child.scale = Vector2.ONE * (90.0 / child.texture.get_width())
+				child.centered = false
+				child.offset = -child.texture.get_size()*Vector2(0.5,0.94)
+				add_trunk(game.get_node("World"),child.position)
 	# Invisible cover from the old painted island must become visible props.
 	if game is BeeHiveHill:
 		for marker in game.get_node("Terrain/Trees").get_children():
 			var tree := Sprite2D.new()
 			tree.texture = IslandFoliage.icon(0)
 			tree.scale = Vector2.ONE * (110.0 / tree.texture.get_width())
-			tree.position.y = -42
+			tree.centered = false
+			tree.offset = -tree.texture.get_size()*Vector2(0.5,0.94)
 			marker.add_child(tree)
-	var exit_area := game.get_node_or_null("Rowboat") as Node2D
+			add_trunk(marker,Vector2.ZERO)
+	var exit_area := game.get_node_or_null("Rowboat")
 	if exit_area != null:
-		for child in exit_area.get_children():
-			if child is CanvasItem: child.visible = false
-		var exit_icon := Sprite2D.new()
-		exit_icon.texture = TotemArt.texture(0)
-		exit_icon.scale = Vector2.ONE * (64.0 / exit_icon.texture.get_height())
-		exit_icon.position.y = -25
-		exit_area.add_child(exit_icon)
-		var caption := Label.new()
-		caption.text = "Return here when complete"
-		caption.position = Vector2(-130, 12)
-		caption.size.x = 260
-		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		caption.add_theme_font_size_override("font_size", 15)
-		exit_area.add_child(caption)
+		game.remove_child(exit_area)
+		exit_area.queue_free()
 	var terrain := game.get_node_or_null("Terrain") as IslandTerrain
 	if terrain == null:
 		# Coconut and treasure predate IslandTerrain and embed their scenery.
@@ -292,6 +288,16 @@ func _finished_local(won: bool) -> void:
 		NetworkSession.command("island_finish", {"island": _island_id, "token": _token, "won": won, "prizes": prizes})
 	else:
 		finish(1, _island_id, _token, won, prizes)
+
+func add_trunk(parent: Node, at: Vector2) -> void:
+	var body := StaticBody2D.new()
+	body.position = at
+	var shape := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = 7.0
+	shape.shape = circle
+	body.add_child(shape)
+	parent.add_child(body)
 
 func close_local(token: int) -> void:
 	if token != _token: return

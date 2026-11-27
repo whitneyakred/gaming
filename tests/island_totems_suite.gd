@@ -97,6 +97,21 @@ func run() -> void:
 			get_viewport().get_texture().get_image().save_png("res://.godot/totem-world.png")
 			camera.queue_free()
 	check(seen.size() == 19, "All 19 existing minigames available")
+	# Each scene's existing objective predicate must trigger completion without
+	# crossing an exit. Puzzle-solving rules are exercised by island_minigames.
+	for scene in seen:
+		var arena_island: WorldIsland = ship.get_islands().filter(func(i): return i.scene == scene)[0]
+		player.global_position = arena_island.get_node("MinigameTotem").global_position+Vector2(40,0)
+		player.update_land(true)
+		check(manager.try_start(1,str(arena_island.name)),"Auto-completion starts: "+scene)
+		await frames()
+		var challenge := manager.game
+		challenge.win_delay_seconds = 0.01
+		complete_objective(challenge)
+		await get_tree().create_timer(0.1).timeout
+		check(not is_instance_valid(manager.game) and manager.locks.get(str(arena_island.name),{}).get("player",-1) == 0,"Objective finishes automatically: "+scene)
+		manager.locks.erase(str(arena_island.name))
+	manager.service_for(1).drops.clear()
 	var island := ship.get_islands()[0]
 	player.global_position = island.get_node("MinigameTotem").global_position
 	player.update_land(true)
@@ -168,4 +183,25 @@ func run() -> void:
 	print("ISLAND TOTEMS: ", checks, " checks, ", failures, " failures")
 	GameWindow.shutdown_audio()
 	get_tree().quit(0 if failures == 0 else 1)
+
+func complete_objective(game: IslandGame) -> void:
+	if game is CollectIsland: game.collected_count = game.total_count
+	elif game is TreasureIsland: game.treasure_found = true
+	elif game is CrabCove: game.penned_count = game.crabs.size()
+	elif game is CoconutSquall: game.storm_over = true
+	elif game is TikiTotems: game.phase = TikiTotems.Phase.DONE
+	elif game is TimberIsle: game.felled_count = game.trees_needed
+	elif game is SkullRock: game.idol_taken = true
+	elif game is SmugglersDen: game.loot_taken = true
+	elif game is OvergrownIsle: game.compass_found = true
+	elif game is ParrotPoint: game.orders_done = game.orders_needed
+	elif game is PowderKegPoint: game.all_clear = true
+	elif game is SeagullRoost: game.rack_safe = true
+	elif game is TurtleBeach: game.rewarded = true
+	elif game is QuicksandFlats: game.chest_found = true
+	elif game is FireflyHollow: game.jar_filled = true
+	elif game is CannonCove: game.sunk_count = game.rafts_needed
+	elif game is MosquitoMarsh: game.lit_count = game._torches.size()
+	elif game is SlipperyRocks: game.chest_opened = true
+	elif game is BeeHiveHill: game.honey_count = game._hives.size()
 
