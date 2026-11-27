@@ -1,7 +1,7 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-21"
+const PROTOCOL := "holy-ship-coop-22"
 var crew_markers: Dictionary = {}
 var loading_overlay: VoyageLoading
 const INPUT_REFRESH_INTERVAL := 0.5
@@ -277,6 +277,8 @@ func load_game() -> void:
 	if multiplayer.is_server():
 		if not _restored.is_empty():
 			ship.rebuild_world(int(_restored.get("seed", ship.world_seed)),int(_restored.get("layout_version",1)))
+			ship.foliage.rebuild()
+			if IslandFoliage.valid(_restored.get("foliage",{})): ship.foliage.restore(_restored.get("foliage",{}),true)
 			MapState.restore_discoveries(_restored.get("discovered", {}))
 			VoyageState.restore_quest(_restored.get("paradise_quest", {}))
 			ship.global_position = _restored.get("position", Vector2.ZERO)
@@ -517,6 +519,8 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 		return
 	if player.island_challenge: return
 	match kind:
+		"chop":
+			if args.get("point") is Vector2: ship.foliage.chop(service,args.point,int(args.get("index",-1)))
 		"marker":
 			if args.get("clear",false) is bool and args.get("clear",false): crew_markers.erase(id)
 			elif args.get("point") is Vector2 and args.point.is_finite() and MapState.world_bounds.has_point(args.point): crew_markers[id] = args.point
@@ -752,7 +756,7 @@ func _send_snapshot() -> void:
 		var player: CharacterBody2D = players[id]
 		var service: InventoryService = services[id]
 		var fishing: RodFishing = service.get_node("Fishing")
-		crew[id] = {"island_challenge": player.island_challenge, "heal":player.heal_serial,"splash":player.splash_serial,"splash_position":player.splash_position,"eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("ack", inputs[id].get("sequence", -1)), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
+		crew[id] = {"chop":player.chop_serial,"chop_direction":player.chop_direction,"island_challenge": player.island_challenge, "heal":player.heal_serial,"splash":player.splash_serial,"splash_position":player.splash_position,"eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("ack", inputs[id].get("sequence", -1)), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
 			"station": str(player.active_station.name) if player.using_station else "", "inventory": _capture_bag(service.inventory),
 			"access_motion": player.access_motion, "access_progress": player.access_progress,
 			"selected": service.hud.selected, "chest": service.hud.storage_open, "chest_id": service.active_chest_id, "grill_open": service.hud.grill_open, "revision": service.view_revision, "pickup_serial": service.pickup_serial, "drop_serial": service.drop_serial,
@@ -762,7 +766,7 @@ func _send_snapshot() -> void:
 	_snapshot_serial += 1
 	var data := {"serial": _snapshot_serial, "time": Time.get_ticks_msec() / 1000.0, "position": ship.global_position, "rotation": ship.global_rotation, "wind": ship.wind_velocity,
 		"sail": ship.sail_level, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees, "anchor": ship.anchor_deployed,
-		"markers": crew_markers.duplicate(), "fish_taken": ship.ocean_fish.taken.duplicate(), "fish_returns":ship.ocean_fish.returns.duplicate(true), "paradise_quest": VoyageState.quest_data(), "island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "layout_version":ship.layout_version,"seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": _capture_bag(VoyageState.get_ship_storage()), "port_storage": _capture_bag(VoyageState.get_ship_storage(18, 1)), "drops": VoyageState.floor_items.get("ship", {})}
+		"foliage":ship.foliage.changes,"markers": crew_markers.duplicate(), "fish_taken": ship.ocean_fish.taken.duplicate(), "fish_returns":ship.ocean_fish.returns.duplicate(true), "paradise_quest": VoyageState.quest_data(), "island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "layout_version":ship.layout_version,"seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": _capture_bag(VoyageState.get_ship_storage()), "port_storage": _capture_bag(VoyageState.get_ship_storage(18, 1)), "drops": VoyageState.floor_items.get("ship", {})}
 	data["host_frame_ms"] = _frame_peak_ms
 	_frame_peak_ms = 0.0
 	_shared.extract(data)
@@ -877,7 +881,7 @@ static func valid_snapshot(data: Dictionary) -> bool:
 		var entry: Dictionary = data.crew[id]
 		if not _fields(entry, {"name": TYPE_STRING, "position": TYPE_VECTOR2, "outside": TYPE_BOOL, "land": TYPE_BOOL, "station": TYPE_STRING, "selected": TYPE_INT, "chest": TYPE_BOOL, "revision": TYPE_INT, "fish": TYPE_DICTIONARY}): return false
 		if entry.station not in ["", "Helm", "Sail", "Anchor", "Galley"] or not SharedSnapshotState.valid_slots(entry.get("inventory")): return false
-		if not _optional_fields(entry, {"heal":TYPE_INT,"splash":TYPE_INT,"splash_position":TYPE_VECTOR2,"ack": TYPE_INT, "health": TYPE_INT, "hunger": TYPE_INT, "eat": TYPE_INT, "hurt": TYPE_INT, "respawn": TYPE_INT, "danger": TYPE_FLOAT, "island_challenge": TYPE_BOOL, "access_motion": TYPE_STRING_NAME, "access_progress": TYPE_FLOAT, "chest_id": TYPE_INT, "grill_open": TYPE_BOOL, "pickup_serial": TYPE_INT, "drop_serial": TYPE_INT}): return false
+		if not _optional_fields(entry, {"chop":TYPE_INT,"chop_direction":TYPE_VECTOR2,"heal":TYPE_INT,"splash":TYPE_INT,"splash_position":TYPE_VECTOR2,"ack": TYPE_INT, "health": TYPE_INT, "hunger": TYPE_INT, "eat": TYPE_INT, "hurt": TYPE_INT, "respawn": TYPE_INT, "danger": TYPE_FLOAT, "island_challenge": TYPE_BOOL, "access_motion": TYPE_STRING_NAME, "access_progress": TYPE_FLOAT, "chest_id": TYPE_INT, "grill_open": TYPE_BOOL, "pickup_serial": TYPE_INT, "drop_serial": TYPE_INT}): return false
 		if not _fields(entry.fish, {"attempt": TYPE_INT, "seed": TYPE_INT, "state": TYPE_INT, "target": TYPE_VECTOR2, "origin": TYPE_VECTOR2, "clock": TYPE_FLOAT, "progress": TYPE_FLOAT, "tension": TYPE_FLOAT, "green": TYPE_FLOAT, "width": TYPE_FLOAT, "danger": TYPE_FLOAT, "held": TYPE_BOOL, "catches": TYPE_INT}): return false
 		if not _optional_fields(entry.fish, {"catch_length":TYPE_FLOAT,"catch_angle":TYPE_FLOAT,"catch_phase":TYPE_FLOAT,"catch_speed":TYPE_FLOAT,"catch_id": TYPE_STRING, "catch_species": TYPE_INT, "catch_position": TYPE_VECTOR2}): return false
 		if str(entry.fish.get("catch_id", "")).length() > 80 or int(entry.fish.get("catch_species", 0)) not in range(6): return false
@@ -921,6 +925,8 @@ func apply_snapshot(data: Dictionary) -> void:
 	if int(data.get("seed", ship.world_seed)) != ship.world_seed or data.layout_version != ship.layout_version:
 		_motion_buffer.clear()
 	ship.rebuild_world(int(data.get("seed", ship.world_seed)),int(data.layout_version))
+	ship.foliage.rebuild()
+	ship.foliage.restore(data.get("foliage",{}))
 	# Fish locations are reconstructed from the existing seed and host timestamp.
 	# Sprite animation, fading and rendering remain local; no per-fish packets.
 	MapState.accept_markers(data.markers)
@@ -966,6 +972,8 @@ func apply_snapshot(data: Dictionary) -> void:
 		var respawned: bool = player.respawn_serial != int(entry.get("respawn", 0))
 		player.eat_serial = entry.get("eat", 0)
 		player.heal_serial = entry.get("heal",0)
+		player.chop_serial = entry.get("chop",0)
+		player.chop_direction = entry.get("chop_direction",Vector2.RIGHT)
 		var splash_seen := player.has_meta("splash_seen")
 		player.set_meta("splash_seen",true)
 		if player.splash_serial != int(entry.get("splash",0)):
@@ -1227,7 +1235,7 @@ func save_world() -> void:
 		return
 	for id: int in players:
 		_remember(id)
-	var data := {"totem_cooldowns":ship.get_node("IslandChallenges").capture_cooldowns(), "paradise_quest": VoyageState.quest_data(), "discovered": MapState.discovered_islands, "layout_version":ship.layout_version,"seed": ship.world_seed, "version": PROTOCOL, "title": crew_title, "position": ship.global_position, "rotation": ship.global_rotation,
+	var data := {"foliage":ship.foliage.capture_save(),"totem_cooldowns":ship.get_node("IslandChallenges").capture_cooldowns(), "paradise_quest": VoyageState.quest_data(), "discovered": MapState.discovered_islands, "layout_version":ship.layout_version,"seed": ship.world_seed, "version": PROTOCOL, "title": crew_title, "position": ship.global_position, "rotation": ship.global_rotation,
 		"grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "port_storage": VoyageState.get_ship_storage(18, 1).capture(), "drops": VoyageState.floor_items.get("ship", {}), "accounts": accounts}
 	if not VoyageSaves.store(data):
 		set_status(VoyageSaves.last_error)
@@ -1235,7 +1243,7 @@ func save_world() -> void:
 
 func load_world() -> void:
 	var data := VoyageSaves.world(VoyageSaves.selected)
-	if data.get("version") in [PROTOCOL, "holy-ship-coop-20", "holy-ship-coop-19", "holy-ship-coop-18", "holy-ship-coop-17", "holy-ship-coop-16", "holy-ship-coop-15", "holy-ship-coop-14", "holy-ship-coop-13", "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
+	if data.get("version") in [PROTOCOL, "holy-ship-coop-21", "holy-ship-coop-20", "holy-ship-coop-19", "holy-ship-coop-18", "holy-ship-coop-17", "holy-ship-coop-16", "holy-ship-coop-15", "holy-ship-coop-14", "holy-ship-coop-13", "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
 		_restored = data
 		accounts = data.get("accounts", {})
 

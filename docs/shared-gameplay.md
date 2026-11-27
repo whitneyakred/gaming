@@ -1,6 +1,6 @@
 # Shared gameplay update — protocol 20
 
-Local feature branch note: [Generated islands](generated-islands.md) describes the protocol-21 terrain work, save compatibility and validation. It has not replaced the protocol-20 production release described here.
+Feature branch note: [Generated islands](generated-islands.md) and [forestry](island-forestry.md) describe the protocol-22 playtest. The historical protocol-20 release below remains on `systems-revamp`.
 
 ## Backups and cooking provenance
 

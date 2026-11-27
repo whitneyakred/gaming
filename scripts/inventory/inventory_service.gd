@@ -50,6 +50,10 @@ func _ready() -> void:
 	eating.name = "Eating"
 	eating.service = self
 	add_child(eating)
+	if get_parent() is Ship:
+		var axe := AxeAction.new()
+		axe.service = self
+		player.presentation.add_child(axe)
 
 func _exit_tree() -> void:
 	if inventory != null and inventory.inventory_changed.is_connected(publish):

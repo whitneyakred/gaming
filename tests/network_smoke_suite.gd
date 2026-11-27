@@ -46,12 +46,14 @@ func run() -> void:
 			room_file.close()
 		else:
 			NetworkSession.host_session("Captain", 24678, "test", false)
-		if "--ambient-fish-test" in args: await ambient_fish_tests()
+		if "--foliage-test" in args: await foliage_network_tests()
+		elif "--ambient-fish-test" in args: await ambient_fish_tests()
 		else: await host_tests()
 	else:
 		await wait(1 if role == "Alpha" else 2)
 		await join_test()
-		if "--ambient-fish-test" in args: await ambient_fish_tests()
+		if "--foliage-test" in args: await foliage_network_tests()
+		elif "--ambient-fish-test" in args: await ambient_fish_tests()
 		else: await client_tests()
 	if multiplayer.multiplayer_peer is HarborPeer:
 		var transport := multiplayer.multiplayer_peer as HarborPeer
@@ -76,6 +78,62 @@ func run() -> void:
 	GameWindow.shutdown_audio()
 	await wait(0.1)
 	get_tree().quit(0 if failures == 0 else 1)
+
+func foliage_network_tests() -> void:
+	for i in 150:
+		if NetworkSession.world_ready and NetworkSession.players.size()==3: break
+		await wait(0.1)
+	check(NetworkSession.players.size()==3,"Three peers joined forestry test")
+	if NetworkSession.players.size()!=3: return
+	var forest: IslandFoliage = NetworkSession.ship.foliage
+	var tree_id: String = forest.trees.keys()[0]
+	var point: Vector2 = forest.trees[tree_id].point
+	if role=="host":
+		var alpha := 0
+		for id in NetworkSession.identities:
+			if NetworkSession.identities[id].name=="Alpha": alpha=id
+		var service: InventoryService = NetworkSession.services[alpha]
+		service.player.set_overboard(true)
+		service.player.update_land(true)
+		service.player.global_position = point+Vector2(0,40)
+		await wait(0.6)
+		phase("chop_ready")
+		for i in 150:
+			if forest.changes.get(tree_id,{}).get("hits",0)==3: break
+			await wait(0.1)
+		check(forest.changes.get(tree_id,{}).get("hits",0)==3,"Guest's three validated commands fell host tree")
+		check(service.inventory.get_quantity(&"wood")==0,"Loot is on ground, not client awarded")
+		check(service.drops.values().any(func(drop: Dictionary)->bool: return drop.id==&"wood" and drop.quantity==3 and drop.world),"Host owns one wood stack")
+		phase("stump")
+		await wait(2)
+		forest.changes[tree_id].until = forest.time_now()-1
+		await wait(0.5)
+		phase("regrown")
+		await wait(2)
+	else:
+		for i in 150:
+			if read_phase()=="chop_ready": break
+			await wait(0.1)
+		if role=="Alpha":
+			var service: InventoryService = NetworkSession.services[NetworkSession.local_id]
+			var slot := -1
+			for i in service.local_slots.size():
+				if service.local_slots[i].get("id")==&"axe": slot=i
+			check(slot>=0,"Guest receives starter axe")
+			for hit in 3:
+				NetworkSession.command("chop",{"point":point,"index":slot})
+				await wait(0.8)
+		for i in 150:
+			if read_phase()=="stump": break
+			await wait(0.1)
+		await wait(0.3)
+		check(forest.changes.get(tree_id,{}).get("hits",0)==3,"Guest sees same stump")
+		check(NetworkSession.players.values().any(func(player: Node)->bool: return player.chop_serial==3),"Remote swing serial arrives")
+		for i in 100:
+			if read_phase()=="regrown": break
+			await wait(0.1)
+		await wait(0.3)
+		check(not forest.changes.has(tree_id),"Guest sees authoritative regrowth")
 
 func ambient_fish_tests() -> void:
 	for i in 150:

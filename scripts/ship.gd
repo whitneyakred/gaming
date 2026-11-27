@@ -81,6 +81,7 @@ var _leaving_island: WorldIsland
 var _aground_island: WorldIsland
 var world_seed: int = 0
 var layout_version: int = WorldLayout.VERSION
+var foliage: IslandFoliage
 var generation_ms := 0.0
 var survival: SurvivalWorld
 var ocean_fish: OceanFish
@@ -114,6 +115,9 @@ func _ready() -> void:
 	ocean_fish = OceanFish.new()
 	ocean_fish.name = "OceanFish"
 	add_child(ocean_fish)
+	foliage = IslandFoliage.new()
+	foliage.name = "IslandFoliage"
+	add_child(foliage)
 	survival = SurvivalWorld.new()
 	survival.name = "Survival"
 	add_child(survival)

@@ -6,6 +6,7 @@ const COCONUT_WHOLE_ICON := preload("res://assets/items/coconut_whole.png")
 
 
 func _ready() -> void:
+	ItemDatabase.register_item(make_item(&"axe","Axe","Click near a tree to chop. Three hits yield wood.",1,ItemData.Category.TOOL,IslandFoliage.icon(7)))
 	for id in [&"string", &"leather"]:
 		ItemDatabase.register_item(make_item(id,String(id).capitalize(),"Totem supplies.",20,ItemData.Category.MATERIAL))
 	ItemDatabase.register_item(make_item(&"medpack","Medpack","Hold to restore full health.",1,ItemData.Category.TOOL))

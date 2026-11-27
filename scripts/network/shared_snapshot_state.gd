@@ -1,7 +1,7 @@
 class_name SharedSnapshotState
 extends RefCounted
 ## Rarely changing state travels reliably; motion packets reference its revision.
-const KEYS := ["paradise_quest", "island_locks", "discovered", "layout_version", "seed", "storage", "port_storage", "drops", "markers", "fish_taken", "fish_returns"]
+const KEYS := ["foliage","paradise_quest", "island_locks", "discovered", "layout_version", "seed", "storage", "port_storage", "drops", "markers", "fish_taken", "fish_returns"]
 var revision := 0
 var current: Dictionary = {}
 var versions: Dictionary = {}
@@ -71,6 +71,7 @@ static func valid_slots(slots: Variant) -> bool:
 	return true
 
 static func valid(state: Dictionary) -> bool:
+	if not IslandFoliage.valid(state.get("foliage",{})): return false
 	for key in ["markers", "fish_taken", "fish_returns"]:
 		if not state.get(key,{}) is Dictionary: return false
 	if state.get("fish_returns",{}).size() > 32: return false

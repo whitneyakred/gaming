@@ -90,20 +90,6 @@ func build(coast: PackedVector2Array, seed_value: int, clearing: bool) -> void:
 		edge(points,8,Color("586c56"))
 		fill(points,Color(0.95,0.95,0.95),2,shift)
 	if clearing:
-		var landing: Vector2 = coast[rng.randi_range(0,coast.size()-1)]
-		var from := landing.normalized()*(landing.length()-65.0)
-		var to := landing.normalized()*490.0
-		var tangent := landing.normalized().orthogonal()
-		var left := PackedVector2Array()
-		var right := PackedVector2Array()
-		for i in 16:
-			var t := i/15.0
-			var center := from.lerp(to,t)+tangent*sin(t*PI)*65.0
-			left.append(center+tangent*(36.0+sin(t*9.0)*6.0))
-			right.append(center-tangent*(36.0+cos(t*8.0)*6.0))
-		right.reverse()
-		path_polygon = left+right
-		fill(path_polygon,Color(1.04,1.04,1.04),3,shift)
 		var court := blob(Vector2.ZERO,Vector2(800,620),rng.randf_range(0,TAU),48)
 		clearing_polygon = court
 		edge(court,18,Color("677d54"))

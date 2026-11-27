@@ -126,7 +126,8 @@ func grant_starter(inventory: PlayerInventory) -> void:
 		return
 	var rod_granted := inventory.get_quantity(&"fishing_rod") > 0 or inventory.try_add(&"fishing_rod")
 	var spyglass_granted := inventory.get_quantity(&"spyglass") > 0 or inventory.try_add(&"spyglass")
-	if rod_granted and spyglass_granted:
+	var axe_granted := inventory.get_quantity(&"axe") > 0 or inventory.try_add(&"axe")
+	if rod_granted and spyglass_granted and axe_granted:
 		_starter_granted[inventory.player_id] = true
 
 

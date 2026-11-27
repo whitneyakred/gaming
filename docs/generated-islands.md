@@ -1,13 +1,13 @@
-# Generated islands — local feature branch
+# Generated islands
 
-Implemented on `codex/procedural-islands`. This is not a production deployment or a merge into `systems-revamp`. The branch uses protocol 21; its browser build must use a matching protocol-21 relay. Production protocol 20 is unchanged.
+Implemented on `codex/procedural-islands`, without merging into `systems-revamp`. The forestry follow-up uses protocol 22 and its matching relay. See [forestry](island-forestry.md) for the current playtest behavior and [release/rollback](networking-release-rollback.md) for deployment IDs.
 
 ![Four actual rendered islands](previews/generated-islands.png)
 
 ## Art and world
 
 - New voyages use layout version 2: 30 seeded ordinary islands, three key sanctuaries and Paradise in a 48,000 × 48,000 world (four times the previous map area).
-- Ordinary coastlines use 96 vertices and varied lobes, orientation and dimensions. Beach, grass, shallow water, flat rocky patches and a sandy approach surround an open clearing. Trees, bushes and ore are deliberately absent and can be added later as independent interactables.
+- Ordinary coastlines use 96 vertices and varied lobes, orientation and dimensions. Beach, grass, shallow water, flat rocky patches surround an open clearing. Paths were removed in the forestry follow-up, which adds animated trees and bushes. Ore remains separate future work.
 - Each ordinary island reserves a 1,120 × 760 clear rectangle inside the larger visible dirt clearing. The existing totem sits inside it. Minigames still open their existing private viewport; converting them into activities played directly on the island is separate work.
 - Land collision, swimming access and map outlines use the same generated coastline. Placement enforces water gaps, navigable starting ocean and safe map boundaries.
 
@@ -30,7 +30,7 @@ Godot 4.7.2 Compatibility renderer:
 - Native world generation measured approximately 19–20 ms; 284 terrain polygons across the 30 ordinary islands in the captured seed.
 - Browser sample at 1280 × 720 on Intel UHD integrated graphics: median frame interval 12.1 ms in ocean / 12.2 ms beside an island; island p95 18.2 ms. These are local measurements, not a phone performance guarantee. Physical phone/Safari and longer cross-network playtests remain necessary.
 
-Run **Project → Run Project (F5)**, then **Play → Sail Offline** for a new world. The developer teleport to the nearest island makes art inspection faster. For multiplayer use this branch's matching local relay and web export; do not point protocol 21 at the production protocol-20 service.
+Run **Project → Run Project (F5)**, then **Play → Sail Offline** for a new world. The developer teleport to the nearest island makes art inspection faster. For multiplayer use this branch's matching protocol-22 relay and web export.
 
 ## Artwork provenance
 

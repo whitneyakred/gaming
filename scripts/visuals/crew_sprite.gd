@@ -82,6 +82,13 @@ func refresh(delta: float) -> void:
 	offset = Vector2(correction if flip_h else -correction, 0)
 	scale = Vector2.ONE * appearance.frame_world_size / (atlas.get_width() / float(hframes))
 	position = Vector2(0, -appearance.frame_world_size * ((appearance.water_anchor if swimming else appearance.feet_anchor) - 0.5))
+	if crew.chop_visual > 0:
+		var swing := sin((1.0-crew.chop_visual/0.48)*PI)
+		rotation += swing*0.15*signf(crew.chop_direction.x)
+		position += crew.chop_direction*swing*3.0
+		facing = (2 if crew.chop_direction.x > 0 else 1) if absf(crew.chop_direction.x)>absf(crew.chop_direction.y) else (0 if crew.chop_direction.y>0 else 3)
+		frame = (1 if facing==2 else facing)*hframes+appearance.idle_column
+		flip_h = facing==2
 	if swimming:
 		# Continuous stroke phase avoids snapping at frame boundaries. Only the
 		# visual moves: collision, movement and the water wake stay at the surface.

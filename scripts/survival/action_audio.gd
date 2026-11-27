@@ -31,6 +31,13 @@ static func make(kind: String) -> AudioStreamWAV:
 			value = filtered * 0.45
 		elif kind == "heal":
 			value = (sin(TAU*660*t)+sin(TAU*880*t)*0.5)*0.3
+		if kind in ["chop","tree_fall","axe_swing"]:
+			filtered = lerpf(filtered,rng.randf_range(-1,1),0.35)
+			if kind == "axe_swing": value = filtered*sin(PI*u)*0.45
+			else:
+				value = (sin(TAU*(180.0 if kind=="chop" else 85.0)*t)*0.55+filtered*0.5)*exp(-u*7.0)
+				if kind=="tree_fall": value += filtered*pow(1-u,2)*0.65
+			envelope = minf(t*500,1.0)
 		bytes.encode_s16(i*2, int(clampf(value * envelope,-1.0,1.0) * 19000))
 	var sound := AudioStreamWAV.new()
 	sound.format = AudioStreamWAV.FORMAT_16_BITS
