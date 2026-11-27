@@ -1,5 +1,7 @@
 # Island challenge totems
 
+Current branch update: [clearing challenges and interaction polish](clearing-challenges.md).
+
 Integrated from `merge-everything-fest` into `systems-revamp` as `8794889` on November 16, 2026. Published with the redesigned title screen to https://holy-ship.pages.dev.
 
 Every generated island has a totem near its center, placed inside its coastline.
@@ -11,8 +13,8 @@ objectives, art and timers remain in those scenes; the adapter owns voyage rewar
 1. Click **Run Project (F5)** and start a solo voyage, or open `scenes/ship.tscn`
    in the **FileSystem** dock and click **Run Current Scene (F6)**.
 2. Sail to an island, swim ashore, and walk to the wooden totem near its center.
-3. Press **E** within reach. The original minigame opens for that player.
-4. Follow its objective; the original rowboat remains the finish line when required.
+3. Press **Space** (or E) within reach. The minigame appears in the clearing for that player.
+4. Follow its objective; the exit totem is the finish line when required.
 5. Winning returns you to two supply drops beside the totem and starts its shared
    five-minute cooldown. Losing or clicking **Leave** allows immediate retry.
    **Esc** opens the usual pause menu; **Resume voyage** returns to the challenge.

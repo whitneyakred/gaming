@@ -1,12 +1,14 @@
 # Mining, item art and named markers — protocol 23
 
+Current branch update: [clearing challenges and interaction polish](clearing-challenges.md).
+
 Feature branch: `codex/procedural-islands`. `systems-revamp` is not merged or changed.
 
 ## Playtest behavior
 
 - Every registered item uses the matching pixel-art atlas, including previously vector-drawn fishing rods, spyglasses and wood. Atlas regions are trimmed once to their visible alpha bounds and cached, so the axe fills its inventory slot consistently. The original assets remain available for rollback.
 - Four unstacked pickaxes are supplied in the second (port/left) ship chest on a new voyage. This keeps the fourth carrying slot available for loot. Older saves receive the kit once when upgraded, subject to available chest capacity; a full chest cannot receive the kit. Protocol-23 saves do not replenish tools on reconnect.
-- Equip a pickaxe, stand near a rock and click/tap toward it. Three hits create rubble and drop three stone. Rocks replenish after five minutes on the host clock; remaining time survives save/reload. Axes cannot mine rocks, and pickaxes cannot harvest trees. No ores are included.
+- Equip a pickaxe, stand near a rock and click/tap toward it. Three hits create rubble and drop two or three stone. Rocks replenish after five minutes on the host clock; remaining time survives save/reload. Axes cannot mine rocks, and pickaxes cannot harvest trees. No ores are included.
 - Palms drop one wood and two coconuts. Broadleaf trees still drop three wood. Hold the use button with a coconut selected to eat one and restore two hunger points, capped at full hunger.
 - Stumps, rocks, bushes and trees sort against each land player's displayed ground position. Standing in front of a stump draws the character over it; standing behind reverses the order. World drops retain their existing ground rendering.
 - Map destination dots show their owner's current crew name. Colors, shared placement and click-again clearing remain unchanged. Clue circles have a minimum radius of 8,500 world units and expand far enough to contain at least three ordinary islands, including their footprint bounds. Circle rendering clips at the map frame. Coastlines and saved island positions are unchanged.

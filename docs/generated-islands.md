@@ -1,5 +1,7 @@
 # Generated islands
 
+Current branch update: [clearing challenges and interaction polish](clearing-challenges.md).
+
 Latest update: [mining and item art](mining-and-item-art.md), protocol 23, includes larger key-search regions without changing island coastlines.
 
 Implemented on `codex/procedural-islands`, without merging into `systems-revamp`. The forestry follow-up uses protocol 22 and its matching relay. See [forestry](island-forestry.md) for the current playtest behavior and [release/rollback](networking-release-rollback.md) for deployment IDs.
@@ -10,7 +12,7 @@ Implemented on `codex/procedural-islands`, without merging into `systems-revamp`
 
 - New voyages use layout version 2: 30 seeded ordinary islands, three key sanctuaries and Paradise in a 48,000 × 48,000 world (four times the previous map area).
 - Ordinary coastlines use 96 vertices and varied lobes, orientation and dimensions. Beach, grass, shallow water, flat rocky patches surround an open clearing. Paths were removed in the forestry follow-up, which adds animated trees and bushes. Ore remains separate future work.
-- Each ordinary island reserves a 1,120 × 760 clear rectangle inside the larger visible dirt clearing. The existing totem sits inside it. Minigames still open their existing private viewport; converting them into activities played directly on the island is separate work.
+- Each ordinary island reserves a 1,120 × 760 clear rectangle inside the larger visible dirt clearing. The existing totem sits inside it. Minigames render over this clearing using a transparent private physics viewport.
 - Land collision, swimming access and map outlines use the same generated coastline. Placement enforces water gaps, navigable starting ocean and safe map boundaries.
 
 ## Performance and multiplayer
