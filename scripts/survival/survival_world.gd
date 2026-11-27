@@ -282,9 +282,9 @@ func eat(id: int, slot: int) -> bool:
 	var entries := service.inventory.capture()
 	if slot<0 or slot>=entries.size(): return false
 	var item: StringName = entries[slot].get("id", &"")
-	if item not in [&"fish_cod", &"dried_fish"]: return false
+	if item not in [&"fish_cod", &"dried_fish", &"coconut"]: return false
 	service.inventory.remove(slot,1)
-	player.hunger=mini(15,player.hunger+(1 if item==&"fish_cod" else 3))
+	player.hunger=mini(15,player.hunger+(1 if item==&"fish_cod" else (2 if item==&"coconut" else 3)))
 	player.eat_cooldown=0.65
 	player.eat_serial+=1
 	return true

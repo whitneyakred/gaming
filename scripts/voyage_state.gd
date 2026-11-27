@@ -115,6 +115,8 @@ func get_ship_storage(capacity: int = 18, chest_id: int = 0) -> ShipInventory:
 		if port_storage == null:
 			port_storage = ShipInventory.new()
 			port_storage.max_inv_space = capacity
+			var pickaxe := ItemDatabase.get_item(&"pickaxe")
+			if pickaxe != null: port_storage.add_items(pickaxe,4)
 		return port_storage
 	if ship_storage == null:
 		ship_storage = ShipInventory.new()

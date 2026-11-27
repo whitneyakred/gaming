@@ -86,13 +86,15 @@ func foliage_network_tests() -> void:
 	check(NetworkSession.players.size()==3,"Three peers joined forestry test")
 	if NetworkSession.players.size()!=3: return
 	var forest: IslandFoliage = NetworkSession.ship.foliage
-	var tree_id: String = forest.trees.keys()[0]
+	var mining := "--mining-test" in OS.get_cmdline_user_args()
+	var tree_id: String = forest.trees.keys().filter(func(id: String)->bool: return forest.trees[id].kind==(8 if mining else 0))[0]
 	var point: Vector2 = forest.trees[tree_id].point
 	if role=="host":
 		var alpha := 0
 		for id in NetworkSession.identities:
 			if NetworkSession.identities[id].name=="Alpha": alpha=id
 		var service: InventoryService = NetworkSession.services[alpha]
+		if mining: service.inventory.try_add(&"pickaxe")
 		service.player.set_overboard(true)
 		service.player.update_land(true)
 		service.player.global_position = point+Vector2(0,40)
@@ -103,7 +105,7 @@ func foliage_network_tests() -> void:
 			await wait(0.1)
 		check(forest.changes.get(tree_id,{}).get("hits",0)==3,"Guest's three validated commands fell host tree")
 		check(service.inventory.get_quantity(&"wood")==0,"Loot is on ground, not client awarded")
-		check(service.drops.values().any(func(drop: Dictionary)->bool: return drop.id==&"wood" and drop.quantity==3 and drop.world),"Host owns one wood stack")
+		check(service.drops.values().any(func(drop: Dictionary)->bool: return drop.id==(&"stone" if mining else &"wood") and drop.quantity==3 and drop.world),"Host owns one wood stack")
 		phase("stump")
 		await wait(2)
 		forest.changes[tree_id].until = forest.time_now()-1
@@ -118,8 +120,9 @@ func foliage_network_tests() -> void:
 			var service: InventoryService = NetworkSession.services[NetworkSession.local_id]
 			var slot := -1
 			for i in service.local_slots.size():
-				if service.local_slots[i].get("id")==&"axe": slot=i
-			check(slot>=0,"Guest receives starter axe")
+				if service.local_slots[i].get("id")==(&"pickaxe" if mining else &"axe"): slot=i
+			check(slot>=0,"Guest receives harvesting tool")
+			NetworkSession.command("marker",{"point":point+Vector2(100,100)})
 			for hit in 3:
 				NetworkSession.command("chop",{"point":point,"index":slot})
 				await wait(0.8)
@@ -129,6 +132,11 @@ func foliage_network_tests() -> void:
 		await wait(0.3)
 		check(forest.changes.get(tree_id,{}).get("hits",0)==3,"Guest sees same stump")
 		check(NetworkSession.players.values().any(func(player: Node)->bool: return player.chop_serial==3),"Remote swing serial arrives")
+		var marker_id := 0
+		for id in NetworkSession.identities:
+			if NetworkSession.identities[id].name=="Alpha": marker_id=id
+		check(MapState.crew_markers.get(marker_id)==point+Vector2(100,100),"Both guests see Alpha marker")
+		check(MapState.marker_name(marker_id)=="Alpha","Shared marker resolves its owner name")
 		for i in 100:
 			if read_phase()=="regrown": break
 			await wait(0.1)
@@ -275,12 +283,20 @@ func host_tests() -> void:
 	a.hud.close()
 	b.hud.close()
 	b.player.position = Vector2(-25, 120)
+	# The earlier chest race has a nondeterministic winner. Reserve pickup space
+	# explicitly; this phase tests replicated drops, not whichever bag won it.
+	b.inventory.restore([{"id":&"fishing_rod","quantity":1},{"id":&"spyglass","quantity":1},{"id":&"axe","quantity":1},{}])
 	await wait(0.5)
+	var drop_fixture := FileAccess.open("res://.godot/network-drop-revision.txt",FileAccess.WRITE)
+	drop_fixture.store_string(str(a.view_revision))
+	drop_fixture.close()
 	phase("drop")
-	await wait(1)
+	for attempt in 60:
+		if a.drops.size()==1: break
+		await wait(0.05)
 	check(a.drops.size() == 1 and a.inventory.get_quantity(&"fishing_rod") == 0, "Client drop removes one canonical item: drops=%s bag=%s rev=%s" % [a.drops,a.inventory.capture(),a.view_revision])
 	phase("inspect_drop")
-	await wait(0.6)
+	await wait(1.0)
 	b.player.position = a.player.position
 	await wait(0.5)
 	check(a.drops.is_empty() and b.inventory.get_quantity(&"fishing_rod") == 2, "Other client picks up shared dropped rod: drops=%s bag=%s" % [a.drops,b.inventory.capture()])
@@ -504,8 +520,18 @@ func client_tests() -> void:
 				NetworkSession.command("grill", {"action": "finish", "token": shared_grill_key, "stars": 2})
 			"drop":
 				if role == "Alpha":
+					var expected := int(FileAccess.get_file_as_string("res://.godot/network-drop-revision.txt"))
+					for attempt in 50:
+						if service.view_revision==expected: break
+						await wait(0.05)
 					NetworkSession.command("drag", {"index": 0, "storage": false, "destination": -1, "revision": service.view_revision})
-			"inspect_drop": check(service.drops.size() == 1, "Dropped item visible to each client")
+			"inspect_drop":
+				# Phase files are immediate; reliable shared state arrives on the
+				# next host snapshot. Assert the received state, not the file timing.
+				for attempt in 14:
+					if service.drops.size()==1: break
+					await wait(0.05)
+				check(service.drops.size() == 1, "Dropped item visible to each client")
 			"helm": NetworkSession.command("interact")
 			"fish":
 				if role == "Alpha":

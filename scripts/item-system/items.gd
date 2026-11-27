@@ -6,7 +6,9 @@ const COCONUT_WHOLE_ICON := preload("res://assets/items/coconut_whole.png")
 
 
 func _ready() -> void:
-	ItemDatabase.register_item(make_item(&"axe","Axe","Click near a tree to chop. Three hits yield wood.",1,ItemData.Category.TOOL,IslandFoliage.icon(7)))
+	ItemDatabase.register_item(make_item(&"pickaxe","Pickaxe","Click a rock to mine stone.",1,ItemData.Category.TOOL))
+	ItemDatabase.register_item(make_item(&"stone","Stone","Stone gathered from island rocks.",30,ItemData.Category.MATERIAL))
+	ItemDatabase.register_item(make_item(&"axe","Axe","Click near a tree to chop. Three hits yield wood.",1,ItemData.Category.TOOL))
 	for id in [&"string", &"leather"]:
 		ItemDatabase.register_item(make_item(id,String(id).capitalize(),"Totem supplies.",20,ItemData.Category.MATERIAL))
 	ItemDatabase.register_item(make_item(&"medpack","Medpack","Hold to restore full health.",1,ItemData.Category.TOOL))
@@ -166,6 +168,8 @@ func make_item(
 	var icon_path := "res://assets/items/%s.svg" % item_id
 	if item.icon == null and ResourceLoader.exists(icon_path):
 		item.icon = load(icon_path) as Texture2D
+	var pixel_icon := PixelItemIcons.get_icon(item_id)
+	if pixel_icon != null: item.icon = pixel_icon
 	item.draw_weight = item_draw_weight
 	item.sell_value = item_sell_value
 	return item

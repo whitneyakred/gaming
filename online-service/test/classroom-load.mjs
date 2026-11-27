@@ -7,7 +7,7 @@ if (!['127.0.0.1', 'localhost'].includes(new URL(base).hostname) && process.env.
   throw Error('Load tests use the local emulator; set ALLOW_LIVE_LOAD=yes explicitly for a live run.');
 const seconds = Number(process.env.CLASSROOM_SECONDS ?? 60);
 assert.ok(Number.isFinite(seconds) && seconds >= 10 && seconds <= 7200);
-const protocol = 'holy-ship-coop-22';
+const protocol = 'holy-ship-coop-23';
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const sockets = [], timers = [], errors = [], latencies = [];
 let sent = 0, sentBytes = 0, receivedSnapshots = 0, stopping = false;

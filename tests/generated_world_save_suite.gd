@@ -36,6 +36,8 @@ func run() -> void:
 	var coast: PackedVector2Array = NetworkSession.ship.get_island("Island_00").get_coast()
 	var tree_id: String = NetworkSession.ship.foliage.trees.keys()[0]
 	NetworkSession.ship.foliage.changes[tree_id] = {"hits":3,"until":NetworkSession.ship.foliage.time_now()+300.0}
+	var rock_id: String = NetworkSession.ship.foliage.trees.keys().filter(func(id: String)->bool: return NetworkSession.ship.foliage.trees[id].kind>=8)[0]
+	NetworkSession.ship.foliage.changes[rock_id] = {"hits":3,"until":NetworkSession.ship.foliage.time_now()+300.0}
 	NetworkSession.save_world()
 	check(VoyageSaves.world(2).layout_version==2,"New terrain version saved")
 	NetworkSession.leave()
@@ -45,6 +47,7 @@ func run() -> void:
 	await ready_world()
 	check(NetworkSession.ship.layout_version==2 and NetworkSession.ship.get_island("Island_00").get_coast()==coast,"Generated save resumes identical coastline")
 	check(NetworkSession.ship.foliage.changes.get(tree_id,{}).get("hits",0)==3,"Saved chopped tree remains a stump after real session reload")
+	check(NetworkSession.ship.foliage.changes.get(rock_id,{}).get("hits",0)==3,"Saved mined rock remains rubble after real session reload")
 	NetworkSession.leave()
 	await get_tree().process_frame
 	VoyageSaves.clear_slot(2)

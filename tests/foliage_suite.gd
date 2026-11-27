@@ -21,7 +21,7 @@ func run() -> void:
 	print("FOLIAGE BUILD MS: ",(Time.get_ticks_usec()-started)/1000.0)
 	var forest := ship.foliage
 	check(forest.trees.size()>500 and forest.trees.size()<3300,"Bounded varied forest generated")
-	var tree_id: String = forest.trees.keys()[0]
+	var tree_id: String = forest.trees.keys().filter(func(id: String)->bool: return forest.trees[id].kind==0)[0]
 	var tree: Dictionary = forest.trees[tree_id]
 	var original := forest.trees.duplicate(true)
 	forest.seed_value = -1
@@ -85,10 +85,74 @@ func run() -> void:
 	check(var_to_bytes(largest).compress(FileAccess.COMPRESSION_GZIP).size()<20000,"Even every felled tree fits comfortably in reliable packet budget")
 	for island in ship.get_islands():
 		if island is GeneratedIsland: check(island.terrain.path_polygon.is_empty(),"Beach-to-clearing path removed")
+	for item in ItemDatabase.get_all_items():
+		check(item.icon is AtlasTexture and item.icon.atlas==PixelItemIcons.ATLAS,"Every registered item has matching pixel artwork")
+		check(minf(item.icon.get_width(),item.icon.get_height())>75,"Inventory icon is cropped to visible artwork")
+	check(VoyageState.get_ship_storage(18,1).slots.filter(func(entry: Dictionary)->bool: return entry.get("id")==&"pickaxe").size()==4,"Second chest supplies four unstacked pickaxes")
+	var rock_id: String = forest.trees.keys().filter(func(id: String)->bool: return forest.trees[id].kind==8)[0]
+	var rock: Dictionary = forest.trees[rock_id]
+	player.global_position = rock.point+Vector2(0,40)
+	forest.cooldowns.clear()
+	forest.chop(service,rock.point,slot)
+	check(not forest.changes.has(rock_id),"Axe cannot mine stone")
+	check(service.inventory.try_add(&"pickaxe"),"Pickaxe fits empty carrying slot")
+	var pick_slot := 3
+	service.hud.select_slot(pick_slot)
+	before = service.drops.size()
+	for i in 3:
+		forest.cooldowns.clear()
+		check(forest.chop(service,rock.point,pick_slot),"Pickaxe strike accepted")
+	check(forest.changes[rock_id].hits==3 and service.drops.size()==before+1,"Rock breaks once after three hits")
+	drop = service.drops.values().back()
+	check(drop.id==&"stone" and drop.quantity==3,"Rock yields three stone")
+	forest.cooldowns.clear()
+	forest.chop(service,rock.point,pick_slot)
+	check(service.drops.size()==before+1,"Rubble cannot duplicate loot")
+	var palm_id: String = forest.trees.keys().filter(func(id: String)->bool: return forest.trees[id].kind==3)[0]
+	var palm: Dictionary = forest.trees[palm_id]
+	player.global_position = palm.point+Vector2(0,40)
+	forest.cooldowns.clear()
+	forest.chop(service,palm.point,pick_slot)
+	check(not forest.changes.has(palm_id),"Pickaxe cannot chop palms")
+	service.hud.select_slot(slot)
+	before = service.drops.size()
+	for i in 3:
+		forest.cooldowns.clear()
+		forest.chop(service,palm.point,slot)
+	var palm_drops: Array = service.drops.values().slice(before)
+	check(palm_drops.size()==2 and palm_drops[0].id==&"wood" and palm_drops[0].quantity==1 and palm_drops[1].id==&"coconut" and palm_drops[1].quantity==2,"Palm produces one wood and two coconuts")
+	service.inventory.remove(pick_slot,1)
+	service.inventory.try_add(&"coconut",2)
+	service.hud.select_slot(pick_slot)
+	player.hunger=10
+	check(ship.survival.eat(1,pick_slot) and player.hunger==12 and service.inventory.get_quantity(&"coconut")==1,"Coconut is consumed authoritatively and restores hunger")
+	for region in MapState.key_regions:
+		var covered := 0
+		for island in ship.get_islands():
+			if island is GeneratedIsland and region.center.distance_to(island.global_position)+island.footprint<=region.radius+0.01: covered+=1
+		check(covered>=3 and region.radius>=8500,"Each enlarged key circle contains multiple whole islands")
+	var old_camera := get_viewport().get_camera_2d()
+	old_camera.enabled=false
+	var depth_camera := Camera2D.new()
+	get_tree().current_scene.add_child(depth_camera)
+	depth_camera.global_position=tree.point
+	depth_camera.make_current()
+	depth_camera.force_update_scroll()
+	forest.changes[tree_id]={"hits":3,"until":forest.time_now()+300.0}
+	player.global_position=tree.point+Vector2(0,8)
+	forest._process(0.01)
+	var stump_visual: FoliageVisual = forest.visuals.filter(func(v: FoliageVisual)->bool: return v.visible and v.entry.id==tree_id)[0]
+	check(player.z_index>stump_visual.z_index,"Player in front renders over stump")
+	player.global_position=tree.point-Vector2(0,8)
+	forest._process(0.01)
+	check(player.z_index<stump_visual.z_index,"Player behind renders behind stump")
+	depth_camera.queue_free()
+	old_camera.enabled=true
+	service.hud.select_slot(slot)
+	player.global_position=tree.point+Vector2(0,20)
 	if "--capture" in OS.get_cmdline_user_args():
 		get_window().size = Vector2i(1280,720)
 		ship.set_process(false)
-		var old_camera := get_viewport().get_camera_2d()
 		old_camera.enabled = false
 		var camera := Camera2D.new()
 		get_tree().current_scene.add_child(camera)

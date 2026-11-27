@@ -229,7 +229,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not storage_open and not grill_open and not get_viewport().gui_is_dragging():
 		var item_id: StringName = service.local_slots[selected].get("id", &"")
-		if item_id in [&"fish_cod", &"dried_fish", &"medpack"]:
+		if item_id in [&"fish_cod", &"dried_fish", &"coconut", &"medpack"]:
 			service.get_node("Eating").start()
 			get_viewport().set_input_as_handled()
 			return

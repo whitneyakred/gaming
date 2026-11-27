@@ -1,5 +1,7 @@
 # Generated islands
 
+Latest update: [mining and item art](mining-and-item-art.md), protocol 23, includes larger key-search regions without changing island coastlines.
+
 Implemented on `codex/procedural-islands`, without merging into `systems-revamp`. The forestry follow-up uses protocol 22 and its matching relay. See [forestry](island-forestry.md) for the current playtest behavior and [release/rollback](networking-release-rollback.md) for deployment IDs.
 
 ![Four actual rendered islands](previews/generated-islands.png)

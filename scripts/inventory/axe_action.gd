@@ -9,7 +9,7 @@ var held: Sprite2D
 
 func _ready() -> void:
 	held = Sprite2D.new()
-	held.texture = IslandFoliage.icon(7)
+	held.texture = PixelItemIcons.get_icon(&"axe")
 	held.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	held.scale = Vector2.ONE*45.0/held.texture.get_width()
 	held.visible = false
@@ -26,7 +26,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not tapped and not clicked: return
 	if cooldown > 0 or not service.can_handle_items() or service.player.inventory_open or service.player.fishing_active: return
 	var slot: int = service.hud.selected
-	if slot < 0 or slot >= service.local_slots.size() or service.local_slots[slot].get("id") != &"axe": return
+	if slot < 0 or slot >= service.local_slots.size() or service.local_slots[slot].get("id") not in [&"axe",&"pickaxe"]: return
 	if not service.player.on_land or service.player.access_motion != &"": return
 	var point := service.player.get_global_mouse_position()
 	if tapped: point = service.player.get_canvas_transform().affine_inverse()*event.position
@@ -39,6 +39,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 func start_swing() -> void:
+	var item_id: StringName = service.local_slots[service.hud.selected].get("id",&"axe")
+	held.texture = PixelItemIcons.get_icon(item_id if item_id in [&"axe",&"pickaxe"] else &"axe")
+	held.scale = Vector2.ONE*30.0/maxf(held.texture.get_width(),held.texture.get_height())
 	timer = 0.48
 	service.player.chop_visual = 0.48
 	service.player.chop_direction = direction

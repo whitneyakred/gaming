@@ -1,5 +1,7 @@
 # Island forestry — protocol 22
 
+Follow-up: [protocol-23 mining and item art](mining-and-item-art.md) adds rocks/pickaxes, palm coconuts, depth sorting, unified inventory art and named map markers. Details below describe the original forestry release.
+
 This feature lives on `codex/procedural-islands`; `systems-revamp` remains at `3a26492`. The website playtest deployment uses the feature branch's exported files and matching relay, without merging the Git branches.
 
 ## Playing
