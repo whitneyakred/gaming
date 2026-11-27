@@ -139,3 +139,17 @@ Do not clear browser site data merely to refresh the game: that removes locally
 stored voyage saves and sailor identity. Protocol-16 code can load protocol-15
 saves; an older game may not accept a save subsequently overwritten by protocol
 16. Use a separate save slot for the new playtest if you need to retain an old save.
+
+### Protocol 19 playtest polish
+
+Source `d784df2` on local `systems-revamp`: hooked-fish rendering/attachment,
+updated teammate cooking visuals, quieter chewing plus confirmed-eat burp,
+and moderately faster hunger drain. No wire-format or service-plan change.
+
+- Pages: `ae7c93f6-cb00-43eb-a1d5-b6d4f6b62aa5`.
+- Worker: `b54145a0-8cfa-43b7-bcaa-3861203b4b6b`.
+- Roll back this polish to Pages `994b21ea-b93f-41ef-b351-e1e07eb0c9b6`
+  and Worker `05ed6d11-2b98-4f82-93a8-4a47f20dc3f8`.
+- Validation: 86 fishing, 20 galley, 72 survival and 16 world-interaction checks;
+  rendered fish/cooking captures, Godot parser/export, live build hashes.
+- User manages GitHub pushes; these changes are committed locally only.
