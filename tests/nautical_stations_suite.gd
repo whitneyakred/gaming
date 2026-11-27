@@ -64,6 +64,27 @@ func run() -> void:
 	check(sail.crew_under_sail(), "Sail detects local avatar's head")
 	sail._process(1)
 	check(sail.cloth_opacity < 0.41, "Sail fades like tree canopy")
+	crew.set_physics_process(true)
+	check(sail.try_take_control(crew), "Crew can take control underneath sail")
+	sail._process(0.016)
+	check(sail.cloth_opacity == 1.0 and not sail.crew_under_sail(), "Sail operator sees fully opaque canvas immediately")
+	ship.set_sail_angle(45)
+	sail._process(0.016)
+	check(sail.cloth_opacity == 1.0, "Trimming sail never fades the artwork")
+	sail.release_control()
+	ship.set_sail_angle(0)
+	crew.set_physics_process(false)
+	for angle in [0.0, 90.0, 180.0, -90.0]:
+		ship.rotation = 0.6
+		ship.set_sail_angle(angle)
+		var billow := Vector2.UP.rotated(ship.global_rotation + deg_to_rad(angle))
+		ship.wind_velocity = billow
+		var catching := ship.get_target_speed()
+		ship.wind_velocity = -billow
+		check(catching > ship.get_target_speed(), "Wind into canvas accelerates at trim %s" % angle)
+	ship.rotation = 0
+	ship.set_sail_angle(0)
+	ship.wind_velocity = Vector2.UP
 	crew.position = Vector2(6, 175)
 	crew.reset_walk_interpolation()
 	sail._process(1)
