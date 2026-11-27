@@ -1,5 +1,32 @@
 # Networking playtest release and rollback
 
+## November 27 merged clearing-challenge release (protocol 23)
+
+- Merged source: `86b243fa29a12bc0890130bfe4d0585564d167b8`, pushed to the existing `systems-revamp` branch.
+- Pre-merge Git rollback point: `3a26492bd39a856a15e8f7761b0519d3f52daf88`. The merge preserves this as its first parent; no backup branch was created.
+- Pages: `8f0cd473-dc5a-4c74-bddb-fb1e519d91e2`.
+- Worker: `76b0a412-ecf2-4b5a-b916-93944cd087a3`.
+- Previous website pair: Pages `38a9069d-e9d3-4f4a-ad7a-5d37df2707c8`, Worker `8242009b-8fd7-4ed6-8c52-1a9e231e1597` (also protocol 23). Restore both to return to the immediately preceding island/mining playtest.
+- Website: https://holy-ship.pages.dev/play/
+
+Includes the generated-island branch, mining, named map markers, and the latest
+[clearing challenge and interaction polish](clearing-challenges.md). All 19
+minigame regressions, harvesting/catalog/inventory tests, three-player mining
+replication, smoothing and HTML5 export passed before release. Live HTML,
+JavaScript and decompressed PCK hashes match the merged export; health reports
+protocol 23. Two live browser sessions passed host/join, direct WebRTC traffic,
+movement/hotbar input and forced relay fallback with no runtime errors.
+Refresh both devices before joining. Use a new voyage in an empty
+slot for generated islands; old layout-version-1 saves intentionally keep their
+old world geometry.
+
+To undo the entire Git merge without rewriting shared history, use
+`git revert -m 1 86b243fa29a12bc0890130bfe4d0585564d167b8`, then review/export and
+deploy the matching old client/relay pair. The pre-merge branch used protocol
+20, so restoring only its client against a protocol-23 relay will not work.
+The historical protocol-20 deployment pair remains recorded below. Preserve
+old save slots: older builds may reject saves rewritten by newer protocols.
+
 ## November 27 mining and item-art playtest (protocol 23)
 
 - Source: `8251233` (map update `26d0743`), local `codex/procedural-islands`.

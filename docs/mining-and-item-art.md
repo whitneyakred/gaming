@@ -2,7 +2,7 @@
 
 Current branch update: [clearing challenges and interaction polish](clearing-challenges.md).
 
-Feature branch: `codex/procedural-islands`. `systems-revamp` is not merged or changed.
+Originally developed on `codex/procedural-islands`; merged into `systems-revamp` as `86b243f` on November 27, 2026.
 
 ## Playtest behavior
 

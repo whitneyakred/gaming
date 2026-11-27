@@ -1,6 +1,6 @@
 # Clearing challenges and interaction polish
 
-Implemented on `codex/procedural-islands`; `systems-revamp` is unchanged.
+Merged from `codex/procedural-islands` into `systems-revamp` on November 27, 2026 (`86b243f`). See [release and rollback](networking-release-rollback.md).
 
 ![Coconut challenge rendered in the island clearing](previews/clearing-challenge.png)
 
@@ -28,7 +28,7 @@ Godot 4.7.2: import/parser check, 3,320 foliage/catalog checks, 332 clearing/tot
 
 Three local ENet processes (host and two guests) passed 20 mining/foliage checks, including host-owned 2–3 stone drops and shared resource state. This is not a fresh WebRTC or cellular-network measurement.
 
-The Web Multiplayer release export builds successfully. These changes have not been deployed or pushed; the current website and `systems-revamp` remain unchanged.
+The Web Multiplayer release export builds successfully. The merged build is pushed to GitHub and deployed to the existing website; deployment IDs are recorded in the release notes.
 
 The standalone regression harness previously replaced a scene directly during the preceding `scene_changed` emission, producing a native crash reproducible with unchanged HEAD scripts too. Waiting one process frame before the next scene replacement fixes the harness; the full suite then passes. The first stack-splitting invocation used the wrong script entry point; its correct `.tscn` scene passes.
 
