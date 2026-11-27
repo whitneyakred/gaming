@@ -39,7 +39,7 @@ static func generate(ship: Ship, seed_value: int) -> void:
 			special.name = "Key_"+key
 			special.display_name = key.capitalize()+" Key Sanctuary"
 			special.position = centers[index]+Vector2.from_angle(rng.randf_range(0,TAU))*rng.randf_range(400,1300)
-			MapState.key_regions.append({"key":key,"center":centers[index],"radius":4800.0,"island":str(special.name)})
+			MapState.key_regions.append({"key":key,"center":centers[index],"radius":8500.0,"island":str(special.name)})
 		islands.append(special)
 		placed.append(Vector3(special.position.x,special.position.y,1500))
 	for i in ISLAND_COUNT:
@@ -70,6 +70,12 @@ static func generate(ship: Ship, seed_value: int) -> void:
 		ship.islands_root.add_child(island)
 		MapState.register_island(str(island.name),island.display_name,island.global_position,str(island.name)=="Paradise")
 		MapState.island_catalog[str(island.name)]["coast"] = island.get_coast()
+	for region in MapState.key_regions:
+		var distances: Array[float] = []
+		for island in islands:
+			if island is GeneratedIsland: distances.append(region.center.distance_to(island.global_position)+island.footprint)
+		distances.sort()
+		region.radius = maxf(8500.0,distances[2])
 	MapState.world_bounds = Rect2(-HALF_SIZE,-HALF_SIZE,HALF_SIZE*2,HALF_SIZE*2)
 	MapState.changed.emit()
 	var challenges := ship.get_node_or_null("IslandChallenges")

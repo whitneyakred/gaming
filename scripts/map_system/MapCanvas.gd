@@ -107,8 +107,12 @@ func _draw() -> void:
 		var center := world_to_map(region.center)
 		var radius: float = region.radius * pixels_per_world_unit
 		var color := QuestIsland.key_color(region.key)
-		draw_circle(center, radius, Color(color, 0.08))
-		draw_arc(center, radius, 0, TAU, 72, color, 2.0, true)
+		var outline := PackedVector2Array()
+		for i in 96: outline.append(center+Vector2.from_angle(TAU*i/96)*radius)
+		var boundary := PackedVector2Array([rect.position,Vector2(rect.end.x,rect.position.y),rect.end,Vector2(rect.position.x,rect.end.y)])
+		for clipped in Geometry2D.intersect_polygons(outline,boundary): draw_colored_polygon(clipped,Color(color,0.08))
+		outline.append(outline[0])
+		for clipped in Geometry2D.intersect_polyline_with_polygon(outline,boundary): draw_polyline(clipped,color,2.0,true)
 	for island_id in MapState.island_catalog:
 		if island_id == "Paradise": continue
 		if MapState.discovered_islands.has(island_id): continue
@@ -139,6 +143,11 @@ func _draw() -> void:
 		var point := world_to_map(MapState.crew_markers[id])
 		var color := MapState.marker_color(id)
 		draw_circle(point, 5.0, color)
+		var label := MapState.marker_name(id)
+		var width := font.get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,13).x
+		var text_at := Vector2(clampf(point.x-width*0.5,rect.position.x+4,rect.end.x-width-4),minf(point.y+20,rect.end.y-5))
+		draw_string_outline(font,text_at,label,HORIZONTAL_ALIGNMENT_LEFT,-1,13,3,Color("07151e"))
+		draw_string(font,text_at,label,HORIZONTAL_ALIGNMENT_LEFT,-1,13,color)
 
 	if MapState.has_paradise_position:
 		var paradise_map_position := world_to_map(MapState.paradise_position)
