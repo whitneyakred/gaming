@@ -564,7 +564,7 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 				if point is Vector2 and point.is_finite():
 					fishing.cast(point)
 			elif fishing.state in [RodFishing.State.CASTING, RodFishing.State.WAITING]:
-				fishing.finish(false, "Too soon! Recast and wait for a bite.", false)
+				fishing.finish(false, "", false)
 			elif fishing.state == RodFishing.State.BITE:
 				if id != 1 and int(args.get("attempt", -1)) != fishing.attempt_id: return
 				fishing.replay_frame = 0

@@ -31,6 +31,7 @@ func run() -> void:
 	var service: InventoryService = ship.get_node("InventorySystem")
 	var rod: RodFishing = service.get_node("Fishing")
 	rod.set_process(false)
+	check(rod.catch_mesh.multimesh.get_instance_transform_2d(0) == Transform2D.IDENTITY,"Hooked fish mesh has visible nonzero transform")
 	rod.state=RodFishing.State.REELING
 	var before := service.inventory.get_quantity(&"fish_cod")
 	rod.finish(true)

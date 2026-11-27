@@ -61,10 +61,12 @@ func owner_id() -> int:
 func update_catch_visual(delta: float) -> void:
 	catch_mesh.visible = not catch_id.is_empty() and state != State.IDLE
 	if not catch_mesh.visible: return
-	var at := catch_position if state == State.WAITING else bobber_position()
+	var bobber := bobber_position()
+	var direction: Vector2 = (bobber - catch_position).normalized() if state == State.WAITING else (service.player.visual_position() - bobber).normalized()
+	var at: Vector2 = catch_position if state == State.WAITING else bobber - direction * 18.0
 	var previous := catch_mesh.global_position
 	catch_mesh.global_position = previous.lerp(at, 1.0-exp(-15.0*delta)) if previous.distance_to(at) < 120 else at
-	catch_mesh.global_rotation = (bobber_position()-catch_mesh.global_position).angle()+PI*0.5
+	catch_mesh.global_rotation = direction.angle()+PI*0.5
 	catch_mesh.multimesh.set_instance_custom_data(0,Color((catch_species+0.5)/6.0,fposmod(clock*6.0,4.0)/4.0,1.0,0.0))
 @onready var service: InventoryService = get_parent() as InventoryService
 
@@ -83,6 +85,8 @@ func _ready() -> void:
 	catch_mesh.multimesh.use_custom_data = true
 	catch_mesh.multimesh.mesh = mesh
 	catch_mesh.multimesh.instance_count = 1
+	catch_mesh.multimesh.set_instance_transform_2d(0, Transform2D.IDENTITY)
+	catch_mesh.material.set_shader_parameter("body_opacity", 0.85)
 	add_child(catch_mesh)
 	catch_mesh.top_level = true
 	catch_mesh.hide()
@@ -163,7 +167,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	match state:
 		State.IDLE: cast(get_canvas_transform().affine_inverse() * event.position)
 		State.CASTING, State.WAITING:
-			finish(false, "Too soon! Recast, then wait for the bobber to dip.", false)
+			finish(false, "", false)
 		State.BITE:
 			state = State.REELING
 			fight.begin(rng.randi())
