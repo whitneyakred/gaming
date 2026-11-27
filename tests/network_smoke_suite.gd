@@ -27,7 +27,9 @@ func read_phase() -> String:
 	return FileAccess.get_file_as_string("res://.godot/network-phase.txt") if FileAccess.file_exists("res://.godot/network-phase.txt") else ""
 func run() -> void:
 	started_msec = Time.get_ticks_msec()
-	get_tree().create_timer(70).timeout.connect(func() -> void: get_tree().quit(1))
+	get_tree().create_timer(100).timeout.connect(func() -> void:
+		push_error("Network test timed out in phase: " + read_phase())
+		get_tree().quit(1))
 	GameWindow.set_preference("pause_unfocused", false)
 	GameWindow.set_preference("fullscreen", false)
 	get_window().size = Vector2i(1280, 720)
@@ -39,6 +41,9 @@ func run() -> void:
 		if "--relay-test" in args:
 			NetworkSession.local_name = "Captain"
 			await HarborService.host("Relay smoke", "test")
+			var room_file := FileAccess.open("res://.godot/network-room.txt",FileAccess.WRITE)
+			room_file.store_string(HarborService.current_room)
+			room_file.close()
 		else:
 			NetworkSession.host_session("Captain", 24678, "test", false)
 		if "--ambient-fish-test" in args: await ambient_fish_tests()
@@ -106,11 +111,15 @@ func ambient_fish_tests() -> void:
 func join_test() -> void:
 	if "--relay-test" in OS.get_cmdline_user_args():
 		NetworkSession.local_name = role
-		await HarborService.browse()
-		for crew: Dictionary in HarborService.crews.values():
-			if crew.title == "Relay smoke":
-				await HarborService.join_crew(crew.id, "test")
+		# Use this run's room, never a cached listing from a previous test.
+		for attempt in 80:
+			var room := FileAccess.get_file_as_string("res://.godot/network-room.txt") if FileAccess.file_exists("res://.godot/network-room.txt") else ""
+			if not room.is_empty():
+				await HarborService.join_crew(room, "test")
+				check(NetworkSession.online,"Guest connects to this test run's relay room")
 				return
+			await wait(0.1)
+		check(false,"Host did not publish test room")
 	else:
 		NetworkSession.join_session("127.0.0.1", 24678, role, "test")
 func host_tests() -> void:

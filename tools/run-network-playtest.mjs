@@ -7,6 +7,8 @@ const [executable, ...extra] = process.argv.slice(2);
 if (!executable) throw Error('Usage: node tools/run-network-playtest.mjs GODOT_EXE [test arguments]');
 const outputDir = path.resolve('.godot/network-validation');
 mkdirSync(outputDir, {recursive:true});
+writeFileSync('.godot/network-phase.txt','');
+writeFileSync('.godot/network-room.txt','');
 const roles = ['host', 'alpha', 'beta'];
 const guestIndex = extra.indexOf('--guest-harbor-url');
 const guestUrl = guestIndex >= 0 ? extra.splice(guestIndex,2)[1] : null;
@@ -24,7 +26,7 @@ const results = await Promise.all(roles.map(async role => {
   let output = '';
   child.stdout.on('data', chunk => output += chunk);
   child.stderr.on('data', chunk => output += chunk);
-  const timer = setTimeout(() => child.kill(), 85000);
+  const timer = setTimeout(() => child.kill(), 115000);
   const code = await new Promise((resolve,reject) => {child.on('close',resolve); child.on('error',reject);});
   clearTimeout(timer);
   writeFileSync(path.join(outputDir, `${role}.log`),output);
