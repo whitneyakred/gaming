@@ -1,5 +1,24 @@
 # Networking playtest release and rollback
 
+## November 26 protocol 18 follow-up
+
+Deployed source `132b303` from `codex/webrtc-fallback` after host-presentation,
+relay-window and diagnostic fixes. `systems-revamp` remains at `bcbd998`.
+
+- Pages: `236228c0-1a9c-41b9-be4c-be2235797491`.
+- Worker: `a6c947bd-a6e3-453d-9a1b-5775a84c2fea`.
+- Immediate rollback to protocol 17: Pages
+  `3fd4d6d6-88a9-4679-9766-471949c07cfd` plus Worker
+  `35814ecf-16d0-46e5-85b0-e9653788a94c`.
+- To restore the pre-WebRTC protocol 16 build instead: Pages
+  `fb363a21-8e5b-4211-94f8-0caa13899ed5` plus Worker
+  `8bbc852e-3772-4566-bf49-93185b47feeb`.
+
+Use the Pages rollback menu and `wrangler rollback VERSION` as described below.
+Always restore both game and relay together; refresh all clients. Protocol 18
+loads older saves, but an older build may not load a save rewritten with 18.
+Live protocol and HTML/JS/PCK hashes were verified against the tested export.
+
 ## November 26 WebRTC playtest release
 
 Deployed from `codex/webrtc-fallback`, source `bc93e77`, protocol 17.

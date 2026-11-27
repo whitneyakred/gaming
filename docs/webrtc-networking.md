@@ -2,6 +2,9 @@
 
 ## Protocol 18 follow-up: host presentation and relay flow control
 
+Deployed November 26 from source `132b303`; see
+[release/rollback targets](networking-release-rollback.md).
+
 The same-Wi-Fi guest log `holy-ship-network-1795739096.json` covered 105 seconds:
 no direct WebRTC bytes, median snapshot gap 64 ms, maximum recorded arrival gap
 174 ms, median 69 FPS, and no position resets. Both supplied playtests used relay;
