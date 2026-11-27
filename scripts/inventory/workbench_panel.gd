@@ -55,6 +55,8 @@ func _ready() -> void:
 		hud.close())
 	rows.add_child(done)
 	hud.service.updated.connect(_refresh)
+	for chest_id in 2:
+		VoyageState.get_ship_storage(hud.service.storage_slots, chest_id).inventory_changed.connect(_refresh)
 	select_recipe("fishing_rod")
 
 func select_recipe(recipe: String) -> void:
@@ -72,7 +74,7 @@ func _refresh() -> void:
 	var affordable := true
 	for material: String in CraftingStation.RECIPES[selected_recipe]:
 		var needed: int = CraftingStation.RECIPES[selected_recipe][material]
-		var owned: int = hud.service.inventory.get_quantity(StringName(material))
+		var owned: int = CraftingStation.available(hud.service, StringName(material))
 		affordable = affordable and owned >= needed
 		var column := VBoxContainer.new()
 		ingredients.add_child(column)
