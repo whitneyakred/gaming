@@ -1,7 +1,7 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-23"
+const PROTOCOL := "holy-ship-coop-24"
 var crew_markers: Dictionary = {}
 var loading_overlay: VoyageLoading
 const INPUT_REFRESH_INTERVAL := 0.5
@@ -297,7 +297,7 @@ func load_game() -> void:
 			var port_slots: Array[Dictionary] = []
 			port_slots.assign(_restored.get("port_storage", []))
 			VoyageState.get_ship_storage(18, 1).restore(port_slots)
-			if _restored.get("version", "") != PROTOCOL:
+			if _restored.get("version", "") not in [PROTOCOL, "holy-ship-coop-23"]:
 				VoyageState.get_ship_storage(18,1).add_items(ItemDatabase.get_item(&"pickaxe"),4)
 			var drops: Dictionary = VoyageState.floor_items.get("ship", {})
 			drops.merge(_restored.get("drops", {}), true)
@@ -1247,7 +1247,7 @@ func save_world() -> void:
 
 func load_world() -> void:
 	var data := VoyageSaves.world(VoyageSaves.selected)
-	if data.get("version") in [PROTOCOL, "holy-ship-coop-22", "holy-ship-coop-21", "holy-ship-coop-20", "holy-ship-coop-19", "holy-ship-coop-18", "holy-ship-coop-17", "holy-ship-coop-16", "holy-ship-coop-15", "holy-ship-coop-14", "holy-ship-coop-13", "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
+	if data.get("version") in [PROTOCOL, "holy-ship-coop-23", "holy-ship-coop-22", "holy-ship-coop-21", "holy-ship-coop-20", "holy-ship-coop-19", "holy-ship-coop-18", "holy-ship-coop-17", "holy-ship-coop-16", "holy-ship-coop-15", "holy-ship-coop-14", "holy-ship-coop-13", "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
 		_restored = data
 		accounts = data.get("accounts", {})
 

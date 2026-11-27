@@ -106,10 +106,12 @@ func foliage_network_tests() -> void:
 		check(forest.changes.get(tree_id,{}).get("hits",0)==3,"Guest's three validated commands fell host tree")
 		check(service.inventory.get_quantity(&"wood")==0,"Loot is on ground, not client awarded")
 		check(service.drops.values().any(func(drop: Dictionary)->bool: return drop.id==(&"stone" if mining else &"wood") and drop.quantity in [2,3] and drop.world),"Host owns one wood stack")
+		check_resource_collision(forest,tree_id,true)
 		phase("stump")
 		await wait(2)
 		forest.changes[tree_id].until = forest.time_now()-1
 		await wait(0.5)
+		check_resource_collision(forest,tree_id,false)
 		phase("regrown")
 		await wait(2)
 	else:
@@ -131,6 +133,7 @@ func foliage_network_tests() -> void:
 			await wait(0.1)
 		await wait(0.3)
 		check(forest.changes.get(tree_id,{}).get("hits",0)==3,"Guest sees same stump")
+		check_resource_collision(forest,tree_id,true)
 		check(NetworkSession.players.values().any(func(player: Node)->bool: return player.chop_serial==3),"Remote swing serial arrives")
 		var marker_id := 0
 		for id in NetworkSession.identities:
@@ -142,6 +145,14 @@ func foliage_network_tests() -> void:
 			await wait(0.1)
 		await wait(0.3)
 		check(not forest.changes.has(tree_id),"Guest sees authoritative regrowth")
+		check_resource_collision(forest,tree_id,false)
+
+func check_resource_collision(forest: IslandFoliage, id: String, broken: bool) -> void:
+	var entry: Dictionary = forest.trees[id]
+	var rock: bool = entry.kind >= 8
+	var radius: float = ((10.0 if broken else 23.0) if rock else (6.0 if broken else 9.0))*entry.size+PropCollision.CREW_RADIUS
+	var end := forest.collision.move(entry.point-Vector2(50,0),Vector2(100,0),forest.changes)
+	check(absf(end.x-(entry.point.x-radius)) < 0.02,"Replicated resource state gives matching collision radius")
 
 func ambient_fish_tests() -> void:
 	for i in 150:

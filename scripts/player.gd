@@ -150,6 +150,9 @@ func move_crew(direction: Vector2, _delta: float) -> void:
 				return
 			for island in ship.get_islands():
 				if island is QuestIsland and island.blocks_path(global_position, next): return
+			if is_instance_valid(ship.foliage):
+				next = ship.foliage.collision.move(global_position,next-global_position,ship.foliage.changes)
+		velocity = (next-global_position)/maxf(_delta,0.000001)
 		global_position = next
 		return
 	velocity = direction * walk_speed

@@ -18,6 +18,17 @@ var visible_plants: Array[Dictionary] = []
 var sounds: Dictionary = {}
 var received_state := false
 var visuals: Array[FoliageVisual] = []
+var collision := PropCollision.new()
+
+func rebuild_collision() -> void:
+	collision.clear()
+	for id in trees:
+		var entry: Dictionary = trees[id]
+		var rock: bool = entry.kind >= 8
+		collision.insert(id,entry.point, (23.0 if rock else 9.0)*entry.size, (10.0 if rock else 6.0)*entry.size)
+	for island in ship.get_islands():
+		var totem := island.get_node_or_null("MinigameTotem") as Node2D
+		if totem != null: collision.insert("totem:"+str(island.name),totem.global_position,18.0)
 
 static func icon(index: int) -> AtlasTexture:
 	var result := AtlasTexture.new()
@@ -75,6 +86,7 @@ func rebuild() -> void:
 			trees[id]=entry
 			rocks+=1
 		patches.append({"center":island.global_position,"plants":plants})
+	rebuild_collision()
 
 func time_now() -> float:
 	return ship.ocean_fish.shared_time() if is_instance_valid(ship.ocean_fish) else clock
@@ -95,6 +107,18 @@ func _process(delta: float) -> void:
 		for entry in patch.plants:
 			if view.has_point(entry.point): visible_plants.append(entry)
 	visible_plants.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return a.point.y < b.point.y)
+	var depth_objects := visible_plants.duplicate()
+	for island in ship.get_islands():
+		var totem := island.get_node_or_null("MinigameTotem") as MinigameTotem
+		if totem != null and totem.visible and view.has_point(totem.global_position):
+			depth_objects.append({"point":totem.global_position,"totem":totem})
+	depth_objects.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return a.point.y < b.point.y)
+	var depths := {}
+	for i in depth_objects.size():
+		var entry: Dictionary = depth_objects[i]
+		var depth := mini(4000,20+i*8)
+		if entry.has("totem"): entry.totem.z_index = depth
+		else: depths[entry.id] = depth
 	for id in flashes.keys():
 		flashes[id] -= delta
 		if flashes[id] <= 0: flashes.erase(id)
@@ -107,13 +131,13 @@ func _process(delta: float) -> void:
 		visuals[i].visible = i<visible_plants.size()
 		if not visuals[i].visible: continue
 		visuals[i].entry = visible_plants[i]
-		visuals[i].z_index = mini(4000,20+i*8)
+		visuals[i].z_index = depths[visible_plants[i].id]
 		visuals[i].queue_redraw()
 	var crew: Array = NetworkSession.players.values() if NetworkSession.online else [ship.player]
 	for player in crew:
 		if not is_instance_valid(player) or not player.on_land: continue
 		var before := 0
-		for plant in visible_plants:
+		for plant in depth_objects:
 			if plant.point.y<=player.visual_position().y: before+=1
 		player.z_index = mini(4004,16+before*8)
 
