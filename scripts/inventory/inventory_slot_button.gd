@@ -10,8 +10,16 @@ var slot_index: int = -1
 var is_storage: bool = false
 @export_range(0.1, 1.0, 0.05) var pickup_hold_seconds: float = 0.15
 var _pickup_hold: float = -1.0
+var hover_name: Label
 
 func _process(delta: float) -> void:
+	if hover_name != null and hover_name.visible:
+		if not is_visible_in_tree() or not is_hovered() or IslandChallenges.local_active() or PauseMenu.is_paused() or MapState.map_open: hover_name.hide()
+		else:
+			var rect := get_global_rect()
+			var at := rect.position + Vector2((rect.size.x-hover_name.size.x)*0.5,-hover_name.size.y-6)
+			var bounds := get_viewport_rect().size - hover_name.size - Vector2(6,6)
+			hover_name.global_position = at.clamp(Vector2(6,6),bounds)
 	if _pickup_hold < 0.0: return
 	if not is_visible_in_tree() or not is_hovered() or not hud.service.can_handle_items() or hud.storage_open or hud.grill_open:
 		_pickup_hold = -1.0
@@ -59,6 +67,18 @@ func _ready() -> void:
 		var style := StyleBoxEmpty.new()
 		add_theme_stylebox_override(state, style)
 	mouse_entered.connect(queue_redraw)
+	hover_name = Label.new()
+	hover_name.top_level = true
+	hover_name.z_index = 100
+	hover_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hover_name.add_theme_font_size_override("font_size",16)
+	hover_name.add_theme_color_override("font_color",Color.WHITE)
+	hover_name.add_theme_color_override("font_outline_color",Color("15252d"))
+	hover_name.add_theme_constant_override("outline_size",3)
+	add_child(hover_name)
+	hover_name.hide()
+	mouse_entered.connect(_show_name)
+	mouse_exited.connect(hover_name.hide)
 	mouse_exited.connect(queue_redraw)
 	mouse_exited.connect(func() -> void: _pickup_hold = -1.0)
 
@@ -67,9 +87,17 @@ func set_entry(value: Dictionary, key: String, active: bool) -> void:
 	number = key
 	selected = active
 	var item: ItemData = ItemDatabase.get_item(entry.get("id", &""))
-	tooltip_text = "Empty slot" if item == null else "%s\n%s\nStack limit: %d" % [item.display_name, item.description, item.max_stack]
-	if item != null and item.max_stack > 1: tooltip_text += "\nRight-click: one · Shift-right-click: half"
+	tooltip_text = ""
+	if hover_name != null:
+		hover_name.text = item.display_name if item != null else ""
+		hover_name.reset_size()
+		if hover_name.text.is_empty(): hover_name.hide()
 	queue_redraw()
+
+func _show_name() -> void:
+	if hover_name == null or hover_name.text.is_empty() or IslandChallenges.local_active() or PauseMenu.is_paused() or MapState.map_open: return
+	hover_name.show()
+	_process(0.0)
 
 func _draw() -> void:
 	var rect := Rect2(Vector2(2, 2), size - Vector2(4, 4))
@@ -90,7 +118,7 @@ func _draw() -> void:
 		draw_string(font, Vector2(8, 15), number, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("d3bd94"))
 	var item: ItemData = ItemDatabase.get_item(entry.get("id", &""))
 	if item != null and item.icon != null:
-		var icon_size := Vector2.ONE * minf(42, size.x - 24)
+		var icon_size := Vector2.ONE * minf(48 if item.id == &"medpack" else 42, size.x - 18 if item.id == &"medpack" else size.x - 24)
 		draw_texture_rect(item.icon, Rect2((size - icon_size) / 2, icon_size), false)
 	if not entry.is_empty() and int(entry.quantity) > 1:
 		draw_string(font, Vector2(size.x - 30, size.y - 10), str(entry.quantity), HORIZONTAL_ALIGNMENT_RIGHT, 20, 15, Color("493329") if parchment_slot else Color("fff1cc"))

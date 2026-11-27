@@ -10,6 +10,8 @@ static func texture(index: int) -> AtlasTexture:
 	var result := AtlasTexture.new()
 	result.atlas = ATLAS
 	result.region = Rect2(origin + bounds.position, bounds.size)
+	# Ignore stray near-transparent pixels around the medical kit silhouette.
+	if index == 1: result.region = Rect2(1200,223,398,460)
 	result.filter_clip = true
 	cache[index] = result
 	return result
