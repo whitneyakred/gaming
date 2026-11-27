@@ -301,6 +301,8 @@ func load_game() -> void:
 				VoyageState.get_ship_storage(18,1).add_items(ItemDatabase.get_item(&"pickaxe"),4)
 			var drops: Dictionary = VoyageState.floor_items.get("ship", {})
 			drops.merge(_restored.get("drops", {}), true)
+			for key in drops.keys():
+				if ItemDatabase.get_item(drops[key].get("id", &"")) == null: drops.erase(key)
 			for entry: Dictionary in drops.values():
 				entry.erase("spawn_origin")
 				entry.erase("spawn_time")

@@ -168,7 +168,7 @@ func sound(kind: String, point: Vector2) -> void:
 
 func chop(service: InventoryService, point: Vector2, slot: int) -> bool:
 	var player: CharacterBody2D = service.player
-	if not point.is_finite() or not service.can_handle_items() or not player.on_land or player.inventory_open or player.fishing_active or player.access_motion != &"": return false
+	if not point.is_finite() or not service.can_handle_items() or (player.is_overboard and not player.on_land) or player.inventory_open or player.fishing_active or player.access_motion != &"": return false
 	if slot < 0 or slot >= service.local_slots.size() or service.local_slots[slot].get("id") not in [&"axe",&"pickaxe"]: return false
 	var mining: bool = service.local_slots[slot].get("id") == &"pickaxe"
 	service.hud.selected = slot
@@ -178,6 +178,8 @@ func chop(service: InventoryService, point: Vector2, slot: int) -> bool:
 	var direction := (point-player.global_position).normalized()
 	player.chop_direction = direction
 	player.chop_serial += 1
+	# Deck swings are cosmetic; they cannot harvest nearby shoreline resources.
+	if not player.on_land: return true
 	var best := ""
 	var distance := REACH
 	for id in trees:
@@ -195,7 +197,7 @@ func chop(service: InventoryService, point: Vector2, slot: int) -> bool:
 	sound(hit_sound(trees[best],hits),trees[best].point)
 	if hits == 3:
 		var palm: bool = trees[best].kind==3
-		spawn_loot(service,trees[best].point,&"stone" if mining else &"wood",1 if palm else 3,Vector2(25,18))
+		spawn_loot(service,trees[best].point,&"stone" if mining else &"wood",1 if palm else randi_range(2,3),Vector2(25,18))
 		if palm: spawn_loot(service,trees[best].point,&"coconut",2,Vector2(-25,18))
 	return true
 

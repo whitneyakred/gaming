@@ -27,7 +27,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if cooldown > 0 or not service.can_handle_items() or service.player.inventory_open or service.player.fishing_active: return
 	var slot: int = service.hud.selected
 	if slot < 0 or slot >= service.local_slots.size() or service.local_slots[slot].get("id") not in [&"axe",&"pickaxe"]: return
-	if not service.player.on_land or service.player.access_motion != &"": return
+	if (service.player.is_overboard and not service.player.on_land) or service.player.access_motion != &"": return
 	var point := service.player.get_global_mouse_position()
 	if tapped: point = service.player.get_canvas_transform().affine_inverse()*event.position
 	direction = (point-service.player.global_position).normalized()

@@ -52,7 +52,7 @@ func _test_registered_catalog() -> void:
 	var expected_items: Array[Dictionary] = [
 		{
 			"id": &"fish_cod",
-			"display_name": "Sea Bass",
+			"display_name": "Fish",
 			"description": "A common sea fish.",
 			"max_stack": 10,
 			"category": ItemData.Category.FOOD,
@@ -98,20 +98,14 @@ func _test_registered_catalog() -> void:
 		_check_equal(item.category, expected_item["category"], "Catalog item %s has its category" % item_id)
 		_check_equal(item.draw_weight, 1.0, "Catalog item %s uses the neutral draw weight" % item_id)
 		_check_equal(item.sell_value, 0, "Catalog item %s uses the neutral sell value" % item_id)
-		var expected_icon_path: String = expected_item["icon_path"]
-		if expected_icon_path.is_empty():
-			_check(item.icon == null, "Catalog item %s has no bundled icon yet" % item_id, "No icon texture", var_to_str(item.icon))
-		else:
-			_check(item.icon != null, "Catalog item %s has a hotbar icon" % item_id, "A Texture2D", var_to_str(item.icon))
-			if item.icon != null:
-				_check_equal(item.icon.resource_path, expected_icon_path, "Catalog item %s uses its configured item PNG" % item_id)
+		_check(item.icon is AtlasTexture, "Catalog icon uses pixel atlas", "AtlasTexture", var_to_str(item.icon))
 
 	var missing_item := item_database.call(&"get_item", &"missing_item") as ItemData
 	_check(missing_item == null, "Unknown item lookup", "null", var_to_str(missing_item))
 
 	var all_items: Array = item_database.call(&"get_all_items")
-	var island_ids: Array[StringName] = [&"gold_coin", &"wood", &"crab_meat", &"mango", &"banana", &"papaya", &"fresh_water", &"compass", &"gunpowder", &"dried_fish", &"glow_jar", &"cannonball", &"torch", &"honey"]
-	_check_equal(all_items.size(), expected_items.size() + island_ids.size() + 5, "Catalog enumeration includes the island rewards")
+	var island_ids: Array[StringName] = [&"wood", &"stone", &"coal", &"string", &"leather", &"medpack", &"dried_fish", &"bronze_key", &"silver_key", &"gold_key", &"axe", &"pickaxe"]
+	_check_equal(all_items.size(), 17, "Catalog contains only the requested voyage items")
 	for metal in ["bronze", "silver", "gold"]:
 		var key := item_database.call(&"get_item", StringName(metal + "_key")) as ItemData
 		_check(key != null and key.icon != null and key.max_stack == 1 and key.category == ItemData.Category.TOOL,

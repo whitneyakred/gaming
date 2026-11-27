@@ -50,7 +50,7 @@ func run() -> void:
 		check(not forest.chop(service,tree.point,slot),"Rapid repeat cannot double-hit")
 	check(service.drops.size()==before+1,"Third hit creates exactly one wood stack")
 	var drop: Dictionary = service.drops.values().back()
-	check(drop.id==&"wood" and drop.quantity==3 and drop.world,"Wood remains on island")
+	check(drop.id==&"wood" and drop.quantity in [2,3] and drop.world,"Two or three wood remain on island")
 	forest.cooldowns.clear()
 	forest.chop(service,tree.point,slot)
 	check(service.drops.size()==before+1,"Stump cannot grant more wood")
@@ -80,13 +80,26 @@ func run() -> void:
 	axe._unhandled_input(touch)
 	check(player.chop_serial==serial,"Map prevents axe input")
 	MapState.map_open=false
+	player.set_overboard(false)
+	player.position = Vector2.ZERO
+	forest.cooldowns.clear()
+	var state_before := forest.changes.duplicate(true)
+	serial = player.chop_serial
+	check(forest.chop(service, tree.point, slot) and player.chop_serial == serial + 1, "Deck swings are accepted for replication")
+	check(forest.changes == state_before, "Deck swings cannot harvest shoreline resources")
+	player.set_overboard(true)
+	player.update_land(true)
+	check(PixelItemIcons.texture(1).region.position.x >= PixelItemIcons.ATLAS.get_width()/8 + 16, "Pickaxe excludes adjacent axe pixels")
+	check(ItemDatabase.get_all_items().size() == 17, "Only requested voyage items are registered")
+	for retired in ChallengeItems.TOKENS:
+		check(ItemDatabase.get_item(retired) == null and ChallengeItems.definition(retired) != null, "Retired supplies are only private challenge counters")
 	var largest := {}
 	for id in forest.trees: largest[id]={"hits":3,"until":12345.0}
 	check(var_to_bytes(largest).compress(FileAccess.COMPRESSION_GZIP).size()<20000,"Even every felled tree fits comfortably in reliable packet budget")
 	for island in ship.get_islands():
 		if island is GeneratedIsland: check(island.terrain.path_polygon.is_empty(),"Beach-to-clearing path removed")
 	for item in ItemDatabase.get_all_items():
-		check(item.icon is AtlasTexture and item.icon.atlas==PixelItemIcons.ATLAS,"Every registered item has matching pixel artwork")
+		check(item.icon is AtlasTexture and item.icon.atlas in [PixelItemIcons.ATLAS,TotemArt.ATLAS],"Every registered item has matching pixel artwork")
 		check(minf(item.icon.get_width(),item.icon.get_height())>75,"Inventory icon is cropped to visible artwork")
 	check(VoyageState.get_ship_storage(18,1).slots.filter(func(entry: Dictionary)->bool: return entry.get("id")==&"pickaxe").size()==4,"Second chest supplies four unstacked pickaxes")
 	var rock_id: String = forest.trees.keys().filter(func(id: String)->bool: return forest.trees[id].kind==8)[0]
@@ -104,7 +117,7 @@ func run() -> void:
 		check(forest.chop(service,rock.point,pick_slot),"Pickaxe strike accepted")
 	check(forest.changes[rock_id].hits==3 and service.drops.size()==before+1,"Rock breaks once after three hits")
 	drop = service.drops.values().back()
-	check(drop.id==&"stone" and drop.quantity==3,"Rock yields three stone")
+	check(drop.id==&"stone" and drop.quantity in [2,3],"Rock yields two or three stone")
 	forest.cooldowns.clear()
 	forest.chop(service,rock.point,pick_slot)
 	check(service.drops.size()==before+1,"Rubble cannot duplicate loot")

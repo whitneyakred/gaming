@@ -25,6 +25,11 @@ func capture() -> Array[Dictionary]:
 func restore(snapshot: Array[Dictionary]) -> void:
 	if slots == snapshot: return
 	slots = snapshot.duplicate(true)
+	# Retired puzzle supplies are not real voyage items anymore. Private bags
+	# still retain their own definitions, so failure rollback keeps counters.
+	for index in slots.size():
+		if not slots[index].is_empty() and definition(slots[index].get("id", &"")) == null:
+			slots[index] = {}
 	_ensure_slots()
 	_notify()
 

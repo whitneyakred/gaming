@@ -152,12 +152,12 @@ func _on_time_up() -> void:
 ## Redraws the objective line and the timer. Call after your progress changes.
 func refresh_hud() -> void:
 	if hud:
-		hud.set_objective(_get_objective_text())
+		hud.set_objective(clearing_text(_get_objective_text()))
 	_update_timer_hud()
 
 func show_message(text: String, seconds: float = 1.5) -> void:
 	if hud:
-		hud.show_message(text, seconds)
+		hud.show_message(clearing_text(text), seconds)
 
 func has_time_limit() -> bool:
 	return time_limit_seconds > 0.0
@@ -177,7 +177,11 @@ func add_time(seconds: float) -> void:
 ## Shows a small "Press E to ..." hint at the bottom of the screen ("" hides it).
 func set_prompt(text: String) -> void:
 	if hud:
-		hud.set_prompt(text)
+		hud.set_prompt(clearing_text(text))
+
+func clearing_text(text: String) -> String:
+	if not embedded: return text
+	return text.replace("Press E", "Press Space").replace("E to", "Space to").replace("E at", "Space at").replace("E again", "Space again").replace("rowboat", "exit totem").replace("Row back", "Return").replace("row back", "return")
 
 ## The voyage inventory of `receiver` (default: this island's player).
 func get_inventory(receiver: Node = null) -> PlayerInventory:
@@ -190,7 +194,7 @@ func get_inventory(receiver: Node = null) -> PlayerInventory:
 ## a "+N Item" note. Returns how many fit; if not all fit, says the bag is full.
 ## Every island reward and pickup goes through here so nothing is lost.
 func give_item(item_id: StringName, amount: int = 1, receiver: Node = null) -> int:
-	var item: ItemData = ItemDatabase.get_item(item_id)
+	var item: ItemData = ChallengeItems.definition(item_id)
 	var inventory := get_inventory(receiver)
 	if item == null or inventory == null:
 		push_warning("Cannot give item %s: unknown item or no inventory." % item_id)
@@ -211,7 +215,7 @@ func give_treasure(prefix: String = "") -> int:
 	var line := "%d coins collected!" % added
 	if added == 0:
 		line = "Your bag is full! The coins stay behind."
-	show_message(line if prefix.is_empty() else "%s\n%s" % [prefix, line], 2.5)
+	show_message("Objective complete! Return to the exit totem." if embedded else (line if prefix.is_empty() else "%s\n%s" % [prefix, line]), 2.5)
 	return added
 
 ## Called by scripts/rowboat.gd when the player reaches the rowboat.

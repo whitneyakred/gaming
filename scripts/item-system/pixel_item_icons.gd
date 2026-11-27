@@ -5,12 +5,17 @@ const IDS := [&"axe",&"pickaxe",&"fishing_rod",&"spyglass",&"wood",&"stone",&"co
 static var cache: Dictionary = {}
 static var source_image: Image
 static func get_icon(id: StringName) -> Texture2D:
+	if id == &"medpack": return TotemArt.texture(1)
 	var index := IDS.find(id)
 	return texture(index) if index >= 0 else null
 static func texture(index: int) -> AtlasTexture:
 	if cache.has(index): return cache[index]
 	var cell := Vector2i(ATLAS.get_width()/8,ATLAS.get_height()/4)
 	var region := Rect2i(Vector2i(index%8,index/8)*cell,cell)
+	# The neighboring axe spills into the first pixels of the pickaxe cell.
+	if index == 1:
+		region.position.x += 16
+		region.size.x -= 16
 	# Scan once per icon; trim transparent padding without changing source pixels.
 	if source_image == null: source_image = ATLAS.get_image()
 	var image := source_image.get_region(region)

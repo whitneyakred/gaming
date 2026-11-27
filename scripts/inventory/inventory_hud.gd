@@ -270,6 +270,7 @@ func pick_cursor(index: int, storage: bool, amount: int = -1) -> void:
 	var slots: Array[Dictionary] = service.storage_view if storage else service.local_slots
 	if index < 0 or index >= slots.size() or slots[index].is_empty(): return
 	var item := ItemDatabase.get_item(slots[index].id)
+	if item == null: return
 	if amount != -1 and item.max_stack <= 1: return
 	cursor_data = {"inventory_drag":true,"index":index,"storage":storage,"amount":amount,"revision":service.view_revision,"service_id":service.get_instance_id(),"chest_session":storage_open,"grill_session":grill_open}
 	cursor_icon.texture = item.icon
@@ -333,6 +334,7 @@ func _place_one(button: InventorySlotButton) -> void:
 	var source: Dictionary = source_slots[cursor_data.index]
 	if source.is_empty(): return
 	var item := ItemDatabase.get_item(source.id)
+	if item == null: return
 	if item.max_stack <= 1: return
 	var remaining: int = int(source.quantity) if cursor_data.amount == -1 else int(cursor_data.amount)
 	if button.is_storage == cursor_data.storage and button.slot_index == cursor_data.index:
