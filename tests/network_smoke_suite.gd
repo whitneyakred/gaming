@@ -46,12 +46,14 @@ func run() -> void:
 			room_file.close()
 		else:
 			NetworkSession.host_session("Captain", 24678, "test", false)
-		if "--ambient-fish-test" in args: await ambient_fish_tests()
+		if "--foliage-test" in args: await foliage_network_tests()
+		elif "--ambient-fish-test" in args: await ambient_fish_tests()
 		else: await host_tests()
 	else:
 		await wait(1 if role == "Alpha" else 2)
 		await join_test()
-		if "--ambient-fish-test" in args: await ambient_fish_tests()
+		if "--foliage-test" in args: await foliage_network_tests()
+		elif "--ambient-fish-test" in args: await ambient_fish_tests()
 		else: await client_tests()
 	if multiplayer.multiplayer_peer is HarborPeer:
 		var transport := multiplayer.multiplayer_peer as HarborPeer
@@ -76,6 +78,70 @@ func run() -> void:
 	GameWindow.shutdown_audio()
 	await wait(0.1)
 	get_tree().quit(0 if failures == 0 else 1)
+
+func foliage_network_tests() -> void:
+	for i in 150:
+		if NetworkSession.world_ready and NetworkSession.players.size()==3: break
+		await wait(0.1)
+	check(NetworkSession.players.size()==3,"Three peers joined forestry test")
+	if NetworkSession.players.size()!=3: return
+	var forest: IslandFoliage = NetworkSession.ship.foliage
+	var mining := "--mining-test" in OS.get_cmdline_user_args()
+	var tree_id: String = forest.trees.keys().filter(func(id: String)->bool: return forest.trees[id].kind==(8 if mining else 0))[0]
+	var point: Vector2 = forest.trees[tree_id].point
+	if role=="host":
+		var alpha := 0
+		for id in NetworkSession.identities:
+			if NetworkSession.identities[id].name=="Alpha": alpha=id
+		var service: InventoryService = NetworkSession.services[alpha]
+		if mining: service.inventory.try_add(&"pickaxe")
+		service.player.set_overboard(true)
+		service.player.update_land(true)
+		service.player.global_position = point+Vector2(0,40)
+		await wait(0.6)
+		phase("chop_ready")
+		for i in 150:
+			if forest.changes.get(tree_id,{}).get("hits",0)==3: break
+			await wait(0.1)
+		check(forest.changes.get(tree_id,{}).get("hits",0)==3,"Guest's three validated commands fell host tree")
+		check(service.inventory.get_quantity(&"wood")==0,"Loot is on ground, not client awarded")
+		check(service.drops.values().any(func(drop: Dictionary)->bool: return drop.id==(&"stone" if mining else &"wood") and drop.quantity in [2,3] and drop.world),"Host owns one wood stack")
+		phase("stump")
+		await wait(2)
+		forest.changes[tree_id].until = forest.time_now()-1
+		await wait(0.5)
+		phase("regrown")
+		await wait(2)
+	else:
+		for i in 150:
+			if read_phase()=="chop_ready": break
+			await wait(0.1)
+		if role=="Alpha":
+			var service: InventoryService = NetworkSession.services[NetworkSession.local_id]
+			var slot := -1
+			for i in service.local_slots.size():
+				if service.local_slots[i].get("id")==(&"pickaxe" if mining else &"axe"): slot=i
+			check(slot>=0,"Guest receives harvesting tool")
+			NetworkSession.command("marker",{"point":point+Vector2(100,100)})
+			for hit in 3:
+				NetworkSession.command("chop",{"point":point,"index":slot})
+				await wait(0.8)
+		for i in 150:
+			if read_phase()=="stump": break
+			await wait(0.1)
+		await wait(0.3)
+		check(forest.changes.get(tree_id,{}).get("hits",0)==3,"Guest sees same stump")
+		check(NetworkSession.players.values().any(func(player: Node)->bool: return player.chop_serial==3),"Remote swing serial arrives")
+		var marker_id := 0
+		for id in NetworkSession.identities:
+			if NetworkSession.identities[id].name=="Alpha": marker_id=id
+		check(MapState.crew_markers.get(marker_id)==point+Vector2(100,100),"Both guests see Alpha marker")
+		check(MapState.marker_name(marker_id)=="Alpha","Shared marker resolves its owner name")
+		for i in 100:
+			if read_phase()=="regrown": break
+			await wait(0.1)
+		await wait(0.3)
+		check(not forest.changes.has(tree_id),"Guest sees authoritative regrowth")
 
 func ambient_fish_tests() -> void:
 	for i in 150:
@@ -168,22 +234,22 @@ func host_tests() -> void:
 	check(VoyageState.get_ship_storage().capture()[0].is_empty(), "Shared chest emptied consistently")
 	# Keep partial-transfer assertions independent of the guest's saved inventory.
 	a.inventory.restore([{"id": &"fishing_rod", "quantity": 1}, {"id": &"spyglass", "quantity": 1}, {}, {}])
-	VoyageState.get_ship_storage().add_items(ItemDatabase.get_item(&"gold_coin"),21)
+	VoyageState.get_ship_storage().add_items(ItemDatabase.get_item(&"coal"),21)
 	await wait(0.4)
 	phase("split_one")
 	for attempt in 60:
-		if a.inventory.get_quantity(&"gold_coin") == 1: break
+		if a.inventory.get_quantity(&"coal") == 1: break
 		await wait(0.05)
-	check(a.inventory.get_quantity(&"gold_coin")==1 and int(a.storage.slots[0].quantity)==20,"Guest takes exactly one from shared chest")
+	check(a.inventory.get_quantity(&"coal")==1 and int(a.storage.slots[0].quantity)==20,"Guest takes exactly one from shared chest")
 	phase("split_half")
 	for attempt in 60:
-		if a.inventory.get_quantity(&"gold_coin") == 11: break
+		if a.inventory.get_quantity(&"coal") == 11: break
 		await wait(0.05)
-	check(a.inventory.get_quantity(&"gold_coin")==11 and int(a.storage.slots[0].quantity)==10,"Guest splits shared chest stack in half")
+	check(a.inventory.get_quantity(&"coal")==11 and int(a.storage.slots[0].quantity)==10,"Guest splits shared chest stack in half")
 	phase("split_invalid")
 	await wait(0.6)
-	check(a.inventory.get_quantity(&"gold_coin")==11 and int(a.storage.slots[0].quantity)==10,"Host rejects oversized partial transfer")
-	a.inventory.try_remove(&"gold_coin",11)
+	check(a.inventory.get_quantity(&"coal")==11 and int(a.storage.slots[0].quantity)==10,"Host rejects oversized partial transfer")
+	a.inventory.try_remove(&"coal",11)
 	a.storage.clear()
 	a.hud.close()
 	b.hud.close()
@@ -217,12 +283,20 @@ func host_tests() -> void:
 	a.hud.close()
 	b.hud.close()
 	b.player.position = Vector2(-25, 120)
+	# The earlier chest race has a nondeterministic winner. Reserve pickup space
+	# explicitly; this phase tests replicated drops, not whichever bag won it.
+	b.inventory.restore([{"id":&"fishing_rod","quantity":1},{"id":&"spyglass","quantity":1},{"id":&"axe","quantity":1},{}])
 	await wait(0.5)
+	var drop_fixture := FileAccess.open("res://.godot/network-drop-revision.txt",FileAccess.WRITE)
+	drop_fixture.store_string(str(a.view_revision))
+	drop_fixture.close()
 	phase("drop")
-	await wait(1)
+	for attempt in 60:
+		if a.drops.size()==1: break
+		await wait(0.05)
 	check(a.drops.size() == 1 and a.inventory.get_quantity(&"fishing_rod") == 0, "Client drop removes one canonical item: drops=%s bag=%s rev=%s" % [a.drops,a.inventory.capture(),a.view_revision])
 	phase("inspect_drop")
-	await wait(0.6)
+	await wait(1.0)
 	b.player.position = a.player.position
 	await wait(0.5)
 	check(a.drops.is_empty() and b.inventory.get_quantity(&"fishing_rod") == 2, "Other client picks up shared dropped rod: drops=%s bag=%s" % [a.drops,b.inventory.capture()])
@@ -367,6 +441,9 @@ func client_tests() -> void:
 			"survival":
 				check(NetworkSession.ship.get_islands().size() == WorldLayout.ISLAND_COUNT + 4, "Guest has ordinary islands plus three key islands and Paradise")
 				check(NetworkSession.ship.world_seed == int(NetworkSession._last_snapshot.seed), "Guest shares host seed")
+				check(NetworkSession.ship.layout_version==WorldLayout.VERSION,"Guest shares host terrain generator version")
+				var island := NetworkSession.ship.get_island("Island_00") as GeneratedIsland
+				check(island != null and island.coast_points==GeneratedIsland.outline(NetworkSession.ship.world_seed*31+17),"Guest reconstructs matching generated coastline")
 				check(NetworkSession.ship.ocean_fish.world_seed == NetworkSession.ship.world_seed, "Guest fish use host world seed")
 				check(NetworkSession.ship.ocean_fish._has_clock, "Guest fish receive host clock through existing snapshots")
 				check(absf(NetworkSession.ship.ocean_fish.shared_time() - float(NetworkSession._last_snapshot.time)) < 0.5, "Guest school movement stays on host timeline")
@@ -404,7 +481,7 @@ func client_tests() -> void:
 				if role == "Alpha":
 					if current == "split_one":
 						for attempt in 40:
-							if service.hud.storage_open and service.storage_view[0].get("id", &"") == &"gold_coin" and int(service.storage_view[0].get("quantity", 0)) == 21: break
+							if service.hud.storage_open and service.storage_view[0].get("id", &"") == &"coal" and int(service.storage_view[0].get("quantity", 0)) == 21: break
 							await wait(0.05)
 						service.hud.pick_cursor(0, true)
 						check(not service.hud.cursor_data.is_empty(), "Guest receives chest stock before selecting stack")
@@ -443,8 +520,18 @@ func client_tests() -> void:
 				NetworkSession.command("grill", {"action": "finish", "token": shared_grill_key, "stars": 2})
 			"drop":
 				if role == "Alpha":
+					var expected := int(FileAccess.get_file_as_string("res://.godot/network-drop-revision.txt"))
+					for attempt in 50:
+						if service.view_revision==expected: break
+						await wait(0.05)
 					NetworkSession.command("drag", {"index": 0, "storage": false, "destination": -1, "revision": service.view_revision})
-			"inspect_drop": check(service.drops.size() == 1, "Dropped item visible to each client")
+			"inspect_drop":
+				# Phase files are immediate; reliable shared state arrives on the
+				# next host snapshot. Assert the received state, not the file timing.
+				for attempt in 14:
+					if service.drops.size()==1: break
+					await wait(0.05)
+				check(service.drops.size() == 1, "Dropped item visible to each client")
 			"helm": NetworkSession.command("interact")
 			"fish":
 				if role == "Alpha":

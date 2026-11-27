@@ -14,6 +14,7 @@ var _station_zoom: float = 1.0
 var _focus_offset: Vector2 = Vector2.ZERO
 ## Rowboat framing is controlled by the ship during island travel.
 var view_offset: Vector2 = Vector2.ZERO
+var challenge_center: Vector2 = Vector2.INF
 @onready var wind_arrow: TextureRect = $HUD/Wind/Arrow
 @onready var helm_wheel: HelmWheelWidget = $HUD/HelmWheel
 @onready var vignette: ColorRect = $StationOverlay/Vignette
@@ -43,6 +44,11 @@ func _process(delta: float) -> void:
 
 func _update_camera(delta: float) -> void:
 	if not is_instance_valid(camera):
+		return
+	if challenge_center.is_finite():
+		camera.global_position = challenge_center
+		var size := get_viewport_rect().size
+		camera.zoom = Vector2.ONE * minf(size.x / 1280.0, size.y / 1000.0)
 		return
 	var station: Node2D = null
 	if is_instance_valid(helm) and is_instance_valid(helm.local_player):

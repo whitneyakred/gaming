@@ -1,5 +1,7 @@
 # Shared gameplay update — protocol 20
 
+Feature branch note: [Generated islands](generated-islands.md) and [forestry](island-forestry.md) describe the protocol-22 playtest. The historical protocol-20 release below remains on `systems-revamp`.
+
 ## Backups and cooking provenance
 
 - `backup/systems-revamp-before-gameplay` preserves `systems-revamp` at `bcbd998`.

@@ -95,9 +95,16 @@ const DOCK_OVERLAP: float = 0.2
 
 var _coast: PackedVector2Array = PackedVector2Array()
 var _walkable: PackedVector2Array = PackedVector2Array()
+var clearing: bool = false
+var clearing_half_size := Vector2(540, 440)
 
 
 func _ready() -> void:
+	if clearing:
+		var cliffs := get_node_or_null(cliffs_path)
+		if cliffs != null:
+			remove_child(cliffs)
+			cliffs.queue_free()
 	_rebuild()
 	if not Engine.is_editor_hint():
 		_build_boundary()
@@ -157,6 +164,11 @@ func _random_art_point(margin: float, rng: RandomNumberGenerator) -> Vector2:
 
 
 func _rebuild() -> void:
+	if clearing:
+		var half := clearing_half_size
+		_coast = PackedVector2Array([Vector2(-half.x,-half.y),Vector2(half.x,-half.y),half,Vector2(-half.x,half.y)])
+		_walkable = _coast
+		return
 	if _uses_art():
 		_coast = walkable_outline
 		_walkable = walkable_outline
@@ -198,6 +210,7 @@ func _dock_rect() -> Rect2:
 
 
 func _draw() -> void:
+	if clearing: return
 	if _uses_art():
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2(art_scale, art_scale))
 		draw_texture(art, -art.get_size() / 2.0)

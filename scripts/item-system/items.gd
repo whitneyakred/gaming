@@ -6,6 +6,9 @@ const COCONUT_WHOLE_ICON := preload("res://assets/items/coconut_whole.png")
 
 
 func _ready() -> void:
+	ItemDatabase.register_item(make_item(&"pickaxe","Pickaxe","Click a rock to mine stone.",1,ItemData.Category.TOOL))
+	ItemDatabase.register_item(make_item(&"stone","Stone","Stone gathered from island rocks.",30,ItemData.Category.MATERIAL))
+	ItemDatabase.register_item(make_item(&"axe","Axe","Click near a tree to chop. Three hits yield wood.",1,ItemData.Category.TOOL))
 	for id in [&"string", &"leather"]:
 		ItemDatabase.register_item(make_item(id,String(id).capitalize(),"Totem supplies.",20,ItemData.Category.MATERIAL))
 	ItemDatabase.register_item(make_item(&"medpack","Medpack","Hold to restore full health.",1,ItemData.Category.TOOL))
@@ -56,92 +59,16 @@ func _ready() -> void:
 	))
 	# --- Island rewards ---
 	ItemDatabase.register_item(make_item(
-		&"gold_coin",
-		"Gold Coin",
-		"Pirate gold from an island treasure.",
-		999
-	))
-	ItemDatabase.register_item(make_item(
 		&"wood",
 		"Wood",
 		"Timber for the grill or hull repairs.",
 		30
 	))
 	ItemDatabase.register_item(make_item(
-		&"crab_meat",
-		"Crab Meat",
-		"Sweet meat from a beach crab.",
-		10
-	))
-	ItemDatabase.register_item(make_item(
-		&"mango",
-		"Mango",
-		"A ripe island mango.",
-		10
-	))
-	ItemDatabase.register_item(make_item(
-		&"banana",
-		"Banana",
-		"A bunch-fresh banana.",
-		10
-	))
-	ItemDatabase.register_item(make_item(
-		&"papaya",
-		"Papaya",
-		"A soft, sweet papaya.",
-		10
-	))
-	ItemDatabase.register_item(make_item(
-		&"fresh_water",
-		"Fresh Water",
-		"A flask of drinkable spring water.",
-		10
-	))
-	ItemDatabase.register_item(make_item(
-		&"compass",
-		"Lost Compass",
-		"An old brass compass recovered from the jungle."
-	))
-	ItemDatabase.register_item(make_item(
-		&"gunpowder",
-		"Gunpowder",
-		"A pouch of black powder saved from a burning keg.",
-		30,
-		ItemData.Category.MATERIAL
-	))
-	ItemDatabase.register_item(make_item(
 		&"dried_fish",
 		"Cooked Fish",
 		"A freshly prepared fish meal, ready to eat.",
 		20,
-		ItemData.Category.FOOD
-	))
-	ItemDatabase.register_item(make_item(
-		&"glow_jar",
-		"Glow Jar",
-		"A jar of fireflies that lights the deck at night.",
-		1,
-		ItemData.Category.TOOL
-	))
-	ItemDatabase.register_item(make_item(
-		&"cannonball",
-		"Cannonball",
-		"Iron shot salvaged from the target rafts.",
-		30,
-		ItemData.Category.MATERIAL
-	))
-	ItemDatabase.register_item(make_item(
-		&"torch",
-		"Torch",
-		"A pitch torch from the marsh. Keeps the bugs away.",
-		3,
-		ItemData.Category.TOOL
-	))
-	ItemDatabase.register_item(make_item(
-		&"honey",
-		"Honey",
-		"A comb of wild honey, sticky and sweet.",
-		10,
 		ItemData.Category.FOOD
 	))
 
@@ -165,6 +92,8 @@ func make_item(
 	var icon_path := "res://assets/items/%s.svg" % item_id
 	if item.icon == null and ResourceLoader.exists(icon_path):
 		item.icon = load(icon_path) as Texture2D
+	var pixel_icon := PixelItemIcons.get_icon(item_id)
+	if pixel_icon != null: item.icon = pixel_icon
 	item.draw_weight = item_draw_weight
 	item.sell_value = item_sell_value
 	return item

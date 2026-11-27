@@ -29,13 +29,11 @@ func set_occupied(value: bool) -> void:
 		var island := get_parent() as WorldIsland
 		var title := island.scene.get_file().get_basename().replace("_", " ").capitalize()
 		if title == "Island": title = "Coconut Island"
-		caption.text = title + ("\nResting %d:%02d" % [cooldown / 60,cooldown % 60] if cooldown > 0 else ("\nOccupied — wait for your turn" if value else "\nE · Play challenge"))
+		caption.text = title + ("\nResting %d:%02d" % [cooldown / 60,cooldown % 60] if cooldown > 0 else ("\nOccupied — wait for your turn" if value else ""))
 	queue_redraw()
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, 27, Color(0.08, 0.2, 0.2, 0.55))
-	draw_rect(Rect2(-13, -45, 26, 48), Color("765239"))
-	draw_rect(Rect2(-18, -44, 36, 10), Color("e3c17b"))
-	draw_circle(Vector2(-6, -24), 4, Color("e3a459") if occupied else Color("6ee7cc"))
-	draw_circle(Vector2(6, -24), 4, Color("e3a459") if occupied else Color("6ee7cc"))
-	draw_line(Vector2(-7, -10), Vector2(7, -10), Color("e3c17b"), 3)
+	draw_circle(Vector2.ZERO, 27, Color(0.08, 0.2, 0.2, 0.4))
+	var icon := TotemArt.texture(0)
+	var size := icon.get_size() * (80.0 / icon.get_height())
+	draw_texture_rect(icon, Rect2(Vector2(-size.x / 2, -size.y + 8), size), false, Color("a39b86") if occupied else Color.WHITE)

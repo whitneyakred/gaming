@@ -1,5 +1,15 @@
 # Holy Ship multiplayer system and operations guide
 
+Local branch follow-up: [clearing challenges and interaction polish](clearing-challenges.md).
+Puzzles render over island clearings but remain participant-local simulations;
+reservations, rewards and cooldowns retain existing host ownership. Interaction
+prompts send no traffic. Deck swings reuse existing swing serial replication;
+2–3 resource yields are rolled only by the host.
+
+Current website playtest: protocol 23 on `codex/procedural-islands`, with shared
+mining and named markers. See [release and rollback](networking-release-rollback.md)
+and [mining implementation](mining-and-item-art.md). `systems-revamp` is unchanged.
+
 Implementation reference as of November 15, 2026. Start here to understand the
 system; use [release setup](online-services-setup.md) for setup and
 [multiplayer testing](multiplayer-testing.md) for the play-test checklist.

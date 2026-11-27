@@ -43,6 +43,8 @@ func _ready() -> void:
 
 const NAVIGATION = preload("res://scripts/survival/shark_navigation.gd")
 var navigation = NAVIGATION.new()
+var navigation_seed := -1
+var navigation_version := -1
 var routes: Dictionary = {}
 var route_timers: Dictionary = {}
 var shark_rng := RandomNumberGenerator.new()
@@ -142,10 +144,21 @@ func advance_sharks(delta: float, people: Dictionary) -> void:
 	for id in arrival_delays.keys():
 		if not people.has(id): arrival_delays.erase(id)
 	ensure_sharks(mini(MAX_SHARKS, maxi(2, eligible.size() * sharks_per_swimmer)))
-	navigation.obstacles.clear()
-	navigation.obstacles.append(ship.get_hull_polygon(ship.global_position, ship.global_rotation))
-	for island in ship.get_islands(): navigation.obstacles.append(island.get_coast())
-	navigation.prepare()
+	var hull := ship.get_hull_polygon(ship.global_position,ship.global_rotation)
+	if navigation_seed != ship.world_seed or navigation_version != ship.layout_version:
+		navigation_seed = ship.world_seed
+		navigation_version = ship.layout_version
+		navigation.obstacles.clear()
+		navigation.obstacles.append(hull)
+		for island in ship.get_islands(): navigation.obstacles.append(island.get_coast())
+		navigation.prepare()
+		routes.clear()
+		route_timers.clear()
+	else:
+		navigation.obstacles[0] = hull
+		var bounds := Rect2(hull[0],Vector2.ZERO)
+		for point in hull: bounds = bounds.expand(point)
+		navigation.bounds[0] = bounds
 	var claimed := {}
 	for index in sharks.size():
 		var shark: Dictionary = sharks[index]
@@ -269,9 +282,9 @@ func eat(id: int, slot: int) -> bool:
 	var entries := service.inventory.capture()
 	if slot<0 or slot>=entries.size(): return false
 	var item: StringName = entries[slot].get("id", &"")
-	if item not in [&"fish_cod", &"dried_fish"]: return false
+	if item not in [&"fish_cod", &"dried_fish", &"coconut"]: return false
 	service.inventory.remove(slot,1)
-	player.hunger=mini(15,player.hunger+(1 if item==&"fish_cod" else 3))
+	player.hunger=mini(15,player.hunger+(1 if item==&"fish_cod" else (2 if item==&"coconut" else 3)))
 	player.eat_cooldown=0.65
 	player.eat_serial+=1
 	return true

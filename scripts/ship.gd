@@ -80,13 +80,20 @@ var _leaving_island: WorldIsland
 # The island whose shore the hull last touched.
 var _aground_island: WorldIsland
 var world_seed: int = 0
+var layout_version: int = WorldLayout.VERSION
+var foliage: IslandFoliage
+var generation_ms := 0.0
 var survival: SurvivalWorld
 var ocean_fish: OceanFish
 
-func rebuild_world(seed_value: int) -> void:
-	if world_seed == seed_value: return
+func rebuild_world(seed_value: int, version: int = WorldLayout.VERSION) -> void:
+	if world_seed == seed_value and layout_version == version: return
+	var started := Time.get_ticks_usec()
 	world_seed = seed_value
-	WorldLayout.generate(self, world_seed)
+	layout_version = version
+	if version == 1: LegacyWorldLayout.generate(self,world_seed)
+	else: WorldLayout.generate(self,world_seed)
+	generation_ms = (Time.get_ticks_usec()-started)/1000.0
 	if is_instance_valid(ocean_fish): ocean_fish.configure(world_seed, islands_root.get_children())
 
 func _ready() -> void:
@@ -108,6 +115,9 @@ func _ready() -> void:
 	ocean_fish = OceanFish.new()
 	ocean_fish.name = "OceanFish"
 	add_child(ocean_fish)
+	foliage = IslandFoliage.new()
+	foliage.name = "IslandFoliage"
+	add_child(foliage)
 	survival = SurvivalWorld.new()
 	survival.name = "Survival"
 	add_child(survival)
@@ -117,6 +127,9 @@ func _ready() -> void:
 	var journey := ParadiseJourney.new()
 	journey.name = "ParadiseJourney"
 	add_child(journey)
+	var interaction_prompt := preload("res://scripts/ui/interaction_prompt.gd").new()
+	interaction_prompt.name = "InteractionPrompt"
+	add_child(interaction_prompt)
 	var dev_menu := preload("res://scripts/dev/voyage_dev_menu.gd").new()
 	dev_menu.name = "VoyageDevMenu"
 	add_child(dev_menu)

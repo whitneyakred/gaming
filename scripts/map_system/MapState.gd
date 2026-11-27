@@ -27,6 +27,10 @@ var crew_markers: Dictionary = {}
 var pending_marker_until := 0
 const MARKER_COLORS := [Color("ff6464"), Color("58bfff"), Color("78df8c"), Color("e7a2ff")]
 
+func marker_name(id: int) -> String:
+	if not NetworkSession.online: return NetworkSession.clean_name(NetworkSession.local_name)
+	return NetworkSession.clean_name(str(NetworkSession.identities.get(id,{}).get("name","Sailor")))
+
 func marker_color(id: int) -> Color:
 	var ids := NetworkSession.players.keys() if NetworkSession.online else [1]
 	ids.sort()

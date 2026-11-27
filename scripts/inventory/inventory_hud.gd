@@ -229,7 +229,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not storage_open and not grill_open and not get_viewport().gui_is_dragging():
 		var item_id: StringName = service.local_slots[selected].get("id", &"")
-		if item_id in [&"fish_cod", &"dried_fish", &"medpack"]:
+		if item_id in [&"fish_cod", &"dried_fish", &"coconut", &"medpack"]:
 			service.get_node("Eating").start()
 			get_viewport().set_input_as_handled()
 			return
@@ -270,6 +270,7 @@ func pick_cursor(index: int, storage: bool, amount: int = -1) -> void:
 	var slots: Array[Dictionary] = service.storage_view if storage else service.local_slots
 	if index < 0 or index >= slots.size() or slots[index].is_empty(): return
 	var item := ItemDatabase.get_item(slots[index].id)
+	if item == null: return
 	if amount != -1 and item.max_stack <= 1: return
 	cursor_data = {"inventory_drag":true,"index":index,"storage":storage,"amount":amount,"revision":service.view_revision,"service_id":service.get_instance_id(),"chest_session":storage_open,"grill_session":grill_open}
 	cursor_icon.texture = item.icon
@@ -333,6 +334,7 @@ func _place_one(button: InventorySlotButton) -> void:
 	var source: Dictionary = source_slots[cursor_data.index]
 	if source.is_empty(): return
 	var item := ItemDatabase.get_item(source.id)
+	if item == null: return
 	if item.max_stack <= 1: return
 	var remaining: int = int(source.quantity) if cursor_data.amount == -1 else int(cursor_data.amount)
 	if button.is_storage == cursor_data.storage and button.slot_index == cursor_data.index:

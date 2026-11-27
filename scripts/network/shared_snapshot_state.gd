@@ -1,7 +1,7 @@
 class_name SharedSnapshotState
 extends RefCounted
 ## Rarely changing state travels reliably; motion packets reference its revision.
-const KEYS := ["paradise_quest", "island_locks", "discovered", "seed", "storage", "port_storage", "drops", "markers", "fish_taken", "fish_returns"]
+const KEYS := ["foliage","paradise_quest", "island_locks", "discovered", "layout_version", "seed", "storage", "port_storage", "drops", "markers", "fish_taken", "fish_returns"]
 var revision := 0
 var current: Dictionary = {}
 var versions: Dictionary = {}
@@ -71,6 +71,7 @@ static func valid_slots(slots: Variant) -> bool:
 	return true
 
 static func valid(state: Dictionary) -> bool:
+	if not IslandFoliage.valid(state.get("foliage",{})): return false
 	for key in ["markers", "fish_taken", "fish_returns"]:
 		if not state.get(key,{}) is Dictionary: return false
 	if state.get("fish_returns",{}).size() > 32: return false
@@ -87,6 +88,7 @@ static func valid(state: Dictionary) -> bool:
 		if not id is String or id.length() > 80 or not state.fish_taken[id] is float or not is_finite(state.fish_taken[id]): return false
 	for key: String in ["paradise_quest", "island_locks", "discovered", "drops", "bags"]:
 		if not state.get(key) is Dictionary: return false
+	if not state.get("layout_version") is int or state.layout_version not in [1,WorldLayout.VERSION]: return false
 	if not state.get("seed") is int or not valid_slots(state.get("storage")) or not valid_slots(state.get("port_storage")): return false
 	if state.bags.size() > 4: return false
 	for key: Variant in state.paradise_quest:

@@ -115,6 +115,8 @@ func get_ship_storage(capacity: int = 18, chest_id: int = 0) -> ShipInventory:
 		if port_storage == null:
 			port_storage = ShipInventory.new()
 			port_storage.max_inv_space = capacity
+			var pickaxe := ItemDatabase.get_item(&"pickaxe")
+			if pickaxe != null: port_storage.add_items(pickaxe,4)
 		return port_storage
 	if ship_storage == null:
 		ship_storage = ShipInventory.new()
@@ -126,7 +128,8 @@ func grant_starter(inventory: PlayerInventory) -> void:
 		return
 	var rod_granted := inventory.get_quantity(&"fishing_rod") > 0 or inventory.try_add(&"fishing_rod")
 	var spyglass_granted := inventory.get_quantity(&"spyglass") > 0 or inventory.try_add(&"spyglass")
-	if rod_granted and spyglass_granted:
+	var axe_granted := inventory.get_quantity(&"axe") > 0 or inventory.try_add(&"axe")
+	if rod_granted and spyglass_granted and axe_granted:
 		_starter_granted[inventory.player_id] = true
 
 

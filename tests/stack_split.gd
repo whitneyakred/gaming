@@ -47,7 +47,7 @@ func run() -> void:
  service.storage.clear()
  service.player.position = service.storage_position
  service.hud.storage_open = true
- service.inventory.try_add(&"gold_coin",21)
+ service.inventory.try_add(&"coal",21)
  # Use a catalogued stackable item if the currency id differs.
  if service.inventory.slots[0].is_empty(): service.inventory.try_add(&"wood",21)
  await get_tree().process_frame

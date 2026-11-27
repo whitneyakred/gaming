@@ -130,7 +130,11 @@ func start_voyage() -> void:
 	var tween := create_tween()
 	tween.tween_property(curtain, "color:a", 1.0, 0.05 if GameWindow.preferences.reduced_motion else 0.3)
 	await tween.finished
+	var loading := VoyageLoading.show_loading(get_tree())
+	await get_tree().process_frame
+	await get_tree().process_frame
 	GameWindow.start_voyage_music()
+	get_tree().scene_changed.connect(loading.queue_free,CONNECT_ONE_SHOT)
 	get_tree().change_scene_to_file("res://scenes/main.tscn")
 
 func quit_game() -> void:

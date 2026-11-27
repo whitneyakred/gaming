@@ -151,7 +151,7 @@ func _update_speech() -> void:
 
 
 func _fruit_name(fruit: StringName) -> String:
-	var item: ItemData = ItemDatabase.get_item(fruit)
+	var item: ItemData = ChallengeItems.definition(fruit)
 	return item.display_name if item else String(fruit).capitalize()
 
 

@@ -20,6 +20,7 @@ func _process(delta: float) -> void:
 			scale = Vector2.ONE * length / maxf(texture.get_width(), texture.get_height())
 	visible = texture != null and not service.player.using_station and not (item_id == &"fishing_rod" and service.player.fishing_active)
 	visible = visible and not (service.player.is_overboard and not service.player.on_land)
+	visible = visible and service.player.chop_visual <= 0
 	position = Vector2(12, -15 if not service.player.is_overboard else -7)
 	if service.player.idle_sprite is CrewSprite:
 		var facing: int = service.player.idle_sprite.facing
