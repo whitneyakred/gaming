@@ -432,7 +432,7 @@ func command(kind: String, args: Dictionary = {}) -> void:
 			return # Coalesce scroll-wheel bursts; the highlight already changed locally.
 		_flush_local_selection(true) # Equip before a subsequent cast/use on reliable channel 0.
 		var hud = services[local_id].hud
-		if kind == "close" or (kind == "interact" and (hud.storage_open or hud.grill_open)):
+		if kind == "close" or (kind == "interact" and (hud.storage_open or hud.grill_open or hud.crafting_open)):
 			hud.close()
 			_local_close_until = Time.get_ticks_msec() + 2000
 		elif kind == "interact":
@@ -475,12 +475,13 @@ func _apply_hud_state(id: int, entry: Dictionary) -> void:
 	var changed: bool = service.hud.selected != selection
 	service.hud.selected = selection
 	service.select_chest(int(entry.get("chest_id", 0)))
-	var closed: bool = not entry.chest and not entry.get("grill_open", false)
+	var closed: bool = not entry.chest and not entry.get("grill_open", false) and not entry.get("crafting_open", false)
 	if id == local_id and closed: _local_close_until = 0
 	var closing := id == local_id and Time.get_ticks_msec() < _local_close_until
 	service.hud.storage_open = entry.chest and not closing
 	service.hud.grill_open = entry.get("grill_open", false) and not closing
-	service.player.inventory_open = service.hud.storage_open or service.hud.grill_open
+	service.hud.crafting_open = entry.get("crafting_open", false) and not closing
+	service.player.inventory_open = service.hud.storage_open or service.hud.grill_open or service.hud.crafting_open
 	if changed: service.hud._refresh()
 
 @rpc("any_peer", "call_remote", "reliable", 0)
@@ -549,8 +550,12 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 			if player.fishing_active:
 				fishing.cancel()
 				return
-			if service.hud.storage_open or service.hud.grill_open:
+			if service.hud.storage_open or service.hud.grill_open or service.hud.crafting_open:
 				service.hud.close()
+				return
+			if service.near_crafting():
+				service.hud.crafting_open = true
+				player.inventory_open = true
 				return
 			if service.grill_is_nearest():
 				service.hud.grill_open = true
@@ -571,6 +576,9 @@ func _handle_command(id: int, kind: String, args: Dictionary) -> void:
 				if not nearest.try_take_control(player):
 					service.feedback.emit("That station is occupied.")
 
+		"craft":
+			if args.get("action") is String and args.get("revision") is int:
+				ship.get_node("Crafting").craft(service, args.action, args.revision)
 		"grill":
 			ship.get_node("Cooking").handle(service, args)
 		"close": service.hud.close()
@@ -705,7 +713,8 @@ func _physics_process(delta: float) -> void:
 			service.hud.close()
 		if service.hud.grill_open and not ship.get_node("Cooking").near(service):
 			service.hud.close()
-		player.inventory_open = service.hud.storage_open or service.hud.grill_open
+		if service.hud.crafting_open and not service.near_crafting(): service.hud.close()
+		player.inventory_open = service.hud.storage_open or service.hud.grill_open or service.hud.crafting_open
 		if id == local_id:
 			_move_input(player, move, delta)
 		else:
@@ -763,7 +772,7 @@ func _send_snapshot() -> void:
 		crew[id] = {"chop":player.chop_serial,"chop_direction":player.chop_direction,"island_challenge": player.island_challenge, "heal":player.heal_serial,"splash":player.splash_serial,"splash_position":player.splash_position,"eat": player.eat_serial, "health": player.health, "hunger": player.hunger, "hurt": player.hurt_serial, "respawn": player.respawn_serial, "danger": player.danger_time, "ack": inputs[id].get("ack", inputs[id].get("sequence", -1)), "name": identities[id].name, "position": player.position, "outside": player.is_overboard, "land": player.on_land,
 			"station": str(player.active_station.name) if player.using_station else "", "inventory": _capture_bag(service.inventory),
 			"access_motion": player.access_motion, "access_progress": player.access_progress,
-			"selected": service.hud.selected, "chest": service.hud.storage_open, "chest_id": service.active_chest_id, "grill_open": service.hud.grill_open, "revision": service.view_revision, "pickup_serial": service.pickup_serial, "drop_serial": service.drop_serial,
+			"selected": service.hud.selected, "chest": service.hud.storage_open, "chest_id": service.active_chest_id, "grill_open": service.hud.grill_open, "crafting_open": service.hud.crafting_open, "revision": service.view_revision, "pickup_serial": service.pickup_serial, "drop_serial": service.drop_serial,
 			"fish": {"catch_length":fishing.catch_length,"catch_angle":fishing.catch_angle,"catch_phase":fishing.catch_phase,"catch_speed":fishing.catch_speed,"catch_id": fishing.catch_id, "catch_species": fishing.catch_species, "catch_position": fishing.catch_position, "attached": fishing._cast_from_ship, "ship_target": fishing._ship_target, "ship_origin": fishing._ship_origin, "replay": fishing.replay_frame, "attempt": fishing.attempt_id, "seed": fishing.fight_seed, "state": int(fishing.state), "target": fishing.target, "origin": fishing.cast_origin, "clock": fishing.clock,
 				"progress": fishing.fight.progress, "tension": fishing.fight.tension, "green": fishing.fight.green_center,
 				"width": fishing.fight.green_width, "danger": fishing.fight.danger, "held": fishing.held, "catches": fishing.visual_catches}}
@@ -885,7 +894,7 @@ static func valid_snapshot(data: Dictionary) -> bool:
 		var entry: Dictionary = data.crew[id]
 		if not _fields(entry, {"name": TYPE_STRING, "position": TYPE_VECTOR2, "outside": TYPE_BOOL, "land": TYPE_BOOL, "station": TYPE_STRING, "selected": TYPE_INT, "chest": TYPE_BOOL, "revision": TYPE_INT, "fish": TYPE_DICTIONARY}): return false
 		if entry.station not in ["", "Helm", "Sail", "Anchor", "Galley"] or not SharedSnapshotState.valid_slots(entry.get("inventory")): return false
-		if not _optional_fields(entry, {"chop":TYPE_INT,"chop_direction":TYPE_VECTOR2,"heal":TYPE_INT,"splash":TYPE_INT,"splash_position":TYPE_VECTOR2,"ack": TYPE_INT, "health": TYPE_INT, "hunger": TYPE_INT, "eat": TYPE_INT, "hurt": TYPE_INT, "respawn": TYPE_INT, "danger": TYPE_FLOAT, "island_challenge": TYPE_BOOL, "access_motion": TYPE_STRING_NAME, "access_progress": TYPE_FLOAT, "chest_id": TYPE_INT, "grill_open": TYPE_BOOL, "pickup_serial": TYPE_INT, "drop_serial": TYPE_INT}): return false
+		if not _optional_fields(entry, {"chop":TYPE_INT,"chop_direction":TYPE_VECTOR2,"heal":TYPE_INT,"splash":TYPE_INT,"splash_position":TYPE_VECTOR2,"ack": TYPE_INT, "health": TYPE_INT, "hunger": TYPE_INT, "eat": TYPE_INT, "hurt": TYPE_INT, "respawn": TYPE_INT, "danger": TYPE_FLOAT, "island_challenge": TYPE_BOOL, "access_motion": TYPE_STRING_NAME, "access_progress": TYPE_FLOAT, "chest_id": TYPE_INT, "grill_open": TYPE_BOOL, "crafting_open": TYPE_BOOL, "pickup_serial": TYPE_INT, "drop_serial": TYPE_INT}): return false
 		if not _fields(entry.fish, {"attempt": TYPE_INT, "seed": TYPE_INT, "state": TYPE_INT, "target": TYPE_VECTOR2, "origin": TYPE_VECTOR2, "clock": TYPE_FLOAT, "progress": TYPE_FLOAT, "tension": TYPE_FLOAT, "green": TYPE_FLOAT, "width": TYPE_FLOAT, "danger": TYPE_FLOAT, "held": TYPE_BOOL, "catches": TYPE_INT}): return false
 		if not _optional_fields(entry.fish, {"catch_length":TYPE_FLOAT,"catch_angle":TYPE_FLOAT,"catch_phase":TYPE_FLOAT,"catch_speed":TYPE_FLOAT,"catch_id": TYPE_STRING, "catch_species": TYPE_INT, "catch_position": TYPE_VECTOR2}): return false
 		if str(entry.fish.get("catch_id", "")).length() > 80 or int(entry.fish.get("catch_species", 0)) not in range(6): return false

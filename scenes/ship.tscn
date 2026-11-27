@@ -19,6 +19,8 @@
 
 [ext_resource type="Script" path="res://scripts/sailing/swim_access.gd" id="swim_access"]
 
+[ext_resource type="PackedScene" path="res://scenes/inventory/crafting_station.tscn" id="crafting"]
+
 [sub_resource type="RectangleShape2D" id="SternShape"]
 size = Vector2(44, 40)
 
@@ -513,3 +515,6 @@ script = ExtResource("swim_access")
 
 
 
+
+[node name="Crafting" parent="." instance=ExtResource("crafting")]
+position = Vector2(3, -177)

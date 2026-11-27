@@ -67,6 +67,7 @@ static func valid_slots(slots: Variant) -> bool:
 		if not slot is Dictionary: return false
 		if slot.is_empty(): continue
 		if not (slot.get("id") is String or slot.get("id") is StringName) or not slot.get("quantity") is int: return false
+		if slot.has("durability") and (not slot.durability is int or slot.durability < 1 or slot.durability > 999): return false
 		if slot.quantity < 1 or slot.quantity > 999999: return false
 	return true
 

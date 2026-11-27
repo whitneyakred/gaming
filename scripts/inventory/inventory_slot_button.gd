@@ -120,6 +120,11 @@ func _draw() -> void:
 	if item != null and item.icon != null:
 		var icon_size := Vector2.ONE * minf(48 if item.id == &"medpack" else 42, size.x - 18 if item.id == &"medpack" else size.x - 24)
 		draw_texture_rect(item.icon, Rect2((size - icon_size) / 2, icon_size), false)
+	if item != null and item.max_durability > 0:
+		var ratio := clampf(float(entry.get("durability", item.max_durability)) / item.max_durability, 0, 1)
+		var bar := Rect2(10, size.y - 13, size.x - 20, 5)
+		draw_rect(bar.grow(1), Color("211c20"))
+		draw_rect(Rect2(bar.position, Vector2(bar.size.x * ratio, bar.size.y)), Color("6cbb72") if ratio > 0.5 else (Color("e6b953") if ratio > 0.25 else Color("d65d50")))
 	if not entry.is_empty() and int(entry.quantity) > 1:
 		draw_string(font, Vector2(size.x - 30, size.y - 10), str(entry.quantity), HORIZONTAL_ALIGNMENT_RIGHT, 20, 15, Color("493329") if parchment_slot else Color("fff1cc"))
 	if selected and not parchment_slot:

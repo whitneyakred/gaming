@@ -10,6 +10,7 @@ enum Category {
 @export var id: StringName
 @export var display_name: String
 @export_multiline var description: String
+@export_range(0, 999) var max_durability: int = 0
 @export var max_stack: int = 1
 @export var icon: Texture2D
 @export var category: Category = Category.FOOD

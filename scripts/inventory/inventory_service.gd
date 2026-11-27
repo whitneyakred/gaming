@@ -167,6 +167,7 @@ func _spawn_drop(entry: Dictionary, point: Vector2) -> void:
 		next_drop_id = NetworkSession.dropped_id
 		NetworkSession.dropped_id += 1
 	drops[next_drop_id] = {"id": entry.id, "quantity": entry.quantity, "position": point, "world": player.is_overboard, "age": 0.0}
+	if entry.has("durability"): drops[next_drop_id]["durability"] = entry.durability
 	pickup_inside[next_drop_id] = player.position.distance_to(point) <= pickup_distance
 	next_drop_id += 1
 
@@ -187,7 +188,7 @@ func server_pickups() -> void:
 		if pickup_inside.get(id, false):
 			continue
 		pickup_inside[id] = true
-		var added := inventory.add_items(ItemDatabase.get_item(entry.id), entry.quantity)
+		var added := inventory.add_items(ItemDatabase.get_item(entry.id), entry.quantity, entry.get("durability", -1))
 		if added == 0:
 			continue
 		pickup_serial += 1
@@ -207,3 +208,10 @@ func publish() -> void:
 
 
 
+
+func wear_tool(index: int) -> void:
+	if inventory.wear(index): feedback.emit("Your tool broke! Craft a replacement at the workbench.")
+
+func near_crafting() -> bool:
+	var bench := get_parent().get_node_or_null("Crafting")
+	return bench != null and bench.near(self)

@@ -38,7 +38,7 @@ func _process(delta: float) -> void:
 		crumb.position += crumb.velocity * delta
 	crumbs = crumbs.filter(func(c): return c.life > 0)
 	if active:
-		if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or not DisplayServer.window_is_focused() or not service.can_handle_items() or service.hud.storage_open or service.hud.grill_open or service.player.fishing_active or service.hud.selected != slot or service.local_slots[slot].get("id", &"") != item or (service.player.health >= 15 if item == &"medpack" else service.player.hunger >= 15):
+		if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or not DisplayServer.window_is_focused() or not service.can_handle_items() or service.hud.storage_open or service.hud.grill_open or service.hud.crafting_open or service.player.fishing_active or service.hud.selected != slot or service.local_slots[slot].get("id", &"") != item or (service.player.health >= 15 if item == &"medpack" else service.player.hunger >= 15):
 			active = false
 			if item == &"medpack": medical_command("cancel")
 			elapsed = 0.0

@@ -72,6 +72,23 @@ func run() -> void:
 		NetworkSession.save_world()
 		var saved := VoyageSaves.world(2)
 		check(saved.storage[0].quantity == 7 and saved.port_storage[0].quantity == 5, "both inventories written to actual save file")
+		captain.hud.close()
+		guest.hud.close()
+		guest.player.position = Vector2(3, -143)
+		guest.inventory.clear()
+		guest.inventory.try_add(&"wood", 3)
+		guest.inventory.try_add(&"stone", 2)
+		await wait(0.7)
+		phase("craft_open")
+		await wait(0.7)
+		check(guest.hud.crafting_open, "guest opens bow workbench on host")
+		phase("craft_axe")
+		await wait(0.7)
+		check(guest.inventory.get_quantity(&"axe") == 1 and guest.inventory.get_quantity(&"wood") == 0, "host crafts guest axe and consumes ingredients")
+		guest.inventory.wear(0, 7)
+		await wait(0.7)
+		phase("craft_verify")
+		await wait(0.7)
 		phase("done")
 		await wait(0.8)
 		NetworkSession.leave()
@@ -95,6 +112,12 @@ func run() -> void:
 			if not NetworkSession.services.has(NetworkSession.local_id): continue
 			var service = NetworkSession.services[NetworkSession.local_id]
 			match current:
+				"craft_open": NetworkSession.command("interact")
+				"craft_axe":
+					check(service.hud.crafting_open, "guest receives crafting panel state")
+					NetworkSession.command("craft", {"action":"axe", "revision":service.view_revision})
+				"craft_verify":
+					check(service.local_slots[0].get("id") == &"axe" and service.local_slots[0].get("durability") == 23, "guest receives crafted tool durability")
 				"open": NetworkSession.command("interact")
 				"take":
 					check(service.active_chest_id == 1 and service.storage_view[0].id == &"coal", "client sees left contents")

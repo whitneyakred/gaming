@@ -84,6 +84,7 @@ func make_item(
 ) -> ItemData:
 	var item := ItemData.new()
 	item.id = item_id
+	item.max_durability = {&"axe": 30, &"pickaxe": 30, &"fishing_rod": 20}.get(item_id, 0)
 	item.display_name = item_display_name
 	item.description = item_description
 	item.max_stack = item_max_stack

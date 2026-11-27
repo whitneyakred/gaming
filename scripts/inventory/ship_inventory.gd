@@ -45,7 +45,7 @@ func capacity_for(item: ItemData) -> int:
 			room += maxi(0, item.max_stack - int(entry.quantity))
 	return room
 
-func add_items(item: ItemData, amount: int) -> int:
+func add_items(item: ItemData, amount: int, durability: int = -1) -> int:
 	if amount <= 0 or capacity_for(item) == 0:
 		return 0
 	_definitions[item.id] = item
@@ -61,6 +61,8 @@ func add_items(item: ItemData, amount: int) -> int:
 		if slots[index].is_empty():
 			var moved := mini(remaining, item.max_stack)
 			slots[index] = {"id": item.id, "quantity": moved}
+			if item.max_durability > 0:
+				slots[index]["durability"] = item.max_durability if durability < 0 else clampi(durability, 1, item.max_durability)
 			remaining -= moved
 	if remaining != amount:
 		_notify()
@@ -78,7 +80,7 @@ func transfer_to(index: int, target: ShipInventory) -> int:
 	if target == self or index < 0 or index >= slots.size() or slots[index].is_empty():
 		return 0
 	var entry := slots[index].duplicate()
-	var moved := target.add_items(definition(entry.id), entry.quantity)
+	var moved := target.add_items(definition(entry.id), entry.quantity, entry.get("durability", -1))
 	remove(index, moved)
 	return moved
 
@@ -95,6 +97,7 @@ func move_to(index: int, target: ShipInventory, destination: int, amount: int = 
 	if item == null:
 		return false
 	if amount != -1:
+		if item.max_durability > 0: return false
 		if amount <= 0 or amount > int(source.quantity): return false
 		if not other.is_empty() and other.id != source.id: return false
 		var room: int = item.max_stack - int(other.get("quantity", 0))
@@ -109,7 +112,7 @@ func move_to(index: int, target: ShipInventory, destination: int, amount: int = 
 		if target != self: target._notify()
 		return true
 	target._definitions[source.id] = item
-	if not other.is_empty() and source.id == other.id:
+	if not other.is_empty() and source.id == other.id and item.max_durability == 0:
 		var moved := mini(int(source.quantity), maxi(0, item.max_stack - int(other.quantity)))
 		if moved == 0:
 			return false
@@ -138,3 +141,13 @@ func _notify() -> void:
 	revision += 1
 	inventory_changed.emit()
 	emit_changed()
+
+func wear(index: int, amount: int = 1) -> bool:
+	if index < 0 or index >= slots.size() or slots[index].is_empty() or amount <= 0: return false
+	var item := definition(slots[index].id)
+	if item == null or item.max_durability <= 0: return false
+	var remaining: int = int(slots[index].get("durability", item.max_durability)) - amount
+	if remaining <= 0: slots[index] = {}
+	else: slots[index]["durability"] = remaining
+	_notify()
+	return remaining <= 0

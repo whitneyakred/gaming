@@ -33,7 +33,7 @@ func _ready() -> void:
 func can_scout() -> bool:
 	if service == null or service.hud == null or not service.can_handle_items():
 		return false
-	if service.hud.storage_open or service.hud.grill_open or get_viewport().gui_is_dragging():
+	if service.hud.storage_open or service.hud.grill_open or service.hud.crafting_open or get_viewport().gui_is_dragging():
 		return false
 	var index: int = service.hud.selected
 	return index >= 0 and index < service.local_slots.size() and service.local_slots[index].get("id", &"") == &"spyglass"

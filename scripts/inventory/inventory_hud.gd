@@ -4,6 +4,8 @@ const HOTBAR_SLOTS: int = 4
 var service: InventoryService
 var selected: int = 0
 var storage_open: bool = false
+var crafting_open: bool = false
+var crafting_panel: PanelContainer
 var grill_open: bool = false
 var grill_panel: Control
 var hotbar: Control
@@ -82,6 +84,10 @@ func bind_service(value: InventoryService) -> void:
 	add_child(grill_panel)
 	grill_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	grill_panel.hide()
+	crafting_panel = preload("res://scripts/inventory/workbench_panel.gd").new()
+	crafting_panel.hud = self
+	add_child(crafting_panel)
+	crafting_panel.hide()
 	hint = _label("", 14, Color("ead7ad"))
 	add_child(hint)
 	hint.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -186,6 +192,7 @@ func close() -> void:
 	cancel_cursor()
 	storage_open = false
 	grill_open = false
+	crafting_open = false
 	if is_instance_valid(service.player):
 		service.player.set("inventory_open", false)
 
@@ -203,10 +210,12 @@ func _process(delta: float) -> void:
 		else:
 			cursor_icon.position = _cursor_position - Vector2(21,21)
 			cursor_count.position = _cursor_position + Vector2(7,9)
-	service.player.set("inventory_open", storage_open or grill_open)
+	service.player.set("inventory_open", storage_open or grill_open or crafting_open)
 	hotbar.visible = not MapState.map_open
 	if grill_open and not service.get_parent().get_node("Cooking").near(service):
 		close()
+	if crafting_open and not service.near_crafting(): close()
+	crafting_panel.visible = crafting_open
 	grill_panel.visible = grill_open
 	panels.visible = storage_open
 	chest_panel.visible = storage_open
@@ -219,7 +228,7 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if service == null or event.is_echo():
 		return
-	if event.is_action_pressed("ui_cancel") and (storage_open or grill_open):
+	if event.is_action_pressed("ui_cancel") and (storage_open or grill_open or crafting_open):
 		if NetworkSession.online:
 			NetworkSession.command("close")
 		close()
@@ -227,7 +236,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not service.can_handle_items():
 		return
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not storage_open and not grill_open and not get_viewport().gui_is_dragging():
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not storage_open and not grill_open and not crafting_open and not get_viewport().gui_is_dragging():
 		var item_id: StringName = service.local_slots[selected].get("id", &"")
 		if item_id in [&"fish_cod", &"dried_fish", &"coconut", &"medpack"]:
 			service.get_node("Eating").start()
@@ -239,8 +248,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			NetworkSession.command("interact")
 			get_viewport().set_input_as_handled()
 			return
-		if storage_open or grill_open:
+		if storage_open or grill_open or crafting_open:
 			close()
+			handled = true
+		elif service.near_crafting():
+			crafting_open = true
 			handled = true
 		elif service.grill_is_nearest():
 			grill_open = true
@@ -260,7 +272,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if handled:
 		if NetworkSession.online:
 			NetworkSession.command("select", {"index": selected})
-		service.player.set("inventory_open", storage_open or grill_open)
+		service.player.set("inventory_open", storage_open or grill_open or crafting_open)
 		_refresh()
 		get_viewport().set_input_as_handled()
 

@@ -131,7 +131,7 @@ func rod_selected() -> bool:
 
 func can_fish() -> bool:
 	var local_drag := get_viewport().gui_is_dragging() and (not NetworkSession.online or service.network_id == NetworkSession.local_id)
-	return rod_selected() and service.can_handle_items() and not service.hud.storage_open and not service.hud.grill_open and not local_drag
+	return rod_selected() and service.can_handle_items() and not service.hud.storage_open and not service.hud.grill_open and not service.hud.crafting_open and not local_drag
 
 func is_water(point: Vector2) -> bool:
 	if is_instance_valid(_ship):
@@ -365,6 +365,8 @@ func finish(success: bool, message: String = "", snapped: bool = true) -> void:
 		field.returns[catch_id] = {"position":catch_mesh.global_position,"angle":catch_mesh.global_rotation,"time":field.shared_time(),"duration":3.0}
 	var claimed := _ship.ocean_fish.release_fish(catch_id,owner_id(),success) if is_instance_valid(_ship) else false
 	success = success and claimed
+	if (success or snapped) and (not NetworkSession.online or multiplayer.is_server()):
+		service.wear_tool(service.hud.selected)
 	catch_id = ""
 	catch_mesh.hide()
 	state = State.IDLE

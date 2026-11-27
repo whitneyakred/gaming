@@ -215,6 +215,7 @@ func chop(service: InventoryService, point: Vector2, slot: int) -> bool:
 	if best.is_empty(): return true
 	# Never consume a tree if the bounded shared floor inventory cannot hold loot.
 	if service.drops.size() >= 250: return true
+	service.wear_tool(slot)
 	var hits: int = changes.get(best,{}).get("hits",0)+1
 	changes[best] = {"hits":hits,"until":now+regrow_seconds if hits==3 else 0.0}
 	flashes[best] = 0.35
