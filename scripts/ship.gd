@@ -127,6 +127,9 @@ func _ready() -> void:
 	var journey := ParadiseJourney.new()
 	journey.name = "ParadiseJourney"
 	add_child(journey)
+	var interaction_prompt := preload("res://scripts/ui/interaction_prompt.gd").new()
+	interaction_prompt.name = "InteractionPrompt"
+	add_child(interaction_prompt)
 	var dev_menu := preload("res://scripts/dev/voyage_dev_menu.gd").new()
 	dev_menu.name = "VoyageDevMenu"
 	add_child(dev_menu)
