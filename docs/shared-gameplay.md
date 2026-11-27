@@ -51,8 +51,10 @@ revision channel, not repeated full data in every motion packet.
 
 - M or Tab toggles the map. Closed-map markers are plain circles on a layer above
   the health/hunger HUD.
-- Click/tap the map to set your one destination. C clears your destination.
-  No extra pin tool. Up to four crew destinations use distinct colors; positions
+- Click/tap inside the map to place your filled destination dot. If you already
+  have one, the next click/tap anywhere inside the map clears it; click again to
+  place a new one. The C shortcut has been removed.
+  No extra pin tool. Four crew destinations use red, blue, green and purple; positions
   are validated and ownership comes from the sender. Departed crew markers clear.
   Local marker drawing is immediate; a pending edit survives older snapshots.
 - Closed-map world/edge markers show distance from the local sailor. The map has

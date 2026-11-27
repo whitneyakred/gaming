@@ -84,10 +84,43 @@ func run() -> void:
 	NetworkSession._handle_command(2,"marker",{"point":Vector2(INF,0)})
 	check(NetworkSession.crew_markers[2]==Vector2(100,200),"Invalid coordinate cannot mutate marker")
 	check(MapState.marker_color(1)!=MapState.marker_color(2),"Crew markers have distinct colors")
+	NetworkSession.players = {1:service.player,19:service.player,37:service.player,99:service.player}
+	var colors := {}
+	for id in NetworkSession.players: colors[MapState.marker_color(id)] = true
+	check(colors.size()==4,"Four arbitrary peer IDs receive four distinct marker colors")
 	NetworkSession.online=false
 	NetworkSession.players.clear()
 	NetworkSession.services.clear()
 	NetworkSession.crew_markers.clear()
+	MapState.reset()
+	var map_ui := ship.get_node("MapUI")
+	var canvas := map_ui.get_node("MapCanvas")
+	map_ui.open_map()
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	click.position = canvas.get_map_rect().get_center()
+	canvas._gui_input(click)
+	check(MapState.has_destination,"Map click places first dot")
+	MapState.crew_markers[2] = Vector2(300,400)
+	click.position += Vector2(20,20)
+	canvas._gui_input(click)
+	check(not MapState.has_destination and MapState.crew_markers.has(2) and not MapState.crew_markers.has(1),"Second map click clears only local dot instead of moving it")
+	canvas._gui_input(click)
+	check(MapState.has_destination,"Third map click places a new dot")
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_C
+	key.pressed = true
+	map_ui._input(key)
+	check(MapState.has_destination,"C no longer clears destination")
+	# Old authoritative snapshots must not resurrect a locally cleared marker.
+	MapState.has_destination = false
+	MapState.pending_marker_until = Time.get_ticks_msec()+2000
+	MapState.accept_markers({1:Vector2(100,200),2:Vector2(300,400)})
+	check(not MapState.crew_markers.has(1) and MapState.crew_markers.has(2),"Delayed snapshot cannot undo pending local clear")
+	MapState.accept_markers({2:Vector2(300,400)})
+	check(MapState.pending_marker_until==0,"Authoritative clear acknowledges pending marker edit")
+	map_ui.close_map()
 	MapState.reset()
 	if "--capture" in OS.get_cmdline_user_args():
 		GameWindow.set_preference("fullscreen",false)

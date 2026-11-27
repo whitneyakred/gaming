@@ -56,7 +56,8 @@ func _gui_input(event: InputEvent) -> void:
 
 	var world_position := map_to_world(event.position)
 	if event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
-		MapState.set_destination(world_position)
+		if MapState.has_destination: MapState.clear_destination()
+		else: MapState.set_destination(world_position)
 	else: return
 
 	accept_event()
@@ -137,7 +138,7 @@ func _draw() -> void:
 	for id: int in MapState.crew_markers:
 		var point := world_to_map(MapState.crew_markers[id])
 		var color := MapState.marker_color(id)
-		draw_circle(point, 9.0, color, false, 2.5)
+		draw_circle(point, 5.0, color)
 
 	if MapState.has_paradise_position:
 		var paradise_map_position := world_to_map(MapState.paradise_position)

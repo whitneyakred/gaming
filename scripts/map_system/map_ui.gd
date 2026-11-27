@@ -30,10 +30,6 @@ func _input(event: InputEvent) -> void:
 		close_map()
 		get_viewport().set_input_as_handled()
 
-	elif event is InputEventKey:
-		if event.pressed and event.physical_keycode == KEY_C:
-			MapState.clear_destination()
-			get_viewport().set_input_as_handled()
 
 func open_map() -> void:
 	MapState.map_open = true
