@@ -1,5 +1,26 @@
 # Networking playtest release and rollback
 
+## November 27 generated-island forestry playtest (protocol 22)
+
+- Source: `b28d0e4`, local `codex/procedural-islands` branch. No GitHub push or merge; `systems-revamp` remains `3a26492bd39a856a15e8f7761b0519d3f52daf88`.
+- Website: https://holy-ship.pages.dev/play/
+- Pages: `31d6f0c5-e4d9-4b13-b367-f15461c181b7`.
+- Worker: `c15e1b91-8447-4179-973d-5d58de2d52c2`.
+- Rollback pair: Pages `4ace7b4b-d39a-4806-a4c3-0a1b84cc0cb9`, Worker `967e3ad0-3039-4a0d-ae0a-70325fb20855` (protocol 20). Restore both together.
+
+Pages' existing production channel is named `systems-revamp`; the direct upload
+uses that channel but contains the feature branch's export. It does not update
+the Git branch. Live HTML, JavaScript and decompressed PCK hashes match the local
+export, and `/api/health` reports protocol 22.
+The deployed website also passed a two-browser host/join, direct WebRTC traffic,
+movement/hotbar and forced-relay-fallback smoke test without runtime errors.
+
+Refresh both devices and use a new voyage in an empty slot. Old voyages retain
+legacy terrain. Do not overwrite a rollback save: protocol 20 may reject saves
+rewritten by protocol 22. See [forestry](island-forestry.md) for controls,
+artwork provenance, limitations and test evidence. No new paid services or
+runtime dependencies were added.
+
 ## November 26 map-dot playtest build (protocol 20)
 
 - Source: `89e6b5d` (map change `805bf97`), existing `systems-revamp` branch.

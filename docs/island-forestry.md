@@ -4,7 +4,7 @@ This feature lives on `codex/procedural-islands`; `systems-revamp` remains at `3
 
 ## Playing
 
-Start a new voyage in an empty save slot to get generated islands and a starter axe. Old voyages intentionally retain their original terrain. Select the axe in the hotbar, approach a tree and click or tap toward its trunk. Three successful chops create a stump and drop three wood. Walk over the wood to collect it. Stumps regrow after five minutes of active host simulation; remaining regrowth time survives a save/reload. Bushes are decorative and sway in the wind. Ores and pickaxes are not included.
+Start a new voyage in an empty save slot to get generated islands and a starter axe. Old voyages intentionally retain their original terrain. Select the axe in the hotbar, approach a tree and click or tap toward its trunk. Three successful chops create a stump and drop three wood. Walk over the wood to collect it. Stumps regrow after five minutes on the host clock; remaining regrowth time survives a save/reload, without counting time while the save is closed. Bushes are decorative and sway in the wind. Ores and pickaxes are not included.
 
 The beach-to-clearing paths have been removed. Minigame clearings and their approaches remain free of foliage. Four tree silhouettes and two bush silhouettes vary in scale, position and sway phase. Tree hits shake the crown, throw wood chips and play a wooden impact; the final hit fades/tilts the crown into a stump. Swing, impact and felling audio are synthesized locally without a new dependency. The character turns, leans and swings an attached axe/hand; this is procedural animation using the existing character art, not a new character sprite sheet.
 
