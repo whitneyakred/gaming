@@ -51,6 +51,10 @@ func run() -> void:
 	await get_tree().process_frame
 	check(is_instance_valid(service.hud.grill_panel.activity),"Teammate activity opens locally")
 	check(service.hud.grill_panel.activity.has_signal("completed"),"Existing teammate minigame result boundary retained")
+	check(service.hud.grill_panel.activity.fish_texture != null and service.hud.grill_panel.activity.knife_texture != null,"Updated teammate artwork loaded")
+	service.hud.grill_panel.activity.stage = 3
+	service.hud.grill_panel.activity._advance()
+	check(service.hud.grill_panel.activity.stage == 5,"Updated teammate recipe skips water")
 	service.hud.close()
 	grill._process(0.01)
 	check(not grill.cooking(),"Closing activity releases shared station")

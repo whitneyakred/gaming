@@ -2,7 +2,7 @@
 
 Walk next to the galley and press **E**, then **Prepare fish**. One raw **Fish**
 starts the teammate's cooking activity from `main`: slice potato, add pieces,
-slice fish, add pieces, pour water, and control heat. Follow its on-screen guide
+slice fish, add pieces, and control heat. The refreshed teammate version skips water. Follow its on-screen guide
 and **Serve** to finish. The activity runs locally, so pointer motion does not
 wait on the network. A successful served meal gives one **Cooked Fish**; a served
 zero-star result burns it.

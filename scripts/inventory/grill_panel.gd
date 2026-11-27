@@ -49,7 +49,7 @@ func _process(_delta: float) -> void:
 		playing_token = -1
 	if not visible: return
 	menu.get_parent().visible = model.active_id != id
-	status.text = "Galley — one fish per meal" if model.active_id == 0 else "Another sailor is cooking…"
+	status.text = "Food Preparation Table" if model.active_id == 0 else "Another sailor is cooking…"
 	start.disabled = model.active_id != 0
 	recover.visible = not model.fish.is_empty() or not model.fuel.is_empty()
 	if model.active_id == id and playing_token != model.token and submitted_token != model.token:
