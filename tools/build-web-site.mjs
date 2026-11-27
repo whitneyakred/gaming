@@ -4,7 +4,7 @@ import path from 'node:path';
 const root=path.resolve(import.meta.dirname,'..');
 const out=path.join(root,'online-service/public');
 await mkdir(path.join(out,'play'),{recursive:true});
-for(const file of ['index.html','style.css'])await copyFile(path.join(root,'web-site',file),path.join(out,file));
+for(const file of ['index.html','style.css','ocean.js'])await copyFile(path.join(root,'web-site',file),path.join(out,file));
 await copyFile(path.join(root,'assets/menus/title_wordmark.png'),path.join(out,'logo.png'));
 await copyFile(path.join(root,'builds/web/index.icon.png'),path.join(out,'icon.png'));
 for(const name of await readdir(path.join(root,'builds/web'))){
@@ -36,3 +36,6 @@ await copyFile(path.join(root,'assets/menus/title_wreck_wood.png'),path.join(out
 await copyFile(path.join(root,'assets/menus/menu_plank.png'),path.join(out,'plank.png'));
 await copyFile(path.join(root,'assets/fonts/PixelifySans.ttf'),path.join(out,'PixelifySans.ttf'));
 await copyFile(path.join(root,'assets/fonts/OFL.txt'),path.join(out,'font-license.txt'));
+await copyFile(path.join(root,'assets/fonts/rye/Rye-Regular.ttf'),path.join(out,'Rye-Regular.ttf'));
+await copyFile(path.join(root,'assets/fonts/rye/OFL.txt'),path.join(out,'rye-license.txt'));
+await copyFile(path.join(root,'assets/menus/shark_swim_upright.png'),path.join(out,'shark.png'));
