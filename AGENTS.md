@@ -14,4 +14,4 @@
 - Validate untrusted network messages as objects with the expected field types before reading properties; malformed traffic must not break other players' sessions. Source: [VoyageRoom review](docs/room-error-review.md). This review-derived rule still requires a reviewed, merged PR for Checkpoint 3 evidence.
 - Never remove a `Co-Authored-By` trailer. Do not add dependencies without explaining their purpose, license, maintenance and existing alternatives in the PR.
 
-- Do not push branches or commits to GitHub; the user handles all pushes. Local commits and authorized website deployment are allowed.
+- GitHub pushes to existing branches are allowed when requested. Do not create or push new branches unless the user asks. Local commits and authorized website deployment are allowed.
