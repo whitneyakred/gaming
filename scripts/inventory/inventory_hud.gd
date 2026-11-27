@@ -80,11 +80,7 @@ func bind_service(value: InventoryService) -> void:
 	grill_panel = preload("res://scripts/inventory/grill_panel.gd").new()
 	grill_panel.hud = self
 	add_child(grill_panel)
-	grill_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
-	grill_panel.offset_left = -402
-	grill_panel.offset_right = -24
-	grill_panel.offset_top = -240
-	grill_panel.offset_bottom = 198
+	grill_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	grill_panel.hide()
 	hint = _label("", 14, Color("ead7ad"))
 	add_child(hint)
@@ -172,9 +168,7 @@ func quick_transfer(index: int, from_storage: bool) -> void:
 	if grill_open and not from_storage:
 		var entry: Dictionary = service.local_slots[index]
 		var id: StringName = entry.get("id", &"")
-		var model: ShipGrill = service.get_parent().get_node("Cooking")
-		var n := model.fish.size()
-		request_grill({"action": "fuel" if id in [&"wood", &"coal"] else "fish", "index": index, "revision": service.view_revision, "point": Vector2(0.12 + (n % 4) * 0.25, 0.3 + (n / 4) * 0.45)})
+		if id == &"fish_cod": request_grill({"action": "start", "index": index, "revision": service.view_revision})
 	elif storage_open:
 		service.request("take" if from_storage else "store", index)
 
