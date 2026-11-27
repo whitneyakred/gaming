@@ -56,6 +56,12 @@ func run() -> void:
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("res://.godot/totem-challenge.png")
 		check(manager.game.get_inventory() != bag, "Challenge bag is isolated")
+		manager.game.give_item(&"gold_coin", 5)
+		check(manager.game.get_inventory().get_quantity(&"gold_coin") == 5 and bag.get_quantity(&"gold_coin") == 0, "Objective tokens stay private")
+		check(manager.arena.global_position == totem.global_position and manager._viewport.transparent_bg, "Gameplay is placed over the real clearing")
+		check(manager.game.get_node_or_null("Ocean") == null and manager.game.get_node("Terrain").clearing, "Legacy ocean and island art removed")
+		check(manager.game.hud.get_parent() == manager._layer, "Instructions remain screen sized")
+		check(not player.presentation.visible, "World avatar does not overlap puzzle avatar")
 		var leave_button: Button = manager._layer.get_node("LeaveChallenge")
 		check(Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size).encloses(leave_button.get_global_rect()), "Leave button stays visible")
 		check(not manager.try_start(1, str(island.name)), "Double start is rejected")
@@ -79,6 +85,7 @@ func run() -> void:
 		leave_button.pressed.emit()
 		await frames()
 		check(not IslandChallenges.local_active() and manager.locks.is_empty(), "Cancel releases reservation")
+		check(player.presentation.visible and not ship._view.challenge_center.is_finite(), "Cancel restores avatar and camera")
 		check(bag.capture() == before, "Cancel preserves real gear")
 		check(get_tree().current_scene == ship and player.global_position == position_before, "Same world and return position")
 		if "--capture" in OS.get_cmdline_user_args() and seen.size() == 1:

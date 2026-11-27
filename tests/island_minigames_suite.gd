@@ -105,6 +105,9 @@ func _walk_direct(player: Node2D, target: Vector2, max_seconds: float, tolerance
 
 
 func _load(path: String) -> IslandGame:
+	print("Minigame: ", path)
+	# Do not replace the scene from inside a previous scene_changed emission.
+	await get_tree().process_frame
 	_make_room()
 	get_tree().change_scene_to_file(path)
 	await get_tree().scene_changed

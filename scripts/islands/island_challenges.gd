@@ -14,6 +14,7 @@ var _viewport: SubViewport
 var _token: int = 0
 var _island_id: String = ""
 var _waiting: bool = false
+var arena: Sprite2D
 @onready var ship: Ship = get_parent()
 
 static func local_active() -> bool:
@@ -160,7 +161,6 @@ func _process(delta: float) -> void:
 			totem.set_occupied(locks.has(str(island.name)))
 	if is_instance_valid(game):
 		game.process_mode = Node.PROCESS_MODE_DISABLED if PauseMenu.is_paused() or _waiting else Node.PROCESS_MODE_INHERIT
-		_viewport.size = Vector2i(get_viewport().get_visible_rect().size)
 
 func _input(event: InputEvent) -> void:
 	if not is_instance_valid(game) or PauseMenu.is_paused(): return
@@ -189,24 +189,89 @@ func begin_local(island_id: String, token: int) -> void:
 	_layer.layer = 40
 	add_child(_layer)
 	_viewport = SubViewport.new()
-	_viewport.size = Vector2i(get_viewport().get_visible_rect().size)
+	_viewport.size = Vector2i(1280, 1040)
+	_viewport.transparent_bg = true
 	_viewport.world_2d = World2D.new()
 	_viewport.handle_input_locally = true
 	_layer.add_child(_viewport)
-	var picture := TextureRect.new()
-	picture.texture = _viewport.get_texture()
-	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	picture.mouse_filter = Control.MOUSE_FILTER_STOP
-	_layer.add_child(picture)
-	picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	arena = Sprite2D.new()
+	arena.texture = _viewport.get_texture()
+	arena.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	ship.add_child(arena)
+	arena.set_as_top_level(true)
+	arena.global_position = island.get_node("MinigameTotem").global_position
+	arena.scale = Vector2.ONE * 0.82
+	arena.z_index = 31
+	ship._view.challenge_center = arena.global_position
 	game = load(island.scene).instantiate() as IslandGame
 	game.embedded = true
+	if game is CollectIsland:
+		_viewport.size = Vector2i(720, 640)
+		arena.scale = Vector2.ONE * 1.15
+		for child in game.get_node("World").get_children():
+			if child is Sprite2D:
+				child.texture = IslandFoliage.icon(3 if String(child.name).begins_with("Palm") else 0)
+				child.region_enabled = false
+				child.hframes = 1
+				child.vframes = 1
+				child.scale = Vector2.ONE * (90.0 / child.texture.get_width())
+	# Invisible cover from the old painted island must become visible props.
+	if game is BeeHiveHill:
+		for marker in game.get_node("Terrain/Trees").get_children():
+			var tree := Sprite2D.new()
+			tree.texture = IslandFoliage.icon(0)
+			tree.scale = Vector2.ONE * (110.0 / tree.texture.get_width())
+			tree.position.y = -42
+			marker.add_child(tree)
+	var exit_area := game.get_node_or_null("Rowboat") as Node2D
+	if exit_area != null:
+		for child in exit_area.get_children():
+			if child is CanvasItem: child.visible = false
+		var exit_icon := Sprite2D.new()
+		exit_icon.texture = TotemArt.texture(0)
+		exit_icon.scale = Vector2.ONE * (64.0 / exit_icon.texture.get_height())
+		exit_icon.position.y = -25
+		exit_area.add_child(exit_icon)
+		var caption := Label.new()
+		caption.text = "Return here when complete"
+		caption.position = Vector2(-130, 12)
+		caption.size.x = 260
+		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		caption.add_theme_font_size_override("font_size", 15)
+		exit_area.add_child(caption)
+	var terrain := game.get_node_or_null("Terrain") as IslandTerrain
+	if terrain == null:
+		# Coconut and treasure predate IslandTerrain and embed their scenery.
+		for path in ["Sprite2D", "IslandBoundary", "Cliffs", "TreeTrunks", "World/Trees", "Camera2D"]:
+			var legacy := game.get_node_or_null(path)
+			if legacy != null:
+				legacy.get_parent().remove_child(legacy)
+				legacy.queue_free()
+		terrain = IslandTerrain.new()
+		terrain.name = "Terrain"
+		game.add_child(terrain)
+	if terrain != null:
+		terrain.clearing = true
+		if game is CollectIsland: terrain.clearing_half_size = Vector2(320,280)
+		terrain.scale = Vector2.ONE
+	var ocean := game.get_node_or_null("Ocean")
+	if ocean != null:
+		game.remove_child(ocean)
+		ocean.queue_free()
 	var avatar := game.get_node(game.player_path) as CharacterBody2D
+	for child in avatar.get_children():
+		if child is Camera2D: child.enabled = false
 	avatar.minigame_avatar = true
 	avatar.player_inventory = PlayerInventory.new()
 	avatar.player_inventory.max_inv_space = 32
 	game.embedded_finished.connect(_finished_local)
 	_viewport.add_child(game)
+	var camera := Camera2D.new()
+	_viewport.add_child(camera)
+	camera.make_current()
+	if game.hud != null: game.hud.reparent(_layer)
+	ship.player.presentation.visible = false
+	island.get_node("MinigameTotem").hide()
 	var back := Button.new()
 	back.name = "LeaveChallenge"
 	back.text = "Leave"
@@ -231,6 +296,11 @@ func _finished_local(won: bool) -> void:
 func close_local(token: int) -> void:
 	if token != _token: return
 	remove_from_group("active_island_challenge")
+	if is_instance_valid(arena): arena.queue_free()
+	ship._view.challenge_center = Vector2.INF
+	ship.player.presentation.visible = true
+	var island := ship.get_island(StringName(_island_id))
+	if island != null: island.get_node("MinigameTotem").show()
 	if is_instance_valid(_layer):
 		_layer.queue_free()
 	game = null
