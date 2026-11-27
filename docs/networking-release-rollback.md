@@ -1,5 +1,23 @@
 # Networking playtest release and rollback
 
+## November 26 death-drop follow-up (protocol 20)
+
+- Source: `9cfb6a9`, pushed to the existing `systems-revamp` branch with the
+  earlier gameplay commits. No new branch created.
+- Pages: `d857bec9-d44f-4166-a0d6-f79021bf75c6`.
+- Worker: `b46bc34c-85f4-477c-9866-6b0d4b620fa3`.
+- Previous deployment pair: Pages `2278b81d-2780-41a6-8ec0-5bb7760da95f`,
+  Worker `0e7cdf3c-5ba8-4f72-a546-81c86edecdc4`.
+- Protocol unchanged; refresh clients so every possible host has the new rules.
+- Godot parser/export, 84 survival checks and 72 native three-player checks pass.
+  The latter verifies guest death loot reaches both observers. Live game file
+  hashes and relay protocol match the tested export.
+
+Death drops follow the death surface; nearby-water recovery uses a 120-pixel shore
+radius. Open-water supplies are lost; missing keys return to solved pedestals.
+See [shared gameplay](shared-gameplay.md#death-drops) for tuning and item lifetime.
+
+
 ## November 26 protocol 20 gameplay polish
 
 Source: `171e343` on `systems-revamp`, following map/text commit `e8fe9b5`.

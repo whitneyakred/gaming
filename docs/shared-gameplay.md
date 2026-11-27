@@ -139,7 +139,10 @@ at the death position. Drowning within 120 world pixels of a coastline places
 stacks just inside that coastline; drowning farther away loses carried supplies.
 Being near the ship while swimming never sends loot onto its deck.
 
-Tune **Shore Drop Distance** on the ship's **Survival** node in the Inspector.
+For runtime tuning, click **Run Project (F5)**, select **Remote** in the **Scene**
+dock, select **Ship > Survival**, and edit **Shore Drop Distance** in the
+**Inspector**. Persist a new default in `survival_world.gd` (the node is created
+at runtime).
 Shore lookup runs only on death and validates the landing point against the real
 coast polygon, including concave coastlines. Drops use existing reliable shared
 state, pickup rules, saving and five-minute ground lifetime; no new transport or
