@@ -1,5 +1,32 @@
 # Networking playtest release and rollback
 
+## November 26 protocol 20 gameplay polish
+
+Source: `171e343` on `systems-revamp`, following map/text commit `e8fe9b5`.
+Local commits only; no GitHub push. Existing free WebRTC/STUN/relay services remain.
+
+- Website: https://holy-ship.pages.dev/play/
+- Pages: `2278b81d-2780-41a6-8ec0-5bb7760da95f`.
+- Worker: `0e7cdf3c-5ba8-4f72-a546-81c86edecdc4`.
+- Protocol: `holy-ship-coop-20`; refresh every device before joining.
+- Immediate rollback: restore protocol 19 Pages
+  `ae7c93f6-cb00-43eb-a1d5-b6d4f6b62aa5` and Worker
+  `b54145a0-8cfa-43b7-bcaa-3861203b4b6b` together. Previous source: `3996e77`.
+  Protocol 20 loads older saves; older releases may reject saves rewritten by 20.
+
+Includes constant-size smoothly turning fish attraction and bounded route returns,
+remote water-entry splashes, offshore shark arrivals/reengagement, shared totem
+supply drops and persisted success cooldowns, held medpacks, map polish and audio.
+See [shared gameplay](shared-gameplay.md) and [totems](island-totems.md).
+
+Validation: clean Godot parser and HTML5 export; 218 totem, 20 native totem co-op,
+25 world-interaction, 73 survival, 84 responsiveness, 86 fishing, 74 three-player
+relay and 19 service checks pass. Rendered totem UI/rewards inspected. Actual web
+host/join, direct WebRTC, movement/hotbar and forced fallback passed without runtime
+errors. Live protocol and HTML/JS/PCK hashes match the export. A physical-phone,
+separate-network playtest remains necessary for feel and real-world connectivity.
+
+
 ## November 26 protocol 19 shared gameplay release
 
 Merged locally into `systems-revamp` at `b762211` from
