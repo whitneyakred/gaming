@@ -337,10 +337,11 @@ automatic migration to Workers. It does not mean resetting or deleting rooms.
 The explicit production branch is `systems-revamp`; update deployment settings
 and instructions together if that branch changes.
 
-Backend deployment is necessary when backend code/configuration changes or when
-the Godot engine/WebAssembly changes. Ordinary game `.pck`/scene changes can be
-published to Pages alone after rebuilding. The full procedure above refreshes
-both to avoid a mismatched engine. Keep protocol-breaking releases coordinated;
+Deploy **both Harbor and Pages for every game release**, including GDScript,
+scene and art-only changes. Pages forwards `/play/index.pck` and `/play/index.wasm`
+to Harbor, whose own static assets supply those responses. Updating Pages alone
+uploads new pack parts but still serves the old playable pack through Harbor.
+Deploy the prepared Harbor assets first, then the matching Pages assets. Keep protocol-breaking releases coordinated;
 existing open tabs do not automatically become the new build. Ask testers to
 end their voyages and reload. Backend updates may disrupt active sessions.
 
@@ -363,6 +364,17 @@ not the public website to distribute. Never delete the backend to hide that URL.
 ### After publishing
 
 Open `https://holy-ship.pages.dev/api/health` and check the expected protocol.
+Verify the actual streamed pack, not just its static chunk files:
+
+```powershell
+Push-Location online-service
+$env:HARBOR_TEST_URL = 'https://holy-ship.pages.dev'
+node --test test/web-pack.test.mjs
+Pop-Location
+```
+
+This decompresses `/play/index.pck` and compares its hash with the exported pack.
+
 Load `/play/` in a fresh tab, host, join from another browser profile/device,
 check shared gameplay, then check host departure. See the detailed testing guide.
 Browser refresh updates the application files; clearing site data is a separate,

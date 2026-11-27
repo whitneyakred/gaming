@@ -410,10 +410,11 @@ checks: passing a scripted connection test does not prove movement feels ideal.
 
 ## Shipping related changes
 
-Export the game and deploy Pages for changes to GDScript or menu/game assets.
-Deploy the harbor Worker for relay code changes. For changes spanning both,
-deploy the backend and matching game as described in the
-[release guide](online-services-setup.md), then have players reload.
+Export the game and deploy both Harbor and Pages for changes to GDScript or
+menu/game assets: Pages forwards the playable PCK/WASM requests to Harbor's
+static assets. Deploy the backend and matching Pages build as described in the
+[release guide](online-services-setup.md), verify the streamed PCK hash with
+`online-service/test/web-pack.test.mjs`, then have players reload.
 Both game and Worker must use matching protocol identifiers. The smoothing
 addition keeps protocol 13 and supports older protocol-13 snapshots without
 timestamps. Have every player reload for consistent behavior. See the main

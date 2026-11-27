@@ -1,5 +1,39 @@
 # Networking playtest release and rollback
 
+## November 27 workbench and smooth walking (protocol 24)
+
+- Gameplay source: `f71c298` on `systems-revamp`; crafting commit `f1d72a7`.
+- Pages deployment: https://115e4d5f.holy-ship.pages.dev
+- Harbor version: `813c06fa-633b-4b81-89f5-f391727894f5` (matching new game assets; relay code/protocol unchanged).
+- Public game: https://holy-ship.pages.dev/play/
+- Previous release pair for rollback: Pages `9ec01793-10da-4dfd-9f8d-9012730ea9c0`, Harbor `fae37c4c-372e-4588-8f0c-1f3fc0d20dd5`.
+
+Includes the simple weathered Workbench, icon-based recipe selection, fishing
+rod recipe (3 wood, 1 rope, 1 string), persistent rod/axe/pickaxe durability, and
+an unlimited-use spyglass. Local walking renders between physics ticks;
+multiplayer snapshot presentation advances per rendered frame. Island minigame
+camera follow now matches ordinary shore walking. See [crafting](crafting-and-durability.md)
+and [movement validation](movement-smoothing.md).
+
+Godot parser and Web export, 76 native three-peer gameplay checks, 20 island
+host/guest checks, 370 island checks, animation/camera/smoothing regressions and
+local Chrome WebRTC/fallback scenarios passed. Native rendered walking at
+1280 x 720 held a 144 FPS cap; p95 frame gaps were 7.5–7.6 ms. After both services
+were updated, two fresh hardware-accelerated Chrome clients on the live website
+passed host/join, movement, direct WebRTC, diagnostic download and host departure
+without runtime errors. Guest samples near the end were 44–47 FPS with both
+clients running locally, RTT 20 ms, zero correction distance/drift resets and
+0.1 ms prediction replay. This is measured coverage, not a guarantee across all
+hardware and networks.
+
+The canonical `/play/index.pck` response passed the exact decompressed-export
+hash test, including HEAD behavior; HTML/static chunk hashes and `/api/health`
+also passed. **Pages-only publishing is insufficient for game changes:** its
+PCK/WASM routes forward to Harbor's assets. The initial Pages-only attempt was
+caught and corrected by deploying the matching Harbor assets. Release guidance
+now requires both services and the streamed-pack test. Refresh all game tabs.
+
+
 ## November 27 solid props and streamlined challenges (protocol 24)
 
 - Source: `5a5b1d6` on `systems-revamp` (gameplay commits `31e67da`, `94e8fd5`, `53a2baf`), pushed to GitHub.
