@@ -11,7 +11,9 @@ const FONT := preload("res://assets/fonts/rye/Rye-Regular.ttf")
 const POT := preload("res://assets/cooking/pot_pixel.tres")
 const KABOB := preload("res://assets/cooking/kabob_pixel.tres")
 const KNIFE := preload("res://assets/cooking/knife_pixel.tres")
-const COOKED_PIECE := preload("res://assets/cooking/kabob_piece.tres")
+const RAW_PIECE := preload("res://assets/cooking/raw_piece_pixel.tres")
+const COOKED_PIECE := preload("res://assets/cooking/cooked_piece_pixel.tres")
+const POT_PIECE_SIZE := Vector2(44, 32)
 @export_range(2.0, 30.0) var boil_seconds := 8.0
 @export_range(0.5, 0.95) var overlay_size := 0.88
 var fish_texture: Texture2D
@@ -24,6 +26,8 @@ var selected_piece := -1
 var dragging := false
 var valid_stroke := false
 var pointer := Vector2.ZERO
+var knife_direction := Vector2.DOWN
+var stroke_position := Vector2.ZERO
 var heat := false
 var temperature := 0.0
 var elapsed := 0.0
@@ -69,6 +73,8 @@ func _press(point: Vector2) -> void:
 	hint = ""
 	match stage:
 		Stage.FISH:
+			knife_direction = Vector2.DOWN
+			stroke_position = point
 			valid_stroke = absf(point.x - _cut_x()) < 30 and point.y >= 195 and point.y <= 270
 		Stage.ADD_FISH, Stage.SKEWER:
 			for i in range(pieces.size() - 1, -1, -1):
@@ -84,7 +90,12 @@ func _press(point: Vector2) -> void:
 				queue_free()
 func _move(point: Vector2) -> void:
 	if not dragging or closed: return
-	if stage == Stage.FISH: valid_stroke = valid_stroke and absf(point.x - _cut_x()) < 40
+	if stage == Stage.FISH:
+		var motion := point - stroke_position
+		if motion.length_squared() >= 9:
+			knife_direction = motion.normalized()
+			stroke_position = point
+		valid_stroke = valid_stroke and absf(point.x - _cut_x()) < 40
 	elif selected_piece >= 0: pieces[selected_piece] = point
 func _release(point: Vector2) -> void:
 	if not dragging or closed: return
@@ -105,8 +116,10 @@ func _release(point: Vector2) -> void:
 			pieces[selected_piece] = _piece_home(selected_piece)
 			selected_piece = -1
 			hint = "Drop inside the pot." if stage == Stage.ADD_FISH else "Drop onto the skewer."
+func _pot_piece_home(index: int) -> Vector2:
+	return POT_CENTER + Vector2(-28 + index % 2 * 56, -78 + floori(index / 2.0) * 36)
 func _piece_home(index: int) -> Vector2:
-	if stage == Stage.SKEWER: return POT_CENTER + Vector2(-38 + index % 2 * 76, -65 + index / 2 * 45)
+	if stage == Stage.SKEWER: return _pot_piece_home(index)
 	return Vector2(145 + index % 2 * 105, 290 + index / 2 * 95)
 func _advance() -> void:
 	stage = (int(stage) + 1) as Stage
@@ -134,18 +147,20 @@ func _board(rect: Rect2) -> void:
 	for i in range(1, 6):
 		var x := rect.position.x + rect.size.x * i / 6
 		draw_line(Vector2(x, rect.position.y + 6), Vector2(x, rect.end.y - 6), Color("99866f"), 3)
-func _draw_piece(point: Vector2, cooked: bool = false) -> void:
-	if cooked:
-		draw_texture_rect(COOKED_PIECE, Rect2(point - Vector2(31, 29), Vector2(62, 58)), false)
-		return
-	var source := fish_texture.get_size()
-	# A real slice of the inventory fish, with its blue-green skin still visible.
-	draw_texture_rect_region(fish_texture, Rect2(point - Vector2(32, 29), Vector2(64, 58)), Rect2(source * Vector2(0.37, 0.16), source * Vector2(0.25, 0.68)))
+func _draw_piece(point: Vector2, cooked: bool = false, piece_size := Vector2(62, 46)) -> void:
+	draw_texture_rect(COOKED_PIECE if cooked else RAW_PIECE, Rect2(point - piece_size * 0.5, piece_size), false)
+func _draw_knife() -> void:
+	var knife_size := KNIFE.get_size() * 0.11
+	var angle := knife_direction.angle() - Vector2(knife_size.x, -knife_size.y).angle()
+	# The blade tip stays at the cursor; the handle trails the cutting direction.
+	draw_set_transform(_origin() + pointer * _scale_factor(), angle, Vector2.ONE * _scale_factor())
+	draw_texture_rect(KNIFE, Rect2(Vector2(-knife_size.x, 0), knife_size), false)
+	draw_set_transform(_origin(), 0, Vector2.ONE * _scale_factor())
 func _pot() -> void:
 	draw_texture_rect(POT, Rect2(POT_CENTER - Vector2(140, 130), Vector2(280, 260)), false)
 	if stage == Stage.ADD_FISH or stage == Stage.HEAT:
 		var count := 4 - pieces.size() if stage == Stage.ADD_FISH else 4
-		for i in count: _draw_piece(POT_CENTER + Vector2(-38 + i % 2 * 76, -65 + i / 2 * 45), temperature > 0.5)
+		for i in count: _draw_piece(_pot_piece_home(i), temperature > 0.5, POT_PIECE_SIZE)
 	if stage == Stage.HEAT and heat:
 		for i in 3:
 			draw_rect(Rect2(POT_CENTER + Vector2(-28 + i * 24, 78), Vector2(9, 10 + sin(elapsed * 8 + i) * 3)), Color("d78d55"))
@@ -167,25 +182,22 @@ func _draw() -> void:
 	_board(Rect2(28, 144, 704, 422))
 	match stage:
 		Stage.FISH:
-			var source := fish_texture.get_size()
-			for i in range(cuts + 1):
-				var left := float(i) / 4
-				var width := 0.25 if i < cuts else 1.0 - left
-				draw_texture_rect_region(fish_texture, Rect2(235 + left * 290 - (cuts - i) * 8, 270, width * 290, 165), Rect2(source.x * left, 0, source.x * width, source.y))
+			draw_texture_rect(fish_texture, Rect2(235, 270, 290, 165), false)
+			for i in cuts:
+				_draw_piece(Vector2(295 + i * 84, 510))
 			draw_dashed_line(Vector2(_cut_x(), 230), Vector2(_cut_x(), 470), Color("fff0d8"), 4, 10)
 			draw_rect(Rect2(_cut_x() - 7, 221, 14, 14), Color("bd7180"))
-			if dragging: draw_texture_rect(KNIFE, Rect2(pointer - Vector2(25, 85), Vector2(58, 110)), false)
+			if dragging: _draw_knife()
 		Stage.ADD_FISH, Stage.SKEWER:
 			_pot()
 			if stage == Stage.SKEWER:
 				draw_line(Vector2(110, 440), Vector2(300, 250), Color("59493d"), 8)
 				draw_line(Vector2(110, 440), Vector2(300, 250), Color("d6b184"), 4)
 				for i in threaded: _draw_piece(Vector2(148 + i * 38, 402 - i * 38), true)
-			for point in pieces: _draw_piece(point, stage == Stage.SKEWER)
+			for point in pieces: _draw_piece(point, stage == Stage.SKEWER, POT_PIECE_SIZE if stage == Stage.SKEWER else Vector2(62, 46))
 		Stage.HEAT:
 			_pot()
 			_text(Vector2(70, 295), "A gentle simmer.", 21)
-			_text(Vector2(70, 331), "No rush.", 21)
 			draw_rect(Rect2(70, 365, 245, 15), Color("7b6b65"))
 			draw_rect(Rect2(73, 368, 239 * temperature, 9), Color("e6b476"))
 			_panel(Rect2(260, 498, 240, 52), Color("e8c397"))

@@ -2,7 +2,7 @@
 
 The galley now prepares one caught fish as a fish kabob: three downward slices, four pieces into the pot, switch on the stove, then move four cooked pieces onto the skewer. There is no recipe deadline, rating, potato, precision-drop reward, or burned-result penalty. Cooking takes eight seconds after ignition; leaving it idle never burns it. Cancelling, closing, disconnecting, or restoring an unfinished saved attempt retains the existing ingredient refund/recovery behavior. The host owns the ingredient and completion token; repeated completion cannot duplicate food.
 
-The `dried_fish` save/network item ID is retained for compatibility. Its display name is Fish Kabob and its icon matches the final meal. Raw pieces use the inventory fish artwork, cooked pieces use the new kabob artwork. The ship's cooking station and activity share the new iron pot. The UI uses the same Rye font and parchment/driftwood palette as the game menus.
+The `dried_fish` save/network item ID is retained for compatibility. Its display name is Fish Kabob and its icon matches the final meal. Raw and cooked pieces use dedicated complete sprites, rather than clipped sections of the fish or kabob. Four 44-by-32 pieces fit inside the pot rim. The knife tip tracks the pointer and its handle trails the cutting direction. The ship's cooking station and activity share the new iron pot. The UI uses the same Rye font and parchment/driftwood palette as the game menus.
 
 Workbench crafting consumes bag materials first, then starboard and port chest materials. It prepares copies of all three inventories and commits only when every ingredient and output space is available. The host performs the transaction without yielding. Recipe availability updates from both chests, including guest snapshots.
 
@@ -10,7 +10,7 @@ Validation: `tests/casual_cooking.gd` (20 checks), existing grill escrow/recover
 
 ## Generated art
 
-Built-in image generation created `assets/cooking/pot_pixel.png`, `knife_pixel.png`, and `kabob_pixel.png`. Adjacent AtlasTextures crop transparent padding without modifying the source images. `kabob_piece.tres` selects a cooked piece from the same kabob. The kabob received a follow-up transparency edit to remove surrounding haze while retaining its four-piece silhouette. Originals are retained in the generator's output directory.
+Built-in image generation created `assets/cooking/pot_pixel.png`, `knife_pixel.png`, `kabob_pixel.png`, `raw_piece_pixel.png`, and `cooked_piece_pixel.png`. Adjacent AtlasTextures crop transparent padding without modifying the source images. The kabob received a follow-up transparency edit to remove surrounding haze while retaining its four-piece silhouette. Originals are retained in the generator's output directory.
 
 ## Prompts
 

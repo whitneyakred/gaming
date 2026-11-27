@@ -58,6 +58,10 @@ func run() -> void:
 		var x = activity._cut_x()
 		activity._press(Vector2(x, 230))
 		activity._move(Vector2(x, 350))
+		check(activity.knife_direction.is_equal_approx(Vector2.DOWN), "Knife points down along the cut")
+		if i == 0:
+			activity.pointer = Vector2(x, 350)
+			await capture("knife")
 		activity._release(Vector2(x, 470))
 	check(activity.stage == activity.Stage.ADD_FISH and activity.pieces.size() == 4, "Three cuts create four fish pieces")
 	await capture("pot")
@@ -78,6 +82,9 @@ func run() -> void:
 	await capture("simmer")
 	activity._process(4)
 	check(activity.stage == activity.Stage.SKEWER and activity.pieces.size() == 4, "Cooked pieces can be removed from pot")
+	var pot_interior := Rect2(activity.POT_CENTER + Vector2(-80, -104), Vector2(160, 92))
+	for point in activity.pieces:
+		check(pot_interior.encloses(Rect2(point - activity.POT_PIECE_SIZE * 0.5, activity.POT_PIECE_SIZE)), "Every cooked piece fits inside the pot rim")
 	await capture("skewer")
 	while not activity.pieces.is_empty():
 		activity._press(activity.pieces[0])
