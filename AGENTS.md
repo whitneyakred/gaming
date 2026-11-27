@@ -13,3 +13,5 @@
 - Explain manual Godot editor steps using exact menu and button names for a beginner.
 - Validate untrusted network messages as objects with the expected field types before reading properties; malformed traffic must not break other players' sessions. Source: [VoyageRoom review](docs/room-error-review.md). This review-derived rule still requires a reviewed, merged PR for Checkpoint 3 evidence.
 - Never remove a `Co-Authored-By` trailer. Do not add dependencies without explaining their purpose, license, maintenance and existing alternatives in the PR.
+
+- Do not push branches or commits to GitHub; the user handles all pushes. Local commits and authorized website deployment are allowed.

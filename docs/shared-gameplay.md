@@ -6,8 +6,12 @@
 - `backup/furnace-cooking-before-minigame` preserves the furnace/fuel system plus
   protocol 18 networking at `2c77de2`.
 - The teammate's `scripts/galley_cooking.gd` and `scenes/galley_cooking.tscn` on
-  `main` / `origin/main` (`87b9ab5`) already match this checkout. Their six-stage
-  potato/fish/water/heat activity is reused unchanged, through the existing galley.
+  `main` / `origin/main` (`87b9ab5`) were the original integration source. The activity and four SVG ingredients/tools
+  were subsequently refreshed from `origin/cooking-visuals-survival` (`d4a89b7`),
+  also present on `dev-testing`. The newer no-water recipe flow, cutting feedback,
+  illustrated board/pot and result visuals are retained. Its standalone
+  `VoyageSurvival` references are adapted to this game's multiplayer player state;
+  the host-owned one-fish escrow/reward contract remains unchanged.
 - One caught fish starts an exclusive preparation attempt. The host consumes it
   into escrow, validates owner, attempt token, elapsed time and bounded rating,
   then awards at most one cooked fish. Local pointer movement is never streamed.
@@ -71,3 +75,20 @@ school, observe the hooked fish from the host, complete/cancel cooking, set one
 marker per player, then swim long enough to observe arrival, damage flashes and
 post-boarding lingering. Refresh every device to protocol 19 before joining.
 No TURN, paid service, new dependency or transport change was introduced.
+
+## Playtest polish follow-up
+
+The hooked-fish MultiMesh now receives an identity instance transform (the missing
+transform collapsed its geometry), higher opacity and a nose-to-bobber attachment.
+The waiting fish remains visible while approaching; reeling draws it at the hook.
+Early clicks still cancel an unhooked cast, but no longer show the “Too soon” text.
+
+The preparation menu is titled **Food Preparation Table**. Cooking visuals and
+no-water stage progression come from `origin/cooking-visuals-survival` `d4a89b7`
+(the same activity is on `dev-testing`), adapted to existing host-owned inventory.
+This does not import the other branch's global survival singleton or recipe book.
+
+Hunger loses one pip every 100 seconds idle, 75 walking, or 38 swimming (previously
+120/90/45). Chewing uses softer filtered noise; a separate short synthesized burp
+plays only on the replicated successful-eat serial, never on a cancelled hold.
+No new audio asset, dependency or paid service is required.

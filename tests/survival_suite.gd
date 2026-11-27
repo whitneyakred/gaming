@@ -77,15 +77,15 @@ func run() -> void:
 	player.velocity = Vector2.ZERO
 	player.hunger = 10
 	player.hunger_clock = 0
-	world.advance_metabolism(1,120)
-	check(player.hunger==9,"Idle hunger loses one third in two minutes")
+	world.advance_metabolism(1,100)
+	check(player.hunger==9,"Idle hunger loses one third in 100 seconds")
 	player.velocity=Vector2(145,0)
-	world.advance_metabolism(1,90)
+	world.advance_metabolism(1,75)
 	check(player.hunger==8,"Walking hunger drains gently faster")
 	player.set_overboard(true)
 	player.update_land(false)
-	world.advance_metabolism(1,45)
-	check(player.hunger==7,"Swimming drains one third in 45 seconds")
+	world.advance_metabolism(1,38)
+	check(player.hunger==7,"Swimming drains one third in 38 seconds")
 	player.set_overboard(false)
 	player.velocity=Vector2.ZERO
 	player.hunger=0

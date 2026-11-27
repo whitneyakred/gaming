@@ -41,7 +41,7 @@ func _ready() -> void:
 	eating_voice = AudioStreamPlayer.new()
 	eating_voice.bus = "Effects"
 	add_child(eating_voice)
-	eating_voice.stream = ActionAudio.make("eat")
+	eating_voice.stream = ActionAudio.make("eat_complete")
 	voice = AudioStreamPlayer.new()
 	voice.bus = "Effects"
 	add_child(voice)
