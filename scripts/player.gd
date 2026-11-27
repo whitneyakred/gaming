@@ -35,6 +35,12 @@ var presentation: Node2D
 var presentation_offset := Vector2.ZERO # World-space; never changes collision state.
 @export var correction_response := 18.0
 var _remote_motion: Dictionary = {}
+var _walk_previous := Vector2.ZERO
+var _walk_current := Vector2.ZERO
+var _walk_offset := Vector2.ZERO
+var _walk_sampled := false
+var _walk_outside := false
+var _walk_respawn := 0
 @export var character_appearance: CharacterAppearance = preload("res://assets/player/characters/viking/appearance.tres")
 var using_station: bool:
 	get:
@@ -63,6 +69,9 @@ func leave_station(station: Node) -> void:
 
 
 func _ready() -> void:
+	# Network authority/prediction runs at 50; animation samples at 100.
+	process_physics_priority = 60
+	process_priority = -50
 	presentation = Node2D.new()
 	presentation.name = "Presentation"
 	add_child(presentation)
@@ -88,9 +97,37 @@ func _grant_starting_inventory() -> void:
 		VoyageState.grant_starter(player_inventory)
 
 func _physics_process(_delta: float) -> void:
-	if NetworkSession.online and not minigame_avatar:
+	if not NetworkSession.online or minigame_avatar:
+		move_crew(Input.get_vector("move_left", "move_right", "move_up", "move_down"), _delta)
+	capture_walk_sample()
+
+func interpolates_walk() -> bool:
+	return minigame_avatar or not NetworkSession.online or NetworkSession.players.get(NetworkSession.local_id) == self
+
+func reset_walk_interpolation() -> void:
+	_walk_previous = position
+	_walk_current = position
+	_walk_offset = Vector2.ZERO
+	_walk_sampled = false
+
+func capture_walk_sample() -> void:
+	if not interpolates_walk() or access_motion != &"" or using_station or health <= 0:
+		reset_walk_interpolation()
 		return
-	move_crew(Input.get_vector("move_left", "move_right", "move_up", "move_down"), _delta)
+	if not _walk_sampled or _walk_outside != is_overboard or _walk_respawn != respawn_serial or position.distance_to(_walk_current) > 80.0:
+		_walk_current = position
+	_walk_previous = _walk_current
+	_walk_current = position
+	_walk_outside = is_overboard
+	_walk_respawn = respawn_serial
+	_walk_sampled = true
+
+func walking_render_offset(fraction: float) -> Vector2:
+	# Never blend across a teleport, replay correction or boarding coordinate change.
+	if not interpolates_walk() or not _walk_sampled or not position.is_equal_approx(_walk_current) or _walk_outside != is_overboard or _walk_respawn != respawn_serial or access_motion != &"" or using_station or health <= 0:
+		return Vector2.ZERO
+	var offset := _walk_previous.lerp(_walk_current, clampf(fraction, 0.0, 1.0)) - position
+	return offset if is_overboard else get_parent().global_transform.basis_xform(offset)
 
 func _process(_delta: float) -> void:
 	global_rotation = 0.0
@@ -107,18 +144,26 @@ func _process(_delta: float) -> void:
 	else:
 		presentation_offset *= exp(-correction_response * _delta)
 	if presentation_offset.length_squared() < 0.0001: presentation_offset = Vector2.ZERO
+	_walk_offset = walking_render_offset(Engine.get_physics_interpolation_fraction())
 	if presentation != null:
-		presentation.position = global_transform.basis_xform_inv(presentation_offset)
+		presentation.position = global_transform.basis_xform_inv(presentation_offset + _walk_offset)
 	var label := get_node_or_null("CrewName") as Control
-	if label != null: label.position = Vector2(-50, -42) + global_transform.basis_xform_inv(presentation_offset)
+	if label != null: label.position = Vector2(-50, -42) + global_transform.basis_xform_inv(presentation_offset + _walk_offset)
 	visible = health > 0
 	# Deck props sit at zero. Water is below the hull, plank and ladder;
 	# shoreline walkers and crew on deck stay above the scenery.
 	z_index = -1 if is_overboard and not on_land and access_motion in [&"", &"dunk", &"surface", &"align"] else 1
 
 func smooth_correction(previous_visual: Vector2) -> void:
+	# Shift both samples with replay so routine acknowledgements do not restart
+	# walking interpolation at snapshot frequency (even when error is zero).
+	if _walk_sampled and interpolates_walk() and position.distance_to(_walk_current) <= 80.0:
+		_walk_previous += position - _walk_current
+		_walk_current = position
+	else:
+		reset_walk_interpolation()
 	_remote_motion.clear()
-	presentation_offset = (previous_visual - global_position).limit_length(80.0)
+	presentation_offset = (previous_visual - global_position - _walk_offset).limit_length(80.0)
 
 func smooth_remote_motion(previous_visual: Vector2, duration: float) -> void:
 	# The host has already simulated and acknowledged the whole input batch.
@@ -132,7 +177,7 @@ func smooth_remote_motion(previous_visual: Vector2, duration: float) -> void:
 	presentation_offset = previous_visual - global_position
 
 func visual_position() -> Vector2:
-	return global_position + presentation_offset
+	return global_position + presentation_offset + _walk_offset
 
 func move_crew(direction: Vector2, _delta: float) -> void:
 	if health <= 0 or using_station or inventory_open or island_challenge or access_motion != &"":
@@ -192,6 +237,7 @@ func set_overboard(value: bool) -> void:
 		collision_mask = _deck_mask
 		collision_layer = _deck_layer
 	is_overboard = value
+	reset_walk_interpolation()
 	if idle_sprite is CrewSprite: idle_sprite.refresh(0)
 	queue_redraw()
 	fishing_animation.stop()

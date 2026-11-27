@@ -22,6 +22,7 @@ static func local_active() -> bool:
 	return tree != null and tree.get_first_node_in_group("active_island_challenge") != null
 
 func _ready() -> void:
+	process_priority = 20 # Read the avatar after its render interpolation.
 	install_totems()
 
 func install_totems() -> void:

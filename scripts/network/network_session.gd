@@ -82,6 +82,7 @@ var access_rejections := 0
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	process_physics_priority = 50
+	process_priority = -100
 	# Gameplay is a host/guest star, never client-to-client RPC. Avoid ENet's
 	# extra peer-relay notifications (including disconnect sends to closing peers).
 	if multiplayer is SceneMultiplayer: multiplayer.server_relay = false
@@ -688,8 +689,6 @@ func _physics_process(delta: float) -> void:
 			_last_local_blocked = blocked
 	if not multiplayer.is_server():
 		if services.has(local_id): services[local_id].get_node("Fishing").tick_local_fight(delta)
-		_interpolate(delta)
-		for id: int in services: services[id].get_node("Fishing").tick_presentation(delta)
 		return
 	for id: int in players:
 		var player: CharacterBody2D = players[id]
@@ -1078,6 +1077,12 @@ func apply_snapshot(data: Dictionary) -> void:
 				fishing.sound.set_reeling(false)
 		fishing.queue_redraw()
 
+func _process(delta: float) -> void:
+	# Consume the presentation clock once per rendered frame, not at fixed 60 Hz.
+	if not online or not world_ready or multiplayer.is_server(): return
+	_interpolate(delta)
+	for id: int in services: services[id].get_node("Fishing").tick_presentation(delta)
+
 func _interpolate(delta: float) -> void:
 	if _last_snapshot.is_empty():
 		return
@@ -1165,6 +1170,7 @@ func _reconcile_local(entry: Dictionary, transition: bool) -> void:
 			else: distance_resets += 1
 		player.position = entry.position
 		player.presentation_offset = Vector2.ZERO
+		player.reset_walk_interpolation()
 		_prediction.clear()
 		_prediction_error = Vector2.ZERO
 		_trim_error = 0.0

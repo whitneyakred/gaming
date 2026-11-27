@@ -20,6 +20,7 @@ var challenge_center: Vector2 = Vector2.INF
 @onready var vignette: ColorRect = $StationOverlay/Vignette
 
 func _ready() -> void:
+	process_priority = 100 # Follow the final rendered crew/challenge position.
 	if is_instance_valid(camera):
 		_normal_zoom = camera.zoom
 		get_viewport().size_changed.connect(_refresh_camera_scale)
@@ -35,6 +36,7 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(ship):
 		return
 	_update_camera(delta)
+	if is_instance_valid(camera): camera.force_update_scroll()
 	# Show the actual smoothed wind, not its next random target. The camera does not rotate.
 	wind_arrow.rotation = ship.wind_velocity.angle() + PI / 2.0
 	wind_arrow.visible = not ship.wind_velocity.is_zero_approx()
@@ -46,7 +48,11 @@ func _update_camera(delta: float) -> void:
 	if not is_instance_valid(camera):
 		return
 	if challenge_center.is_finite():
-		camera.global_position = challenge_center
+		# Same response as walking ashore; no hard lock to the minigame avatar.
+		camera.global_position = camera.global_position.lerp(challenge_center, 1.0 - exp(-Ship.VIEW_FOLLOW_SPEED * delta))
+		_focus_offset = Vector2.ZERO
+		view_offset = camera.global_position - ship.global_position
+		vignette.modulate.a = 0.0
 		_station_zoom = 1.0
 		_refresh_camera_scale()
 		return
