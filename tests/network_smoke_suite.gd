@@ -528,7 +528,7 @@ func client_tests() -> void:
 				check(grill.cooking(), "Shared galley ownership reaches both clients")
 				shared_grill_key = grill.token
 			"grill_collect":
-				NetworkSession.command("grill", {"action": "finish", "token": shared_grill_key, "stars": 2})
+				NetworkSession.command("grill", {"action": "finish", "token": shared_grill_key})
 			"drop":
 				if role == "Alpha":
 					var expected := int(FileAccess.get_file_as_string("res://.godot/network-drop-revision.txt"))

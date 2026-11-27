@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Cook.gd" id="1"]
 
-[ext_resource type="Texture2D" path="res://assets/deck_grill_rectangular.png" id="grill_art"]
+[ext_resource type="Texture2D" path="res://assets/cooking/pot_pixel.tres" id="grill_art"]
 
 [sub_resource type="RectangleShape2D" id="CounterShape"]
 size = Vector2(24, 38)
@@ -14,9 +14,8 @@ radius = 52.0
 script = ExtResource("1")
 
 [node name="GrillArtwork" type="Sprite2D" parent="."]
-texture_filter = 3
-rotation = 1.5707963
-scale = Vector2(0.038, 0.038)
+texture_filter = 1
+scale = Vector2(0.029, 0.029)
 texture = ExtResource("grill_art")
 
 [node name="CounterBody" type="StaticBody2D" parent="."]

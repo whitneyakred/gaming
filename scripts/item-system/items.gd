@@ -66,8 +66,8 @@ func _ready() -> void:
 	))
 	ItemDatabase.register_item(make_item(
 		&"dried_fish",
-		"Cooked Fish",
-		"A freshly prepared fish meal, ready to eat.",
+		"Fish Kabob",
+		"Tender fish pieces on a wooden skewer. Supper at sea.",
 		20,
 		ItemData.Category.FOOD
 	))

@@ -5,6 +5,7 @@ const IDS := [&"axe",&"pickaxe",&"fishing_rod",&"spyglass",&"wood",&"stone",&"co
 static var cache: Dictionary = {}
 static var source_image: Image
 static func get_icon(id: StringName) -> Texture2D:
+	if id == &"dried_fish": return preload("res://assets/cooking/kabob_pixel.tres")
 	if id == &"medpack": return TotemArt.texture(1)
 	var index := IDS.find(id)
 	return texture(index) if index >= 0 else null

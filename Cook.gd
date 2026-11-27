@@ -13,7 +13,6 @@ var starter_granted := true
 var active_id := 0
 var token := 0
 var started := 0
-var last_stars := 0
 
 func _ready() -> void:
 	for node_name in ["Prompt", "Progress", "ReadyIndicator"]: get_node(node_name).hide()
@@ -27,11 +26,11 @@ func _process(_delta: float) -> void:
 	if active_id == 0: return
 	var service: InventoryService = NetworkSession.services.get(active_id) if NetworkSession.online else get_parent().get_node("InventorySystem")
 	if service == null: release_for(active_id); return
-	if not near(service) or not service.hud.grill_open or Time.get_ticks_msec() - started > 120000: release_for(active_id)
+	if not near(service) or not service.hud.grill_open: release_for(active_id)
 func advance(_delta: float) -> void:
 	pass
 func capture() -> Dictionary:
-	return {"fish": fish.duplicate(true), "fuel": fuel.duplicate(), "remaining": burn_remaining, "capacity": burn_capacity, "next_id": next_id, "starter": starter_granted, "active": active_id, "token": token, "stars": last_stars}
+	return {"fish": fish.duplicate(true), "fuel": fuel.duplicate(), "remaining": burn_remaining, "capacity": burn_capacity, "next_id": next_id, "starter": starter_granted, "active": active_id, "token": token}
 func restore(data: Dictionary) -> void:
 	fish.assign(data.get("fish", []))
 	fuel = data.get("fuel", {}).duplicate()
@@ -41,7 +40,6 @@ func restore(data: Dictionary) -> void:
 		active_id = 0
 	else: active_id = int(data.get("active", 0))
 	token = int(data.get("token", 0))
-	last_stars = int(data.get("stars", 0))
 	next_id = int(data.get("next_id", 1)) + (1 if active_id == 0 and int(data.get("active", 0)) != 0 else 0)
 	changed.emit()
 func release_for(id: int) -> void:
@@ -77,12 +75,10 @@ func handle(service: InventoryService, args: Dictionary) -> bool:
 		service.inventory.remove(args.index, 1)
 	elif args.action == "finish":
 		if active_id != id or not args.get("token") is int or args.token != token: return false
-		if not args.get("stars") is int or args.stars < 0 or args.stars > 3: return false
 		if Time.get_ticks_msec() - started < 8000: return false
 		active_id = 0
-		last_stars = args.stars
-		if last_stars > 0: _give(service, &"dried_fish", 1)
-		service.feedback.emit("Meal ready!" if last_stars > 0 else "The fish burned.")
+		_give(service, &"dried_fish", 1)
+		service.feedback.emit("Fish kabob ready!")
 	else: return false
 	changed.emit()
 	return true

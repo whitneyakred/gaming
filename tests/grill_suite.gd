@@ -24,12 +24,12 @@ func run() -> void:
 	check(service.inventory.get_quantity(&"fish_cod")==3,"Ingredient consumed exactly once")
 	var token := grill.token
 	check(not grill.handle(service,{"action":"start","index":0,"revision":service.view_revision}),"Occupied station rejects second attempt")
-	check(not grill.handle(service,{"action":"finish","token":token,"stars":3}),"Instant fabricated result rejected")
+	check(not grill.handle(service,{"action":"finish","token":token}),"Instant fabricated result rejected")
 	grill.started -= 8000
-	check(not grill.handle(service,{"action":"finish","token":token,"stars":"3"}),"Malformed rating rejected")
-	check(not grill.handle(service,{"action":"finish","token":token+1,"stars":3}),"Wrong attempt rejected")
-	check(grill.handle(service,{"action":"finish","token":token,"stars":2}),"Completed preparation awards meal")
-	check(not grill.handle(service,{"action":"finish","token":token,"stars":2}),"Repeated completion rejected")
+	check(not grill.handle(service,{"action":"finish","token":"bad"}),"Malformed attempt rejected")
+	check(not grill.handle(service,{"action":"finish","token":token+1}),"Wrong attempt rejected")
+	check(grill.handle(service,{"action":"finish","token":token}),"Completed preparation awards meal")
+	check(not grill.handle(service,{"action":"finish","token":token}),"Repeated completion rejected")
 	check(service.inventory.get_quantity(&"dried_fish")==1,"Exactly one meal awarded")
 	grill.handle(service,{"action":"start","index":0,"revision":service.view_revision})
 	grill.release_for(1)
@@ -52,9 +52,9 @@ func run() -> void:
 	check(is_instance_valid(service.hud.grill_panel.activity),"Teammate activity opens locally")
 	check(service.hud.grill_panel.activity.has_signal("completed"),"Existing teammate minigame result boundary retained")
 	check(service.hud.grill_panel.activity.fish_texture != null and service.hud.grill_panel.activity.knife_texture != null,"Updated teammate artwork loaded")
-	service.hud.grill_panel.activity.stage = 3
+	service.hud.grill_panel.activity.stage = 1
 	service.hud.grill_panel.activity._advance()
-	check(service.hud.grill_panel.activity.stage == 5,"Updated teammate recipe skips water")
+	check(service.hud.grill_panel.activity.stage == 2,"Fish goes straight to heat without potato or water")
 	service.hud.close()
 	grill._process(0.01)
 	check(not grill.cooking(),"Closing activity releases shared station")
