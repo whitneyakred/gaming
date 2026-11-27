@@ -15,6 +15,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
  if not GameWindow.preferences.reduced_motion: _time += delta
  scroll_offset = fmod(scroll_offset + scroll_speed * delta, 1536.0)
+ material.set_shader_parameter("danger_edge", MapState.world_bounds.end.x - 1000.0)
  material.set_shader_parameter("ocean_time", 0.0 if GameWindow.preferences.reduced_motion else _time)
  material.set_shader_parameter("ambient_scroll", 0.0 if world_anchored else scroll_offset)
  queue_redraw()

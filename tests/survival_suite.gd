@@ -51,7 +51,7 @@ func run() -> void:
 	player.swim_time = 0.0
 	world.advance_sharks(0.01,world.crew())
 	check(world.sharks[0].target == 1,"Lingering sharks immediately re-engage returning swimmer")
-	player.global_position = Vector2(11500,0)
+	player.global_position = Vector2(MapState.world_bounds.end.x-500.0,0)
 	world.advance(14.9)
 	check(player.is_overboard,"Red water allows escape before fifteen seconds")
 	world.advance(0.2)
@@ -64,11 +64,11 @@ func run() -> void:
 	check(player.player_inventory.get_quantity(&"fishing_rod")==0,"Death loses carried items")
 	var storage := VoyageState.get_ship_storage()
 	storage.add_items(ItemDatabase.get_item(&"wood"),3)
-	ship.global_position = Vector2(11500,0)
+	ship.global_position = Vector2(MapState.world_bounds.end.x-500.0,0)
 	player.position = Vector2.ZERO
 	world.advance(15)
 	check(ship.global_position==Vector2.ZERO and ship.anchor_deployed,"Sunken ship returns safely to origin")
-	check(player.is_overboard and player.global_position.x>11000,"Passengers remain swimming where ship sank")
+	check(player.is_overboard and player.global_position.x>MapState.world_bounds.end.x-1000.0,"Passengers remain swimming where ship sank")
 	check(storage.capture().all(func(slot): return slot.is_empty()),"Sinking empties ship chest")
 	check(ship.get_node("Cooking").fish.is_empty() and ship.get_node("Cooking").starter_granted,"Sinking clears grill without regranting fuel")
 	world.respawn(1)

@@ -28,6 +28,9 @@ func install_totems() -> void:
 		if island.scene.is_empty() or island.has_node("MinigameTotem"): continue
 		var totem := TOTEM.instantiate() as MinigameTotem
 		island.add_child(totem)
+		if island is GeneratedIsland:
+			totem.global_position = island.challenge_position()
+			continue
 		var coast := island.get_coast()
 		var center := Vector2.ZERO
 		for point in coast: center += point

@@ -80,13 +80,19 @@ var _leaving_island: WorldIsland
 # The island whose shore the hull last touched.
 var _aground_island: WorldIsland
 var world_seed: int = 0
+var layout_version: int = WorldLayout.VERSION
+var generation_ms := 0.0
 var survival: SurvivalWorld
 var ocean_fish: OceanFish
 
-func rebuild_world(seed_value: int) -> void:
-	if world_seed == seed_value: return
+func rebuild_world(seed_value: int, version: int = WorldLayout.VERSION) -> void:
+	if world_seed == seed_value and layout_version == version: return
+	var started := Time.get_ticks_usec()
 	world_seed = seed_value
-	WorldLayout.generate(self, world_seed)
+	layout_version = version
+	if version == 1: LegacyWorldLayout.generate(self,world_seed)
+	else: WorldLayout.generate(self,world_seed)
+	generation_ms = (Time.get_ticks_usec()-started)/1000.0
 	if is_instance_valid(ocean_fish): ocean_fish.configure(world_seed, islands_root.get_children())
 
 func _ready() -> void:

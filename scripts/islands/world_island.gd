@@ -43,6 +43,10 @@ func get_coast() -> PackedVector2Array:
 	_refresh_coast()
 	return _coast
 
+func contains_land(point: Vector2) -> bool:
+	_refresh_coast()
+	return _coast_bounds.has_point(point) and Geometry2D.is_point_in_polygon(point,_coast)
+
 
 ## True when a polygon in global coordinates (e.g. the ship's hull) overlaps land.
 func overlaps_land(polygon: PackedVector2Array, polygon_bounds: Rect2) -> bool:

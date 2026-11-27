@@ -9,7 +9,7 @@ func check(ok: bool, message: String) -> void:
 func frame(sequence: int, direction := Vector2.RIGHT) -> Dictionary:
 	return {"sequence": sequence, "move": direction, "held": false, "blocked": false}
 func snapshot() -> Dictionary:
-	return {"serial": 1, "position": Vector2.ZERO, "paradise_quest": {}, "island_locks": {}, "discovered": {}, "seed": 34, "storage": [{"id": &"coal", "quantity": 4}], "port_storage": [{}], "drops": {}, "crew": {2: {"inventory": [{"id": &"fishing_rod", "quantity": 1}], "position": Vector2.ZERO}}}
+	return {"serial": 1, "position": Vector2.ZERO, "paradise_quest": {}, "island_locks": {}, "discovered": {}, "layout_version":WorldLayout.VERSION,"seed": 34, "storage": [{"id": &"coal", "quantity": 4}], "port_storage": [{}], "drops": {}, "crew": {2: {"inventory": [{"id": &"fishing_rod", "quantity": 1}], "position": Vector2.ZERO}}}
 func _ready() -> void:
 	run.call_deferred()
 func run() -> void:
@@ -81,6 +81,11 @@ func run() -> void:
 	check(not receiver.accept(100,malformed), "Invalid fish return container rejected before property access")
 	malformed["fish_returns"] = {"fish": {"position":Vector2.ZERO,"angle":0.0,"time":NAN,"duration":3.0}}
 	check(not receiver.accept(100,malformed), "Nonfinite fish return clock rejected")
+	malformed = sender.current.duplicate(true)
+	malformed.layout_version = "2"
+	check(not receiver.accept(101,malformed),"Terrain version must have expected integer type")
+	malformed.layout_version = 99
+	check(not receiver.accept(101,malformed),"Unknown terrain generator rejected before world rebuild")
 	var inventory := ShipInventory.new()
 	var slots: Array[Dictionary] = [{"id": &"coal", "quantity": 4}]
 	inventory.max_inv_space = 1

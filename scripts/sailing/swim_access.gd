@@ -33,7 +33,7 @@ func update_crew(crew: CharacterBody2D) -> void:
 	if not crew.is_overboard: return
 	var land := false
 	for island in ship.get_islands():
-		if Geometry2D.is_point_in_polygon(crew.global_position, island.get_coast()):
+		if island.contains_land(crew.global_position):
 			land = true
 			break
 	crew.update_land(land)

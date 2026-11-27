@@ -367,6 +367,9 @@ func client_tests() -> void:
 			"survival":
 				check(NetworkSession.ship.get_islands().size() == WorldLayout.ISLAND_COUNT + 4, "Guest has ordinary islands plus three key islands and Paradise")
 				check(NetworkSession.ship.world_seed == int(NetworkSession._last_snapshot.seed), "Guest shares host seed")
+				check(NetworkSession.ship.layout_version==WorldLayout.VERSION,"Guest shares host terrain generator version")
+				var island := NetworkSession.ship.get_island("Island_00") as GeneratedIsland
+				check(island != null and island.coast_points==GeneratedIsland.outline(NetworkSession.ship.world_seed*31+17),"Guest reconstructs matching generated coastline")
 				check(NetworkSession.ship.ocean_fish.world_seed == NetworkSession.ship.world_seed, "Guest fish use host world seed")
 				check(NetworkSession.ship.ocean_fish._has_clock, "Guest fish receive host clock through existing snapshots")
 				check(absf(NetworkSession.ship.ocean_fish.shared_time() - float(NetworkSession._last_snapshot.time)) < 0.5, "Guest school movement stays on host timeline")

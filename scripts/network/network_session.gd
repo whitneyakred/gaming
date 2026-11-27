@@ -1,8 +1,9 @@
 extends Node
 ## Desktop ENet co-op. Only the server changes world state and awards items.
 signal status_changed(message: String)
-const PROTOCOL := "holy-ship-coop-20"
+const PROTOCOL := "holy-ship-coop-21"
 var crew_markers: Dictionary = {}
+var loading_overlay: VoyageLoading
 const INPUT_REFRESH_INTERVAL := 0.5
 const DEFAULT_PORT := 24567
 const MAX_CREW := 4
@@ -246,6 +247,12 @@ func welcome() -> void:
 	load_game.call_deferred()
 
 func load_game() -> void:
+	loading_overlay = VoyageLoading.show_loading(get_tree())
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not online:
+		if is_instance_valid(loading_overlay): loading_overlay.queue_free()
+		return
 	VoyageState.reset()
 	MapState.reset()
 	Ship.returning_from_island = false
@@ -269,7 +276,7 @@ func load_game() -> void:
 	galley.set_process_unhandled_input(false)
 	if multiplayer.is_server():
 		if not _restored.is_empty():
-			ship.rebuild_world(int(_restored.get("seed", ship.world_seed)))
+			ship.rebuild_world(int(_restored.get("seed", ship.world_seed)),int(_restored.get("layout_version",1)))
 			MapState.restore_discoveries(_restored.get("discovered", {}))
 			VoyageState.restore_quest(_restored.get("paradise_quest", {}))
 			ship.global_position = _restored.get("position", Vector2.ZERO)
@@ -302,7 +309,9 @@ func load_game() -> void:
 			spawn_crew(1)
 	else:
 		ready_for_world.rpc_id(1)
-	if multiplayer.is_server(): save_world.call_deferred()
+	if multiplayer.is_server():
+		save_world.call_deferred()
+		if is_instance_valid(loading_overlay): loading_overlay.queue_free()
 
 func _disable_local_systems(node: Node) -> void:
 	if node is ShipStation:
@@ -753,7 +762,7 @@ func _send_snapshot() -> void:
 	_snapshot_serial += 1
 	var data := {"serial": _snapshot_serial, "time": Time.get_ticks_msec() / 1000.0, "position": ship.global_position, "rotation": ship.global_rotation, "wind": ship.wind_velocity,
 		"sail": ship.sail_level, "trim": ship.sail_angle_degrees, "wheel": ship.wheel_angle_degrees, "anchor": ship.anchor_deployed,
-		"markers": crew_markers.duplicate(), "fish_taken": ship.ocean_fish.taken.duplicate(), "fish_returns":ship.ocean_fish.returns.duplicate(true), "paradise_quest": VoyageState.quest_data(), "island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": _capture_bag(VoyageState.get_ship_storage()), "port_storage": _capture_bag(VoyageState.get_ship_storage(18, 1)), "drops": VoyageState.floor_items.get("ship", {})}
+		"markers": crew_markers.duplicate(), "fish_taken": ship.ocean_fish.taken.duplicate(), "fish_returns":ship.ocean_fish.returns.duplicate(true), "paradise_quest": VoyageState.quest_data(), "island_locks": ship.get_node("IslandChallenges").locks, "discovered": MapState.discovered_islands, "layout_version":ship.layout_version,"seed": ship.world_seed, "survival": ship.survival.capture(), "crew": crew, "grill": ship.get_node("Cooking").capture(), "storage": _capture_bag(VoyageState.get_ship_storage()), "port_storage": _capture_bag(VoyageState.get_ship_storage(18, 1)), "drops": VoyageState.floor_items.get("ship", {})}
 	data["host_frame_ms"] = _frame_peak_ms
 	_frame_peak_ms = 0.0
 	_shared.extract(data)
@@ -909,9 +918,9 @@ func apply_snapshot(data: Dictionary) -> void:
 	snapshot_received_at = now
 	diagnostics.record_event("snapshot_received", {"serial": data.serial, "host_time": data.time, "gap_ms": snapshot_gap_ms, "ack": data.crew.get(local_id, {}).get("ack", -1)})
 	host_frame_ms = float(data.get("host_frame_ms", 0.0))
-	if int(data.get("seed", ship.world_seed)) != ship.world_seed:
+	if int(data.get("seed", ship.world_seed)) != ship.world_seed or data.layout_version != ship.layout_version:
 		_motion_buffer.clear()
-	ship.rebuild_world(int(data.get("seed", ship.world_seed)))
+	ship.rebuild_world(int(data.get("seed", ship.world_seed)),int(data.layout_version))
 	# Fish locations are reconstructed from the existing seed and host timestamp.
 	# Sprite animation, fading and rendering remain local; no per-fish packets.
 	MapState.accept_markers(data.markers)
@@ -924,6 +933,7 @@ func apply_snapshot(data: Dictionary) -> void:
 	var known_before := MapState.discovered_islands.size()
 	MapState.discovered_islands.merge(data.get("discovered", {}), true)
 	if known_before != MapState.discovered_islands.size(): MapState.changed.emit()
+	if is_instance_valid(loading_overlay): loading_overlay.queue_free()
 	_last_snapshot = data
 	_motion_buffer.push(data)
 	ship.get_node("Cooking").restore(data.get("grill", {}))
@@ -1217,7 +1227,7 @@ func save_world() -> void:
 		return
 	for id: int in players:
 		_remember(id)
-	var data := {"totem_cooldowns":ship.get_node("IslandChallenges").capture_cooldowns(), "paradise_quest": VoyageState.quest_data(), "discovered": MapState.discovered_islands, "seed": ship.world_seed, "version": PROTOCOL, "title": crew_title, "position": ship.global_position, "rotation": ship.global_rotation,
+	var data := {"totem_cooldowns":ship.get_node("IslandChallenges").capture_cooldowns(), "paradise_quest": VoyageState.quest_data(), "discovered": MapState.discovered_islands, "layout_version":ship.layout_version,"seed": ship.world_seed, "version": PROTOCOL, "title": crew_title, "position": ship.global_position, "rotation": ship.global_rotation,
 		"grill": ship.get_node("Cooking").capture(), "storage": VoyageState.get_ship_storage().capture(), "port_storage": VoyageState.get_ship_storage(18, 1).capture(), "drops": VoyageState.floor_items.get("ship", {}), "accounts": accounts}
 	if not VoyageSaves.store(data):
 		set_status(VoyageSaves.last_error)
@@ -1225,11 +1235,12 @@ func save_world() -> void:
 
 func load_world() -> void:
 	var data := VoyageSaves.world(VoyageSaves.selected)
-	if data.get("version") in [PROTOCOL, "holy-ship-coop-19", "holy-ship-coop-18", "holy-ship-coop-17", "holy-ship-coop-16", "holy-ship-coop-15", "holy-ship-coop-14", "holy-ship-coop-13", "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
+	if data.get("version") in [PROTOCOL, "holy-ship-coop-20", "holy-ship-coop-19", "holy-ship-coop-18", "holy-ship-coop-17", "holy-ship-coop-16", "holy-ship-coop-15", "holy-ship-coop-14", "holy-ship-coop-13", "holy-ship-coop-11", "holy-ship-coop-8", "holy-ship-coop-7", "holy-ship-coop-6", "holy-ship-coop-5", "holy-ship-coop-4", "holy-ship-coop-3", "holy-ship-coop-2", "holy-ship-coop-1"]:
 		_restored = data
 		accounts = data.get("accounts", {})
 
 func leave(message: String = "") -> void:
+	if is_instance_valid(loading_overlay): loading_overlay.queue_free()
 	save_world()
 	if internet:
 		HarborService.leave()

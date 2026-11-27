@@ -1,5 +1,7 @@
 # Shared gameplay update — protocol 20
 
+Local feature branch note: [Generated islands](generated-islands.md) describes the protocol-21 terrain work, save compatibility and validation. It has not replaced the protocol-20 production release described here.
+
 ## Backups and cooking provenance
 
 - `backup/systems-revamp-before-gameplay` preserves `systems-revamp` at `bcbd998`.

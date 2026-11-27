@@ -9,6 +9,7 @@ const SEALS := [Vector2(-320, 120), Vector2(0, -280), Vector2(320, 120)]
 const GATE := Vector2(0, 210)
 const BEACON := Vector2(0, -100)
 const COURT := Rect2(-220, -300, 440, 510)
+var generated_ground := false
 var caption: Label
 
 func _ready() -> void:
@@ -24,6 +25,11 @@ func _ready() -> void:
 	land.add_child(coast)
 	add_child(land)
 	super._ready()
+	if generated_ground:
+		var ground := IslandGround.new()
+		ground.z_index = -1
+		add_child(ground)
+		ground.build(outline,abs(hash(key_id)),false)
 	caption = Label.new()
 	caption.position = Vector2(-310, 270) if paradise else Vector2(-310, 210)
 	caption.size = Vector2(620, 120)
@@ -94,9 +100,10 @@ func _draw() -> void:
 		var point := Vector2(cos(angle), sin(angle)) * radius * (1.0 + sin(angle * 5) * 0.035)
 		beach.append(point)
 		grass.append(point * 0.84)
-	draw_colored_polygon(beach, Color("dcca8b"))
-	draw_colored_polygon(grass, Color("4e9866") if paradise else Color("527b64"))
-	for point in [Vector2(-460, -220), Vector2(460, -200), Vector2(-430, 320), Vector2(450, 330)]:
+	if not generated_ground:
+		draw_colored_polygon(beach, Color("dcca8b"))
+		draw_colored_polygon(grass, Color("4e9866") if paradise else Color("527b64"))
+	for point in ([] if generated_ground else [Vector2(-460, -220), Vector2(460, -200), Vector2(-430, 320), Vector2(450, 330)]):
 		draw_circle(point, 55, Color("30694e"))
 		draw_circle(point + Vector2(-15, -15), 36, Color("3d8656"))
 	if paradise:
