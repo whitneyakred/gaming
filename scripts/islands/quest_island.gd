@@ -40,7 +40,7 @@ func refresh() -> void:
 		caption.text = "PARADISE ISLAND\n" + ("Gate open. E at the beacon to finish your voyage." if VoyageState.paradise_quest.get("gate_open", false) else "E at gate · Insert carried keys")
 		if VoyageState.paradise_quest.get("complete", false): caption.text = "PARADISE REACHED\nYour beacon welcomes future sailors. Keep exploring!"
 	else:
-		caption.text = display_name + "\n" + ("Key is away from its pedestal" if VoyageState.has_key(key_id) else "E at each seal: I → II → III\nThen E at the central key pedestal")
+		caption.text = display_name + "\n" + ("Key is away from its pedestal" if VoyageState.has_key(key_id) else "E at each seal: 1, 2, 3\nThen E at the central key pedestal")
 	queue_redraw()
 
 func seal_count() -> int:

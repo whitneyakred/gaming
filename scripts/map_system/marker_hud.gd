@@ -20,7 +20,4 @@ func _draw() -> void:
 		var color := MapState.marker_color(id)
 		draw_circle(point, 8, Color("172331"))
 		draw_circle(point, 6, color, false, 2)
-		if not bounds.has_point(at):
-			var direction := (at - point).normalized()
-			draw_line(point, point + direction * 12, color, 3)
 		draw_string(HarborTheme.UI_FONT, point + Vector2(-28, 25), "%d m" % roundi(origin.distance_to(world)/maxf(MapState.pixels_per_meter,0.001)), HORIZONTAL_ALIGNMENT_CENTER, 62, 15, color)

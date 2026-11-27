@@ -138,8 +138,6 @@ func _draw() -> void:
 		var point := world_to_map(MapState.crew_markers[id])
 		var color := MapState.marker_color(id)
 		draw_circle(point, 9.0, color, false, 2.5)
-		draw_line(point - Vector2(13,0), point + Vector2(13,0), color, 2)
-		draw_line(point - Vector2(0,13), point + Vector2(0,13), color, 2)
 
 	if MapState.has_paradise_position:
 		var paradise_map_position := world_to_map(MapState.paradise_position)

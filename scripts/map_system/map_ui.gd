@@ -5,7 +5,7 @@ var marker_layer: CanvasLayer
 func _ready() -> void:
 	close_map()
 	marker_layer = CanvasLayer.new()
-	marker_layer.layer = 7
+	marker_layer.layer = 19
 	marker_layer.add_child(load("res://scripts/map_system/marker_hud.gd").new())
 	get_parent().add_child.call_deferred(marker_layer)
 
@@ -14,7 +14,7 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.echo:
 		return
 
-	if event.is_action_pressed("toggle_map"):
+	if event.is_action_pressed("toggle_map") or (event is InputEventKey and event.pressed and event.physical_keycode == KEY_TAB):
 		if MapState.map_open:
 			close_map()
 		else:
