@@ -1,5 +1,34 @@
 # Networking playtest release and rollback
 
+## November 26 map-dot playtest build (protocol 20)
+
+- Source: `89e6b5d` (map change `805bf97`), existing `systems-revamp` branch.
+- Pages: `4ace7b4b-d39a-4806-a4c3-0a1b84cc0cb9`.
+- Worker: `967e3ad0-3039-4a0d-ae0a-70325fb20855`.
+- Rollback pair: Pages `d857bec9-d44f-4166-a0d6-f79021bf75c6`,
+  Worker `b46bc34c-85f4-477c-9866-6b0d4b620fa3`.
+
+Map destinations are filled dots. Click/tap once to place, again anywhere inside
+the map to clear only your destination, then again to place anew. C no longer
+clears it. Four active peers receive distinct red/blue/green/purple colors.
+Closed-map distance indicators retain their existing circle presentation.
+
+Validation: clean parser/export; 32 shared-interaction checks (including four
+arbitrary peer IDs and delayed clear acknowledgements), 84 responsiveness checks,
+smoothing suite, 26 RTC checks, native access host/client, 80 relay gameplay checks,
+and 19 service tests pass. Rendered map inspected; final browser host/join,
+direct WebRTC and forced fallback passed without runtime errors. Live HTML/JS/PCK
+hashes and protocol match the export.
+
+Test harness fixes: relay guests now join this run's explicit room rather than a
+possibly stale cached listing; expanded gameplay has a 100-second timeout with
+phase diagnostics. An initial browser run timed out awaiting direct traffic; the
+diagnostic rerun passed. This is not a guarantee that STUN-only direct connections
+work on every network. Keep relay fallback and use the next separate-network
+phone/computer playtest to check real latency and jitter. No production smoothing
+parameters, transport behavior, dependencies or paid services changed.
+
+
 ## November 26 death-drop follow-up (protocol 20)
 
 - Source: `9cfb6a9`, pushed to the existing `systems-revamp` branch with the
