@@ -1,5 +1,34 @@
 # Networking playtest release and rollback
 
+## November 27 mining and item-art playtest (protocol 23)
+
+- Source: `8251233` (map update `26d0743`), local `codex/procedural-islands`.
+- Pages: `38a9069d-e9d3-4f4a-ad7a-5d37df2707c8`.
+- Worker: `8242009b-8fd7-4ed6-8c52-1a9e231e1597`.
+- Rollback pair: Pages `31d6f0c5-e4d9-4b13-b367-f15461c181b7`, Worker `c15e1b91-8447-4179-973d-5d58de2d52c2` (protocol 22). Restore both together.
+- Website: https://holy-ship.pages.dev/play/
+
+Includes shared stone mining, palm coconut drops/eating, cropped pixel-art icons
+for the entire item catalog, prop/player depth ordering, larger clipped key-search
+circles and owner labels on shared map dots. See [implementation and artwork
+notes](mining-and-item-art.md). Existing generated island geometry and tree IDs
+are preserved. Pickaxes are supplied in the second ship chest; older saves are
+upgraded once subject to chest capacity.
+
+Live HTML, JavaScript and decompressed game-pack hashes match the export; health
+reports protocol 23. Parser/export, 3,328 resource checks, 12 save checks, 27
+mining/marker relay checks, the full 84-check relay scenario, 19 service tests,
+responsiveness, survival, world interactions and smoothing passed. Exported
+browser WebRTC and fallback checks passed. Refresh both devices before joining.
+The deployed website also passed host/join, direct traffic and forced fallback
+in two browser sessions without runtime errors.
+
+No merge or GitHub push. `systems-revamp` remains at
+`3a26492bd39a856a15e8f7761b0519d3f52daf88`; Pages uses its existing production
+channel name while directly uploading this feature branch's files. No new paid
+services or dependencies. Protocol 22 may reject saves rewritten by protocol 23;
+preserve a prior slot if testing rollback.
+
 ## November 27 generated-island forestry playtest (protocol 22)
 
 - Source: `b28d0e4`, local `codex/procedural-islands` branch. No GitHub push or merge; `systems-revamp` remains `3a26492bd39a856a15e8f7761b0519d3f52daf88`.

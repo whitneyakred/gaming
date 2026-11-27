@@ -1,5 +1,9 @@
 # Holy Ship multiplayer system and operations guide
 
+Current website playtest: protocol 23 on `codex/procedural-islands`, with shared
+mining and named markers. See [release and rollback](networking-release-rollback.md)
+and [mining implementation](mining-and-item-art.md). `systems-revamp` is unchanged.
+
 Implementation reference as of November 15, 2026. Start here to understand the
 system; use [release setup](online-services-setup.md) for setup and
 [multiplayer testing](multiplayer-testing.md) for the play-test checklist.

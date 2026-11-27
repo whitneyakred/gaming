@@ -25,6 +25,7 @@ Trunks and rocks remain pass-through scenery. Collision, ores and crafting are o
 - 12 saved-world checks, including persistent mined rubble and felled trees.
 - 27 checks across three real relay clients for mining, shared drops, regrowth, shared marker positions and owner names.
 - Existing responsiveness (86), world interactions (32), survival (84) and movement smoothing checks passed. Relay service tests: 19 passing.
+- The final frozen-export full three-client relay scenario passed all 84 checks; browser host/join, direct WebRTC and forced relay fallback passed without runtime errors.
 - Browser rendering inspected for hotbar size, rocks, stump ordering, enlarged key circles and owner labels. Intel UHD at 1280×720: isolated island frame sample approximately 12.1 ms median, 18.2 ms p95, no runtime errors. Native foliage/rock build measured about 39 ms.
 - One run concurrent with asset compression, service load tests and browser benchmarking hit a stale inventory fixture/drop failure and downstream checks. The isolated gameplay rerun passed. The fixture now waits for the actual host inventory revision and guest drop snapshot, and reserves the receiving player's pickup space instead of depending on the earlier chest race winner. A later export rebuilt assets watched by the local development relay and interrupted that test session; final verification uses frozen assets and no concurrent exports.
 
