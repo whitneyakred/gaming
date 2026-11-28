@@ -58,11 +58,12 @@ func run() -> void:
 		var x = activity._cut_x()
 		activity._press(Vector2(x, 230))
 		activity._move(Vector2(x, 350))
-		check(activity.knife_direction.is_equal_approx(Vector2.DOWN), "Knife points down along the cut")
+		check(activity.KNIFE_DIRECTION == Vector2(0.18, 1.0), "Knife keeps its fixed downward angle")
 		if i == 0:
 			activity.pointer = Vector2(x, 350)
 			await capture("knife")
 		activity._release(Vector2(x, 470))
+		if i == 1: await capture("partial-fish")
 	check(activity.stage == activity.Stage.ADD_FISH and activity.pieces.size() == 4, "Three cuts create four fish pieces")
 	await capture("pot")
 	activity._press(activity.pieces[0])

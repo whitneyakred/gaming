@@ -28,8 +28,7 @@ var selected_piece := -1
 var dragging := false
 var valid_stroke := false
 var pointer := Vector2.ZERO
-var knife_direction := Vector2.DOWN
-var stroke_position := Vector2.ZERO
+const KNIFE_DIRECTION := Vector2(0.18, 1.0)
 var heat := 0.0
 var temperature := 0.0
 var elapsed := 0.0
@@ -63,6 +62,7 @@ func _gui_input(event: InputEvent) -> void:
 		if event.pressed: _press(pointer)
 		else: _release(pointer)
 	elif event is InputEventMouseMotion: _move(pointer)
+	queue_redraw()
 	accept_event()
 func _cut_x() -> float:
 	return 235.0 + 290.0 * float(cuts + 1) / 4.0
@@ -75,8 +75,6 @@ func _press(point: Vector2) -> void:
 	hint = ""
 	match stage:
 		Stage.FISH:
-			knife_direction = Vector2.DOWN
-			stroke_position = point
 			valid_stroke = absf(point.x - _cut_x()) < 30 and point.y >= 195 and point.y <= 270
 		Stage.ADD_FISH, Stage.SKEWER:
 			for i in range(pieces.size() - 1, -1, -1):
@@ -94,10 +92,6 @@ func _press(point: Vector2) -> void:
 func _move(point: Vector2) -> void:
 	if not dragging or closed: return
 	if stage == Stage.FISH:
-		var motion := point - stroke_position
-		if motion.length_squared() >= 9:
-			knife_direction = motion.normalized()
-			stroke_position = point
 		valid_stroke = valid_stroke and absf(point.x - _cut_x()) < 40
 	elif stage == Stage.HEAT: heat = clampf((point.x - 140) / 480.0, 0.0, 1.0)
 	elif selected_piece >= 0: pieces[selected_piece] = point
@@ -155,7 +149,7 @@ func _draw_piece(point: Vector2, cooked: bool = false, piece_size := Vector2(62,
 	draw_texture_rect(COOKED_PIECE if cooked else RAW_PIECE, Rect2(point - piece_size * 0.5, piece_size), false)
 func _draw_knife() -> void:
 	var knife_size := KNIFE.get_size() * 0.11
-	var angle := knife_direction.angle() - Vector2(knife_size.x, -knife_size.y).angle()
+	var angle := KNIFE_DIRECTION.angle() - Vector2(knife_size.x, -knife_size.y).angle()
 	# The blade tip stays at the cursor; the handle trails the cutting direction.
 	draw_set_transform(_origin() + pointer * _scale_factor(), angle, Vector2.ONE * _scale_factor())
 	draw_texture_rect(KNIFE, Rect2(Vector2(-knife_size.x, 0), knife_size), false)
@@ -191,7 +185,10 @@ func _draw() -> void:
 	_board(Rect2(28, 144, 704, 422))
 	match stage:
 		Stage.FISH:
-			draw_texture_rect(fish_texture, Rect2(235, 270, 290, 165), false)
+			var remaining := 1.0 - cuts / 4.0
+			var source := fish_texture.get_size()
+			# Keep the remaining fish in place; remove the completed left-hand cuts.
+			draw_texture_rect_region(fish_texture, Rect2(235 + cuts * 72.5, 270, 290 * remaining, 165), Rect2(source.x * cuts / 4.0, 0, source.x * remaining, source.y))
 			for i in cuts:
 				_draw_piece(Vector2(295 + i * 84, 510))
 			draw_dashed_line(Vector2(_cut_x(), 230), Vector2(_cut_x(), 470), Color("fff0d8"), 4, 10)
