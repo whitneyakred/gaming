@@ -4,8 +4,8 @@ extends ShipStation
 const CLOTH := preload("res://assets/props/sail_pixel.tres")
 const STRIPS := 16
 @export_range(1.0, 90.0) var trim_speed_degrees: float = 34.0
-@export var sail_width := 128.0
-@export var reef_heights := PackedFloat32Array([0.0, 11.0, 19.0, 29.0])
+@export var sail_width := 256.0
+@export var reef_heights := PackedFloat32Array([0.0, 22.0, 38.0, 58.0])
 @export_range(0.1, 1.0) var obscured_opacity := 0.4
 var cloth_height := 0.0
 var cloth_opacity := 1.0
@@ -60,8 +60,6 @@ func _draw() -> void:
 	var tint := Color(1, 1, 1, cloth_opacity)
 	draw_texture_rect_region(CLOTH, Rect2(-sail_width * 0.5, -5, sail_width, 6), Rect2(0, 0, source.x, yard_height), tint)
 	if cloth_height < 0.5:
-		draw_rect(Rect2(-sail_width * 0.45, 1, sail_width * 0.9, 4), Color(0.72, 0.65, 0.52, cloth_opacity))
-		for x in [-35, 0, 35]: draw_rect(Rect2(x, 0, 2, 6), Color(0.34, 0.29, 0.23, cloth_opacity))
 		return
 	var width := sail_width / STRIPS
 	var amplitude := (0.6 + 1.8 * speed_ratio()) * minf(cloth_height / 14.0, 1.0)

@@ -4,7 +4,7 @@ Anchor, winch, narrow canvas sail and marked steering wheel were generated with 
 
 The anchor follows the existing authoritative deployed flag, animates over the port rail, splashes once at water impact, and leaves a braided rope attached to the winch. Initial saved/joined states initialize silently. Reversing deployment retrieves the anchor without an extra impact.
 
-The sail retains furled plus three existing speed settings. Sixteen cloth strips animate cosmetically with speed and wind; no physics bodies or network messages are added. The 128-pixel-wide canvas billows toward local UP, matching the wind-catching normal used for propulsion. Canvas fades to 40% over the local player's head, including when the ship or sail rotates, but remains fully opaque while that player operates the sail. Sail width, reef heights and opacity are Inspector properties.
+The sail retains furled plus three existing speed settings. Sixteen cloth strips animate cosmetically with speed and wind; no physics bodies or network messages are added. The 256-pixel-wide canvas billows toward local UP, matching the wind-catching normal used for propulsion. Canvas fades to 40% over the local player's head, including when the ship or sail rotates, but remains fully opaque while that player operates the sail. The three cloth heights are 22, 38 and 58 pixels; furling leaves only the wooden yard. Sail width, reef heights and opacity are Inspector properties.
 
 Taking the helm places the operator 40 pixels astern of the wheel, facing it. Existing authoritative crew snapshots carry the position. Interaction range includes the operating spot so releasing and retaking control remains possible. The workbench aligns with the station centerline.
 
