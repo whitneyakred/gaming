@@ -83,6 +83,18 @@ func run() -> void:
 	field._local_time = 20.0
 	field.synchronize(1234.0)
 	check(absf(field.shared_time()-1234.0) < 0.02, "Late join starts at host time")
+	field.claims["caught-test"] = 1
+	check(field.release_fish("caught-test", 1, true), "Caught fish releases its reservation")
+	check(absf(float(field.taken["caught-test"]) - field.shared_time() - 300.0) < 0.1, "Caught fish gets a five-minute cooldown")
+	var saved_offset := field._offset
+	field._offset += 299.0
+	check(field.unavailable("caught-test"), "Caught fish stays unavailable before five minutes")
+	field._offset += 2.0
+	check(not field.unavailable("caught-test"), "Caught fish becomes available after five minutes")
+	field._offset = saved_offset
+	for i in 256: field.taken[str(i)] = field.shared_time() + 300.0
+	check(field.claim_near(Vector2.ZERO, 1).is_empty() and field.unavailable("caught-test"), "Full tracking budget preserves active cooldowns")
+	field.taken.clear()
 	field._navigation.obstacles.clear()
 	field._navigation.obstacles.append(PackedVector2Array([Vector2(-5000,-5000),Vector2(5000,-5000),Vector2(5000,5000),Vector2(-5000,5000)]))
 	field._navigation.prepare()

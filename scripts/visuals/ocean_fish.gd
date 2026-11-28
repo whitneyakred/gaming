@@ -3,6 +3,7 @@ extends Node2D
 ## Bounded, recycled schools; one atlas and one MultiMesh for the entire field.
 @export_range(1, 256) var max_fish: int = 125
 @export_range(0.2, 5.0) var arrival_seconds: float = 1.6
+@export_range(1.0, 1800.0) var caught_respawn_seconds: float = 300.0
 @export var menu_mode: bool = false
 @export var menu_center := Vector2(478, 265)
 @export var menu_extent := Vector2(600, 360)
@@ -43,6 +44,8 @@ func claim_near(point: Vector2, owner: int) -> Dictionary:
 		if now >= float(returns[id].time)+float(returns[id].duration): returns.erase(id)
 	for id in taken.keys():
 		if float(taken[id]) <= now: taken.erase(id)
+	# Reserve room for pending catches rather than evicting an unexpired cooldown.
+	if taken.size() + claims.size() >= 256: return {}
 	var cell := Vector2i((point / FishSchool.CELL_SIZE).floor())
 	var best := {}
 	var distance := 110.0
@@ -71,8 +74,7 @@ func release_fish(id: String, owner: int, caught: bool) -> bool:
 	if id.is_empty() or claims.get(id, -1) != owner: return false
 	claims.erase(id)
 	if caught:
-		if taken.size() >= 256: taken.erase(taken.keys()[0])
-		taken[id] = shared_time() + 90.0
+		taken[id] = shared_time() + caught_respawn_seconds
 	return true
 
 func _ready() -> void:
