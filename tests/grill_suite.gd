@@ -31,6 +31,8 @@ func run() -> void:
 	check(grill.handle(service,{"action":"finish","token":token}),"Completed preparation awards meal")
 	check(not grill.handle(service,{"action":"finish","token":token}),"Repeated completion rejected")
 	check(service.inventory.get_quantity(&"dried_fish")==1,"Exactly one meal awarded")
+	check(not service.hud.grill_open,"Completing food closes cooking station")
+	service.hud.grill_open = true
 	grill.handle(service,{"action":"start","index":0,"revision":service.view_revision})
 	grill.release_for(1)
 	grill.release_for(1)

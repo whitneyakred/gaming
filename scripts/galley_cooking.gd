@@ -4,7 +4,9 @@ signal completed
 signal cancelled
 enum Stage { FISH, ADD_FISH, HEAT, SKEWER, DONE }
 const TITLES := ["Cut the fish", "Into the pot", "Turn on the heat", "Build your kabob", "Supper is ready"]
-const HELP := ["Drag down each dotted line to slice.", "Drag the fish pieces into the pot.", "Click the stove. Let the fish simmer.", "Lift each piece out of the pot and onto the skewer.", "One fish kabob, ready for the voyage."]
+const HELP := ["Drag down each dotted line to slice.", "Drag the fish pieces into the pot.", "Slide the heat into the green zone to cook.", "Lift each piece out of the pot and onto the skewer.", "One fish kabob, ready for the voyage."]
+const HEAT_MIN := 0.6
+const HEAT_MAX := 0.8
 const POT_CENTER := Vector2(535, 345)
 const SKEWER_CENTER := Vector2(205, 345)
 const FONT := preload("res://assets/fonts/rye/Rye-Regular.ttf")
@@ -28,7 +30,7 @@ var valid_stroke := false
 var pointer := Vector2.ZERO
 var knife_direction := Vector2.DOWN
 var stroke_position := Vector2.ZERO
-var heat := false
+var heat := 0.0
 var temperature := 0.0
 var elapsed := 0.0
 var threaded := 0
@@ -82,7 +84,8 @@ func _press(point: Vector2) -> void:
 					selected_piece = i
 					break
 		Stage.HEAT:
-			if Rect2(260, 498, 240, 52).has_point(point): heat = not heat
+			dragging = Rect2(120, 490, 520, 60).has_point(point)
+			if dragging: heat = clampf((point.x - 140) / 480.0, 0.0, 1.0)
 		Stage.DONE:
 			if Rect2(260, 498, 240, 52).has_point(point):
 				closed = true
@@ -96,6 +99,7 @@ func _move(point: Vector2) -> void:
 			knife_direction = motion.normalized()
 			stroke_position = point
 		valid_stroke = valid_stroke and absf(point.x - _cut_x()) < 40
+	elif stage == Stage.HEAT: heat = clampf((point.x - 140) / 480.0, 0.0, 1.0)
 	elif selected_piece >= 0: pieces[selected_piece] = point
 func _release(point: Vector2) -> void:
 	if not dragging or closed: return
@@ -132,7 +136,7 @@ func _advance() -> void:
 func _process(delta: float) -> void:
 	if closed: return
 	elapsed += delta
-	if stage == Stage.HEAT and heat:
+	if stage == Stage.HEAT and heat >= HEAT_MIN and heat <= HEAT_MAX:
 		temperature = minf(1, temperature + delta / boil_seconds)
 		if temperature >= 1: _advance()
 	queue_redraw()
@@ -161,9 +165,14 @@ func _pot() -> void:
 	if stage == Stage.ADD_FISH or stage == Stage.HEAT:
 		var count := 4 - pieces.size() if stage == Stage.ADD_FISH else 4
 		for i in count: _draw_piece(_pot_piece_home(i), temperature > 0.5, POT_PIECE_SIZE)
-	if stage == Stage.HEAT and heat:
+	if stage == Stage.HEAT and heat > 0.0:
 		for i in 3:
-			draw_rect(Rect2(POT_CENTER + Vector2(-28 + i * 24, 78), Vector2(9, 10 + sin(elapsed * 8 + i) * 3)), Color("d78d55"))
+			# Small tongues stay inside the three dark firebox slots.
+			var base := POT_CENTER + Vector2(-25 + i * 24, 100)
+			var height := 5.0 + heat * 5.0 + sin(elapsed * 8 + i) * 1.5
+			draw_rect(Rect2(base + Vector2(-3, -height + 3), Vector2(6, height - 3)), Color("c77038"))
+			draw_rect(Rect2(base + Vector2(-1, -height), Vector2(3, height)), Color("edb957"))
+			draw_rect(Rect2(base + Vector2(-1, -4), Vector2(2, 4)), Color("ffe1a0"))
 	if stage == Stage.HEAT or stage == Stage.SKEWER:
 		for i in 4:
 			var rise := fmod(elapsed * 23 + i * 22, 85)
@@ -197,11 +206,11 @@ func _draw() -> void:
 			for point in pieces: _draw_piece(point, stage == Stage.SKEWER, POT_PIECE_SIZE if stage == Stage.SKEWER else Vector2(62, 46))
 		Stage.HEAT:
 			_pot()
-			_text(Vector2(70, 295), "A gentle simmer.", 21)
 			draw_rect(Rect2(70, 365, 245, 15), Color("7b6b65"))
 			draw_rect(Rect2(73, 368, 239 * temperature, 9), Color("e6b476"))
-			_panel(Rect2(260, 498, 240, 52), Color("e8c397"))
-			_text(Vector2(289, 532), "Heat off" if heat else "Light the stove", 22)
+			draw_rect(Rect2(140, 514, 480, 12), Color("796d63"))
+			draw_rect(Rect2(140 + 480 * HEAT_MIN, 508, 480 * (HEAT_MAX - HEAT_MIN), 24), Color("8caa72"))
+			_panel(Rect2(132 + heat * 480, 501, 16, 38), Color("f1d8ad"))
 		Stage.DONE:
 			draw_texture_rect(KABOB, Rect2(265, 195, 230, 265), false)
 			_panel(Rect2(260, 498, 240, 52), Color("e8c397"))

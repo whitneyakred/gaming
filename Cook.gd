@@ -78,6 +78,7 @@ func handle(service: InventoryService, args: Dictionary) -> bool:
 		if Time.get_ticks_msec() - started < 8000: return false
 		active_id = 0
 		_give(service, &"dried_fish", 1)
+		service.hud.close()
 		service.feedback.emit("Fish kabob ready!")
 	else: return false
 	changed.emit()

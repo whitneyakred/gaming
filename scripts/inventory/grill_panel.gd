@@ -49,7 +49,7 @@ func _process(_delta: float) -> void:
 		playing_token = -1
 	if not visible: return
 	menu.get_parent().visible = model.active_id != id
-	status.text = "Ship's Galley" if model.active_id == 0 else "Another sailor is cooking…"
+	status.text = "Cooking Station" if model.active_id == 0 else "Another sailor is cooking…"
 	start.disabled = model.active_id != 0
 	recover.visible = not model.fish.is_empty() or not model.fuel.is_empty()
 	if model.active_id == id and playing_token != model.token and submitted_token != model.token:
@@ -59,7 +59,8 @@ func _process(_delta: float) -> void:
 		var attempt := playing_token
 		activity.completed.connect(func():
 			submitted_token = attempt
-			hud.request_grill({"action": "finish", "token": attempt}))
+			hud.request_grill({"action": "finish", "token": attempt})
+			menu.get_parent().hide())
 		activity.cancelled.connect(func():
 			submitted_token = attempt
 			hud.request_grill({"action": "cancel", "token": attempt}))
