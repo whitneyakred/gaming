@@ -71,7 +71,7 @@ func _draw() -> void:
 	if active:
 		var at: Vector2 = service.player.visual_position() + Vector2(0,-37)
 		var duration := 2.0 if item == &"medpack" else HOLD_SECONDS
-		var color := Color("a8edb8") if item == &"medpack" else Color("70caff")
+		var color := Color("a8edb8") if item == &"medpack" else Color("f2ce62")
 		draw_arc(at,10,0,TAU,32,Color(0.04,0.12,0.16,0.8),4.0)
 		draw_arc(at,10,-PI*0.5,-PI*0.5+TAU*clampf(elapsed/duration,0,1),32,color,3.0)
 	for crumb in crumbs:
